@@ -2,6 +2,7 @@ import { useLayoutEffect } from 'react'
 import { anno } from '@/core/anno'
 import { ViteNelPalco } from '@/components/vite/ViteNelPalco'
 import { regolaCamera } from '@/components/vite/camera'
+import { regolaFilm } from '@/components/film/raccordo'
 
 /*
  * Solo per `npm run anteprime` (scripts/anteprime.mjs): la tavola da sola, su fondo trasparente,
@@ -13,6 +14,8 @@ export function Anteprima() {
     const p = Number(qs.get('p') ?? 0)
     // le tavole dei pannelli: l'inquadratura della stagione, ma mai troppo stretta
     regolaCamera.zoomMax = Number(qs.get('zoom') ?? Infinity)
+    // i pannelli sono tavole incise anche nelle fasi con un film: niente raccordo verso la clip
+    regolaFilm.spento = true
     anno.set(p)
     document.documentElement.classList.add('anteprima')
     document.documentElement.dataset.svela = 'si'

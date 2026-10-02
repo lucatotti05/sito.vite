@@ -1,8 +1,10 @@
 /*
  * Genera le anteprime dei pannelli dello spazio (public/anteprime/fasi/NN/):
- *   fermo.webp  512 × 683, la fase al suo inizio (o il primo fotogramma della clip);
- *   ciclo.webp  atlante 4 × 3 di 12 fotogrammi lungo la fase (la crescita della tavola o la clip),
- *               per il ciclo vivo del pannello centrale.
+ *   fermo.webp  512 × 683, la tavola nel momento più rappresentativo della fase;
+ *   ciclo.webp  atlante 4 × 3 di 12 fotogrammi lungo la fase (la crescita della tavola), per il
+ *               ciclo vivo del pannello centrale.
+ * Tutte le fasi sono tavole incise, anche quelle con un film: i pannelli dell'arco sono una serie.
+ * FASI=3,4 per rigenerare solo alcune fasi.
  * Uso: con il sito in esecuzione (npm run dev), `npm run anteprime [-- http://localhost:5180/]`.
  * La tavola si fotografa in modalità ?anteprima (src/Anteprima.tsx) a 1440 × 900 con l'inquadratura
  * della stagione, ma con lo zoom limitato (1,6): il soggetto della fase resta leggibile e la pianta
@@ -70,11 +72,14 @@ async function componi(sorgenti, col, rig) {
   return Buffer.from(url.split(',')[1], 'base64')
 }
 
+const SOLO = process.env.FASI ? process.env.FASI.split(',').map(Number) : null
 for (const [i, f] of fasi.entries()) {
+  if (SOLO && !SOLO.includes(f.numero)) continue
   const nn = String(i + 1).padStart(2, '0')
   const dir = path.join(radice, 'public/anteprime/fasi', nn)
   fs.mkdirSync(dir, { recursive: true })
-  const m = film.find((x) => x.fase === f.numero)
+  const m = null // anche le fasi con un film hanno la loro tavola (vedi sopra)
+  void film
   let fotogrammi
   if (m) {
     // la clip: primo fotogramma e 12 fotogrammi lungo la clip, ritagliati in 3:4 sul soggetto

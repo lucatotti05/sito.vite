@@ -93,9 +93,12 @@ export type StatoFilm = {
 
 let chiave = ''
 let ultimo: StatoFilm | null = null
+/** Solo per le anteprime dei pannelli (src/Anteprima.tsx): la tavola senza il raccordo col film. */
+export const regolaFilm = { spento: false }
 
 /** Lo stato del momento film al punto p dell'anno (null fuori dai momenti film). */
 export function statoFilm(p: number, vw: number, H: number): StatoFilm | null {
+  if (regolaFilm.spento) return null
   const c = `${p}|${vw}|${H}|${preferenze.get().ridotto}`
   if (c === chiave) return ultimo
   chiave = c
