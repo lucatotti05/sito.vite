@@ -264,7 +264,7 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
       const prof = Math.min(1, Math.max(0, (ry / R + 1) / 2)) // 0 lontano, 1 vicino
       const s = 0.72 + 0.5 * prof * k + (1 - k) * 0.28
       const scelta = j === o.scelta
-      const op = scelta || o.scelta < 0 ? 1 : lerp(1, 0.35 + 0.4 * prof, k)
+      const op = scelta || o.scelta < 0 ? 1 : lerp(1, 0.2 + 0.4 * prof, k)
       const sfoca = scelta || o.scelta < 0 ? 0 : (1 - prof) * 2.4 * k
       const m = rMarc.current[j]
       if (m) {
@@ -282,7 +282,8 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
       if (e) {
         e.setAttribute('transform', `translate(${ex.toFixed(1)} ${ey.toFixed(1)})${quiete ? '' : ` scale(${s.toFixed(3)})`}`)
         e.setAttribute('text-anchor', ancora)
-        e.style.opacity = quiete ? '' : `calc(var(--vis, 1) * ${op.toFixed(3)})`
+        // le etichette che arretrano si spengono prima dei marcatori: davanti resta da leggere solo la scelta
+        e.style.opacity = quiete ? '' : `calc(var(--vis, 1) * ${(scelta || o.scelta < 0 ? 1 : op * lerp(1, 0.45, k)).toFixed(3)})`
         e.style.filter = sfoca > 0.05 ? `blur(${sfoca.toFixed(2)}px)` : ''
       }
       const gd = rGuide.current[j]

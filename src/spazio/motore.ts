@@ -178,6 +178,17 @@ class Motore {
     ciclo.aggiungi(this.fotogramma)
   }
 
+  /** Carica la texture sulla GPU quando il browser è libero: mai dentro un fotogramma di movimento. */
+  private carica(t: THREE.Texture, poi: () => void) {
+    const fai = () => {
+      this.renderer.initTexture(t)
+      poi()
+      this.sporca()
+    }
+    if ('requestIdleCallback' in window) requestIdleCallback(fai, { timeout: 300 })
+    else setTimeout(fai, 30)
+  }
+
   sporca = () => {
     this.sporco = true
     ciclo.sveglia()
@@ -367,10 +378,7 @@ class Motore {
       while (k < ordine.length) {
         const i = ordine[k++]
         const t = await caricaTexture(urlFermo(i))
-        if (t) {
-          this.pannelli[i].fermo = t
-          this.sporca()
-        }
+        if (t) this.carica(t, () => (this.pannelli[i].fermo = t))
       }
     }
     lavora()
@@ -403,13 +411,15 @@ class Motore {
   impostaIstantanea(i: number, img: HTMLCanvasElement | ImageBitmap, soggettoX: number) {
     const p = this.pannelli[i]
     if (!p) return
-    libera(p.istantanea)
-    p.istantanea = new THREE.Texture(img as unknown as HTMLImageElement)
-    Object.assign(p.istantanea, { flipY: false, colorSpace: THREE.NoColorSpace, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter, anisotropy: 4 })
-    p.istantanea.needsUpdate = true
-    p.istAspetto = img.width / img.height
-    p.soggettoX = soggettoX
-    this.sporca()
+    const t = new THREE.Texture(img as unknown as HTMLImageElement)
+    Object.assign(t, { flipY: false, colorSpace: THREE.NoColorSpace, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter, anisotropy: 4 })
+    t.needsUpdate = true
+    this.carica(t, () => {
+      libera(p.istantanea)
+      p.istantanea = t
+      p.istAspetto = img.width / img.height
+      p.soggettoX = soggettoX
+    })
   }
   haIstantanea = (i: number) => !!this.pannelli[i]?.istantanea
   /** Lo stato della fase al momento dell'uscita. */
@@ -442,12 +452,12 @@ class Motore {
       const d = Math.abs(p.i - c)
       if (d <= 1 && !p.ciclo && !p.cicloInCorso && !preferenze.get().ridotto) {
         p.cicloInCorso = true
-        caricaTexture(urlCiclo(p.i)).then((t) => {
+        // l'atlante si vede circa alla sua misura: niente mipmap (caricarle costerebbe un fotogramma)
+        caricaTexture(urlCiclo(p.i), false).then((t) => {
           p.cicloInCorso = false
           if (!t) return
           if (Math.abs(p.i - Math.round(spazio.arco)) > 2) return libera(t)
-          p.ciclo = t
-          this.sporca()
+          this.carica(t, () => (p.ciclo = t))
         })
       } else if (d > 2 && p.ciclo) {
         libera(p.ciclo)

@@ -120,6 +120,7 @@ function rotella(e: WheelEvent) {
 function giu(e: PointerEvent) {
   const st = spazio.get()
   if (st.livello !== 'anno' || st.volo || !lenis || e.button !== 0) return
+  document.documentElement.classList.add('trascina')
   trascina = { id: e.pointerId, x0: e.clientX, y0: e.clientY, s0: lenis.animatedScroll, asse: null, campioni: [{ t: performance.now(), x: e.clientX }], mosso: false }
   ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
 }
@@ -154,6 +155,7 @@ function su(e: PointerEvent) {
   if (!trascina || e.pointerId !== trascina.id) return
   const t = trascina
   trascina = null
+  document.documentElement.classList.remove('trascina')
   const canvas = e.currentTarget as HTMLElement
   canvas.style.cursor = ''
   if (!lenis) return

@@ -34,6 +34,13 @@ html:not(.scorre) body {
 html[data-modo="fase"] .spazio-tela {
   pointer-events: none;
 }
+/* durante il trascinamento dell'arco niente selezione di testo */
+.spazio-tela,
+html.trascina {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
 
 /* il contenitore virtuale dell'arco (Lenis orizzontale): non si vede e non si tocca */
 .arco-virtuale {
@@ -120,6 +127,8 @@ html[data-dentro="si"] .calendario {
   border: 0;
   background: none;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
   transition: color var(--d-micro) var(--ease-out), opacity var(--d-ui) var(--ease-out);
 }
 .angolo button {
@@ -136,16 +145,16 @@ html[data-dentro="si"] .calendario {
 .angolo-bs { --k: 2; }
 .angolo-bd { --k: 3; }
 .angolo-ts {
-  left: var(--angolo);
-  top: var(--angolo);
+  left: calc(var(--angolo) + env(safe-area-inset-left, 0px));
+  top: calc(var(--angolo) + env(safe-area-inset-top, 0px));
 }
 .angolo-td {
-  right: var(--angolo);
-  top: var(--angolo);
+  right: calc(var(--angolo) + env(safe-area-inset-right, 0px));
+  top: calc(var(--angolo) + env(safe-area-inset-top, 0px));
 }
 .angolo-bs {
-  left: var(--angolo);
-  bottom: var(--angolo);
+  left: calc(var(--angolo) + env(safe-area-inset-left, 0px));
+  bottom: calc(var(--angolo) + env(safe-area-inset-bottom, 0px));
   display: flex;
   gap: 0.5em;
   align-items: baseline;
@@ -165,8 +174,8 @@ html[data-dentro="si"] .calendario {
   color: var(--avorio-60);
 }
 .angolo-bd {
-  right: var(--angolo);
-  bottom: var(--angolo);
+  right: calc(var(--angolo) + env(safe-area-inset-right, 0px));
+  bottom: calc(var(--angolo) + env(safe-area-inset-bottom, 0px));
 }
 .angolo-bd[aria-pressed="true"] {
   color: var(--avorio);

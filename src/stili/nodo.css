@@ -224,7 +224,8 @@ html.pratica-aperta .nodo-invito {
   position: fixed;
   z-index: 3;
   left: var(--margine-x);
-  top: var(--margine-top);
+  /* sotto la voce dell'angolo in alto a sinistra */
+  top: calc(var(--angolo) + var(--s-6));
   bottom: calc(var(--striscia-h) + var(--s-3) + var(--col-4) * 0.712 * 0.7 + var(--s-7));
   width: var(--col-4);
   overflow: auto;

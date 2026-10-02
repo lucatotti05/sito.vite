@@ -23,6 +23,8 @@ export function Spazio() {
   const tela = useRef<HTMLCanvasElement>(null)
   const livello = useSpazio((d) => d.livello)
   const volo = useSpazio((d) => d.volo)
+  const dentro = useSpazio((d) => d.dentro)
+  const aperta = useSpazio((d) => d.aperta)
 
   useEffect(() => {
     const c = tela.current
@@ -67,6 +69,9 @@ export function Spazio() {
   return (
     <>
       <canvas ref={tela} className="spazio-tela" aria-hidden="true" />
+      <p className="sr-only" aria-live="polite">
+        {dentro ? `Dentro la fase ${FASI[aperta].titolo}. Esc per tornare all’anno.` : livello === 'anno' && !volo ? 'Vista dell’anno: frecce per scorrere le fasi, Invio per entrare.' : ''}
+      </p>
       <nav className="spazio-fasi" aria-label="Le dieci fasi dell'anno" aria-hidden={!inAnno}>
         <ol>
           {FASI.map((f, i) => (
