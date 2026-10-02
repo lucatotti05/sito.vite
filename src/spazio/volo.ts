@@ -23,7 +23,7 @@ import { arco } from './input'
 let tween: gsap.core.Tween | null = null
 let gettone = 0
 
-const durata = (da: number, a: number) => D.scena * Math.max(0.45, Math.abs(a - da))
+const durata = (da: number, a: number) => D.volo * Math.max(0.4, Math.abs(a - da))
 const svela = (si: boolean) => {
   document.documentElement.dataset.svela = si ? 'si' : 'no'
 }
@@ -73,7 +73,8 @@ async function fotografaUscita(): Promise<HTMLCanvasElement | null> {
   const { vw, H } = misure
   const p = anno.get()
   const q = inquadratura(p, vw, H)
-  const s = Math.min(window.devicePixelRatio || 1, 1.5)
+  // l'uscita si vede rimpicciolire subito: basta la misura dello schermo in px CSS
+  const s = 1
   const c = document.createElement('canvas')
   c.width = Math.round(vw * s)
   c.height = Math.round(H * s)
@@ -149,7 +150,8 @@ function vola(a: number, fatto: () => void) {
   tween = gsap.to(spazio, {
     u: a,
     duration: durata(da, a),
-    ease: E.inOut,
+    // un volo interrotto riparte dal punto in cui è con una curva morbida in uscita
+    ease: Math.abs(a - da) > 0.9 ? E.volo : E.out,
     onUpdate: () => {
       motore.sporca()
       if (spazio.u > 0.5 && spazio.get().livello === 'fase') svela(true)
@@ -174,15 +176,18 @@ export function entra(i: number) {
   arco.centra(j, durata(spazio.u, 1))
   if (!motore.haIstantanea(j)) preparaIstantanea(j)
   scriviIndirizzo(j)
-  vola(1, async () => {
-    // il passaggio di consegne aspetta l'istantanea (al più 450 ms): i pixel devono coincidere
-    const t0 = performance.now()
-    while (!motore.haIstantanea(j) && performance.now() - t0 < 450) await attesa(16)
+  vola(1, () => {
     if (g !== gettone) return
+    // passaggio di consegne: la fase vera è già dipinta sotto il canvas; il pannello si dissolve
+    // su di lei (se l'istantanea coincide non si vede nulla, altrimenti è una dissolvenza morbida)
     svela(true)
-    spazio.set({ modo: 'fase', dentro: true, volo: false })
+    spazio.set({ dentro: true })
     attivaScroll(true)
     arco.blocca()
+    motore.dissolviPannello(() => {
+      if (g !== gettone) return
+      spazio.set({ modo: 'fase', volo: false })
+    })
   })
 }
 

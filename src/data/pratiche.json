@@ -163,7 +163,7 @@
     {
       "id": "sfogliatura", "titolo": "Sfogliatura precoce", "breve": "Sfogliatura",
       "cosa": "Si tolgono le foglie basali attorno ai grappoli.",
-      "perche": "Riduce l'allegagione e dà grappoli più spargoli: sul Sangiovese, compatto e sensibile alla botrite, è una pratica studiata.",
+      "perche": "Riduce l'allegagione e dà grappoli più spargoli: sulle varietà a grappolo compatto, sensibili alla botrite, è una pratica studiata.",
       "quando": "Poco prima o durante la fioritura.",
       "errore": "Sfogliare il lato più esposto al sole nelle zone calde, con il rischio di scottature.",
       "correlate": ["allegagione", "difesa", "palizzatura"], "da_verificare": true

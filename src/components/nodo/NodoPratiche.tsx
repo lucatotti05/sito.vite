@@ -65,6 +65,8 @@ const campiona = (a: number[], u: number) => {
   return lerp(a[i], a[i + 1], f - i)
 }
 
+/** interlinea delle etichette su due righe, in corpi (13px a schermo) */
+const INTERLINEA = 1.2
 const mqStretto = window.matchMedia('(max-width: 759px)')
 const useStretto = () =>
   useSyncExternalStore(
@@ -122,6 +124,25 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
   const rSvg = useRef<SVGSVGElement>(null)
   const rPiano = useRef<SVGGElement>(null)
   const ultimeEtichette = useRef<Etichettatura[]>([])
+  /** --nodo-k: unità del disegno per pixel (le etichette sono 13px veri a schermo) */
+  const nodoK = useRef(1.5)
+  /** righe e caratteri di ogni etichetta, per stimarne la scatola */
+  const misureEtich = useRef<{ n: number; c: number }[]>([])
+  /** larghezza in px della colonna libera dei testi: le etichette possono arrivare fin lì */
+  const limiteX = useRef(0)
+  /** larghezza vera di ogni etichetta, in unità del disegno (misurata al ridimensionamento) */
+  const larghezze = useRef<number[]>([])
+  /** interlinea delle etichette a due righe e larghezze: si rimisurano a ogni cambio di misura */
+  const rimisura = () => {
+    limiteX.current = document.querySelector<HTMLElement>('.titoli')?.clientWidth ?? 0
+    const fs = 13 * nodoK.current
+    larghezze.current = rEtich.current.map((e) => {
+      if (!e) return 0
+      const ts = Array.from(e.querySelectorAll('tspan'))
+      ts.forEach((t, j) => t.setAttribute('dy', String(j ? INTERLINEA * fs : (-(ts.length - 1) * INTERLINEA * fs) / 2)))
+      return Math.max(0, ...ts.map((t) => t.getComputedTextLength()))
+    })
+  }
   /**
    * L'orbita (dalla prova del germogliamento, scegli() e aggiornaNodo()): al clic il piano della
    * forma si inclina di 58° e ruota con la molla finché la pratica scelta arriva davanti (in basso,
@@ -219,7 +240,16 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
   useLayoutEffect(() => {
     const svg = rSvg.current, sez = rSezione.current
     if (!svg || !sez) return
-    const ro = new ResizeObserver(() => sez.style.setProperty('--nodo-k', (590 / Math.max(1, svg.clientWidth)).toFixed(3)))
+    const ro = new ResizeObserver(() => {
+      nodoK.current = 590 / Math.max(1, svg.clientWidth)
+      sez.style.setProperty('--nodo-k', nodoK.current.toFixed(3))
+      rimisura()
+      applicaPiano()
+    })
+    document.fonts?.ready.then(() => {
+      rimisura()
+      applicaPiano()
+    })
     ro.observe(svg)
     return () => ro.disconnect()
   }, [])
@@ -258,12 +288,78 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
     const R = Math.max(1, ...pose.map((q) => Math.hypot(q.p[0] - cx, q.p[1] - cy)))
     const k = Math.min(1, Math.max(0, o.incl / 58))
     const quiete = o.scelta < 0 && k < 0.002 && Math.abs(o.ang) < 0.01
-    pose.forEach((q, j) => {
+    // primo passo: dove andrebbero marcatori ed etichette
+    const posti = pose.map((q, j) => {
       const [rx, ry] = ruota(q.p)
       const P: Pt = [cx + rx, cy + ry * ci]
       const prof = Math.min(1, Math.max(0, (ry / R + 1) / 2)) // 0 lontano, 1 vicino
       const s = 0.72 + 0.5 * prof * k + (1 - k) * 0.28
       const scelta = j === o.scelta
+      const et = ultimeEtichette.current[j]
+      let ex = P[0], ey = P[1], ancora: 'start' | 'middle' | 'end' = 'middle'
+      if (et) {
+        const off = ruota([cx + et.x - q.p[0], cy + et.y - q.p[1]])
+        ex = P[0] + off[0]
+        ey = P[1] + off[1] * lerp(1, ci, 0.5)
+        ancora = quiete ? et.ancora : off[0] < -4 ? 'end' : off[0] > 4 ? 'start' : 'middle'
+      }
+      return { q, P, prof, s, scelta, et, ex, ey, ey0: ey, ancora }
+    })
+
+    // secondo passo: nessuna etichetta sopra un'altra né fuori dal disegno. Le scatole si stimano
+    // dalla misura del testo (13px a schermo, --nodo-k) e si separano in verticale
+    const K = nodoK.current
+    const fs = 13 * K
+    const lh = INTERLINEA * fs
+    const scatola = (x: (typeof posti)[number], j: number) => {
+      const { n, c } = misureEtich.current[j] ?? { n: 1, c: 10 }
+      // larghezza misurata sul testo vero (larghezze.current), o stimata finché i caratteri non ci sono
+      const w = (larghezze.current[j] || c * 0.56 * fs) + 6 * K
+      const x0 = x.ancora === 'end' ? x.ex - w : x.ancora === 'middle' ? x.ex - w / 2 : x.ex
+      // un margine di un quinto di corpo tutt'intorno: le etichette non si sfiorano mai
+      return { x0: x0 - fs * 0.1, x1: x0 + w + fs * 0.1, y0: x.ey - ((n - 1) * lh) / 2 - fs * 0.95, y1: x.ey + ((n - 1) * lh) / 2 + fs * 0.4 }
+    }
+    // limiti: in alto e in basso il disegno; a destra tutta la colonna libera dei testi (limiteX)
+    const xMin = -93, xMax = Math.max(493, limiteX.current * K - 95 - 4), yMin = -18, yMax = 398
+    const contieni = (i: number) => {
+      const b = scatola(posti[i], i)
+      if (b.x0 < xMin) posti[i].ex += xMin - b.x0
+      else if (b.x1 > xMax) posti[i].ex -= b.x1 - xMax
+      if (b.y0 < yMin) posti[i].ey += yMin - b.y0
+      else if (b.y1 > yMax) posti[i].ey -= b.y1 - yMax
+    }
+    const urto = (i: number, j: number) => {
+      const A = scatola(posti[i], i), B = scatola(posti[j], j)
+      return A.x1 < B.x0 || B.x1 < A.x0 || A.y1 < B.y0 || B.y1 < A.y0 ? null : { A, B }
+    }
+    // prima dentro i limiti, poi separate: riportare un'etichetta dentro il disegno può farla
+    // toccare un'altra, quindi il controllo si ripete dopo ogni contenimento
+    for (let giro = 0; giro < 32; giro++) {
+      for (let i = 0; i < posti.length; i++) contieni(i)
+      let mosso = false
+      for (let i = 0; i < posti.length; i++)
+        for (let j = i + 1; j < posti.length; j++) {
+          const u = urto(i, j)
+          if (!u) continue
+          const { A, B } = u
+          // prima in verticale; dopo metà dei giri, se ancora si toccano, anche in orizzontale
+          const sopra = (A.y0 + A.y1) / 2 <= (B.y0 + B.y1) / 2
+          const dy = (sopra ? A.y1 - B.y0 : B.y1 - A.y0) / 2 + fs * 0.2
+          posti[i].ey += sopra ? -dy : dy
+          posti[j].ey += sopra ? dy : -dy
+          if (giro >= 10) {
+            const sinistra = (A.x0 + A.x1) / 2 <= (B.x0 + B.x1) / 2
+            const dx = (sinistra ? A.x1 - B.x0 : B.x1 - A.x0) / 2 + fs * 0.2
+            posti[i].ex += sinistra ? -dx : dx
+            posti[j].ex += sinistra ? dx : -dx
+          }
+          mosso = true
+        }
+      if (!mosso) break
+    }
+
+    // terzo passo: si scrive
+    posti.forEach(({ q, P, prof, s, scelta, et, ex, ey, ey0, ancora }, j) => {
       const op = scelta || o.scelta < 0 ? 1 : lerp(1, 0.2 + 0.4 * prof, k)
       const sfoca = scelta || o.scelta < 0 ? 0 : (1 - prof) * 2.4 * k
       const m = rMarc.current[j]
@@ -272,13 +368,8 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
         m.style.opacity = quiete ? '' : `calc(var(--vis, 1) * ${op.toFixed(3)})`
         m.style.filter = sfoca > 0.05 ? `blur(${sfoca.toFixed(2)}px)` : ''
       }
-      // l'etichetta resta dritta: lo scarto dal marcatore ruota con il piano, l'ancora segue il lato
-      const et = ultimeEtichette.current[j]
       const e = rEtich.current[j]
       if (!et) return
-      const off = ruota([cx + et.x - q.p[0], cy + et.y - q.p[1]])
-      const ex = P[0] + off[0], ey = P[1] + off[1] * lerp(1, ci, 0.5)
-      const ancora = quiete ? et.ancora : off[0] < -4 ? 'end' : off[0] > 4 ? 'start' : 'middle'
       if (e) {
         // le etichette non rimpiccioliscono mai sotto la loro misura: la profondità la dicono luce e fuoco
         e.setAttribute('transform', `translate(${ex.toFixed(1)} ${ey.toFixed(1)})${quiete || !scelta ? '' : ` scale(${Math.max(1, s).toFixed(3)})`}`)
@@ -289,8 +380,9 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
       }
       const gd = rGuide.current[j]
       if (gd) {
+        // un'etichetta spostata per far posto alle altre resta legata al suo marcatore da una guida
         const gx = ex + (ancora === 'end' ? 6 : ancora === 'start' ? -6 : 0)
-        gd.setAttribute('d', et.guida ? `M${P[0].toFixed(1)} ${P[1].toFixed(1)} L${gx.toFixed(1)} ${(ey - 5).toFixed(1)}` : '')
+        gd.setAttribute('d', et.guida || Math.abs(ey - ey0) > 6 ? `M${P[0].toFixed(1)} ${P[1].toFixed(1)} L${gx.toFixed(1)} ${(ey - 5).toFixed(1)}` : '')
       }
     })
   }
@@ -377,6 +469,12 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
   }, [iFase, ridotto])
 
   useAnnoFotogramma((p) => aggiorna(p), [iFase, ridotto, pratiche.length])
+  // etichette nuove (cambio di fase o di misura del telefono): interlinea e larghezze vere
+  useLayoutEffect(() => {
+    rimisura()
+    applicaPiano()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fase.id, stretto])
 
   useEffect(() => {
     if (!attiva) return
@@ -403,6 +501,10 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
     if (attiva) setAttiva(pratiche[j].id)
   }
   const { Marcatore, Decoro } = geo
+  misureEtich.current = pratiche.map((p) => {
+    const r = righe(nome(p))
+    return { n: r.length, c: Math.max(...r.map((l) => l.length)) }
+  })
 
   return (
     <section

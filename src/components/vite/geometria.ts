@@ -206,7 +206,7 @@ export function giornoNodo(gm: Germoglio, j: number) {
   return hi
 }
 
-// ── grappolo del Sangiovese: conico, con spalla in alto e un'ala laterale ─────
+// ── grappolo: conico, con spalla in alto e un'ala laterale ─────
 export type Acino = { x: number; y: number; r: number; soglia: number; raccolta: number; ramo: Pt }
 export type Grappolo = { acini: Acino[]; raspo: string }
 /**

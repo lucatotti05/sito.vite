@@ -62,9 +62,11 @@
   --d-ui: 280ms;
   --d-entrata: 450ms;
   --d-scena: 700ms;
+  --d-volo: 1150ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-volo: cubic-bezier(0.5, 0, 0.18, 1);
 
   /* valori iniziali della luce (inverno); poi li aggiorna Atmosfera */
   --luce: #a9b6c4;

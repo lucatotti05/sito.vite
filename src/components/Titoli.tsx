@@ -13,10 +13,13 @@ import { useSpazio } from '@/spazio/stato'
  */
 
 
-/** La prima frase della sintesi: l'introduzione della fase (il resto è per i lettori di schermo). */
+/**
+ * L'introduzione della fase: la prima frase della sintesi, fino al primo punto, punto e virgola o
+ * due punti (al più due righe; la sintesi intera resta per i lettori di schermo).
+ */
 const primaFrase = (t: string) => {
-  const m = t.match(/^.+?[.!?](?=\s|$)/)
-  return m ? m[0] : t
+  const m = t.match(/^.+?[.!?;:](?=\s|$)/)
+  return m ? m[0].replace(/[;:]$/, '.') : t
 }
 
 /** Il titolo diviso in parole, ognuna dentro la sua maschera. */
@@ -46,17 +49,27 @@ export function Titoli() {
   useLayoutEffect(() => {
     const el = rif.current
     if (!el) return
+    const righe = (h: HTMLElement) => {
+      let riga = -1
+      let y = -Infinity
+      h.querySelectorAll<HTMLElement>('.parola').forEach((p) => {
+        if (p.offsetTop > y + 4) {
+          riga++
+          y = p.offsetTop
+        }
+        p.style.setProperty('--riga', String(riga))
+      })
+      return riga + 1
+    }
     const misura = () => {
       el.querySelectorAll<HTMLElement>('.titolo-h').forEach((h) => {
-        let riga = -1
-        let y = -Infinity
-        h.querySelectorAll<HTMLElement>('.parola').forEach((p) => {
-          if (p.offsetTop > y + 4) {
-            riga++
-            y = p.offsetTop
-          }
-          p.style.setProperty('--riga', String(riga))
-        })
+        // ogni titolo sta in due righe: se ne servono di più, il corpo si riduce a passi del 4%
+        let k = 1
+        h.style.setProperty('--stringi', '1')
+        while (righe(h) > 2 && k > 0.5) {
+          k -= 0.04
+          h.style.setProperty('--stringi', k.toFixed(2))
+        }
       })
     }
     misura()
@@ -71,7 +84,9 @@ export function Titoli() {
       {FASI.map((f, i) => (
         <section key={f.id} className={`titolo${corrente === i + 1 ? ' attivo' : ''}`} aria-hidden={corrente !== i + 1}>
           <h2 className="titolo-h t-titolo-fase">
-            <Parole testo={f.titolo} />
+            <span className="titolo-righe">
+              <Parole testo={f.titolo} />
+            </span>
           </h2>
           <div className="titolo-corpo">
             <p className="t-introduzione">{primaFrase(f.sintesi)}</p>

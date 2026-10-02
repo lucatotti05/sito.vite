@@ -104,7 +104,7 @@ export function Apertura() {
           </span>
         ))}
       </p>
-      <p className="apertura-sotto t-introduzione">Il Sangiovese in Toscana, un anno in dieci fasi.</p>
+      <p className="apertura-sotto t-introduzione">Un anno in dieci fasi, dalla potatura alla caduta delle foglie.</p>
     </div>
   )
 }

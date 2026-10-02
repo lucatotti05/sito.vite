@@ -9,8 +9,9 @@ import { Vite } from './Vite'
 import { motore } from '@/spazio/motore'
 import { libera, textureDaCanvas } from '@/spazio/texture'
 
-const giornoDa01 = (p: number) => Math.round(p * 3650) / 10
-const INTERVALLO_CRESCITA = 100
+const giornoDa01 = (p: number) => Math.round(p * 36500) / 100
+/** ms tra due aggiornamenti della tavola: le transizioni di vite.css (90ms) riempiono gli intervalli */
+const INTERVALLO_CRESCITA = 80
 function useGiornoTemperato() {
   const [g, setG] = useState(() => giornoDa01(anno.get()))
   useEffect(() => {
@@ -38,9 +39,9 @@ function useGiornoTemperato() {
 }
 
 export function ViteNelPalco() {
-  // giorno interno, frazionario al decimo: serve solo al disegno. Lo stato di React cambia al più
-  // 10 volte al secondo (la crescita è lenta: un ritardo di 100 ms non si vede), mentre la camera
-  // si muove a ogni fotogramma scrivendo direttamente il viewBox
+  // giorno interno, frazionario al centesimo: serve solo al disegno. Lo stato di React cambia al più
+  // ogni 80 ms; ciò che cade o si muove interpola tra un passo e l'altro (vite.css, .v-in-volo),
+  // mentre la camera si muove a ogni fotogramma scrivendo direttamente il viewBox
   const g = useGiornoTemperato()
   const posto = useRef<HTMLDivElement>(null)
 

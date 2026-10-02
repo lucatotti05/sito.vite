@@ -440,6 +440,8 @@ class Motore {
       p.uscita = new THREE.Texture(img as unknown as HTMLImageElement)
       Object.assign(p.uscita, { flipY: false, colorSpace: THREE.NoColorSpace, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter, anisotropy: 4 })
       p.uscita.needsUpdate = true
+      // sulla GPU subito, prima che parta il volo: mai dentro un fotogramma di movimento
+      this.renderer.initTexture(p.uscita)
       p.usAspetto = img.width / img.height
       p.bPronto = 1
     }
@@ -565,6 +567,23 @@ class Motore {
     u.uMouse.value.set(m.x * this.dpr, (this.H - m.y) * this.dpr)
     u.uLanterna.value = m.forza * (1 + 0.9 * k)
     u.uRaggio.value = 260 * this.dpr * (1 + 0.45 * k)
+  }
+
+  /** Dissolvenza del pannello aperto sulla fase vera, dopo il volo (0 = pannello, 1 = fase). */
+  dissolvenza = 0
+  dissolviPannello(fatto: () => void) {
+    const t0 = performance.now()
+    const dur = 280
+    const passo = () => {
+      this.dissolvenza = Math.min(1, (performance.now() - t0) / dur)
+      this.sporca()
+      if (this.dissolvenza < 1) requestAnimationFrame(passo)
+      else {
+        fatto()
+        this.dissolvenza = 0
+      }
+    }
+    requestAnimationFrame(passo)
   }
 
   /** Il nome al centro ha finito: la camera può arrivare. */
@@ -695,8 +714,10 @@ class Motore {
         const ba = B === p.uscita ? p.usAspetto : p.istAspetto
         u.uB.value = B
         u.uCropB.value.copy(ritaglio(ba, pa, p.soggettoX, 0.5))
-        // l'istantanea prende il posto dell'anteprima nella prima metà del volo (all'uscita, il contrario)
-        u.uMixB.value = smooth(clamp(ea / 0.55)) * smooth(p.bPronto)
+        // come una scheda che si apre: la tavola montata diventa la fase vera nel primo tratto del volo,
+        // finché il pannello è ancora piccolo; poi è la stessa immagine che cresce fino allo schermo
+        // (all'uscita il contrario, nell'ultimo tratto)
+        u.uMixB.value = smooth(clamp(ea / 0.3)) * smooth(p.bPronto)
       } else u.uMixB.value = 0
 
       // il nome, in basso a sinistra, sempre alla stessa misura a schermo
@@ -717,7 +738,13 @@ class Motore {
     vu.uFase.value = 0
     vu.uVignetta.value = 0.75 * (1 - ee)
     const r = this.renderer
-    r.setClearColor(new THREE.Color(NERO.x, NERO.y, NERO.z), 1)
+    // durante la dissolvenza finale il canvas lascia vedere la fase vera sotto di sé
+    const dis = this.dissolvenza
+    if (dis > 0) {
+      const pa = this.pannelli[aperta]
+      if (pa) pa.u.uAlfa.value *= 1 - dis
+    }
+    r.setClearColor(new THREE.Color(NERO.x * (1 - dis), NERO.y * (1 - dis), NERO.z * (1 - dis)), 1 - dis)
     r.clear()
     r.render(this.scena, cam)
     r.render(this.veloScena, this.veloCam)

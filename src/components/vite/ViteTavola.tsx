@@ -94,7 +94,7 @@ function Legno({ pts, w, colore, className = 'v-legno' }: { pts: Pt[]; w: [numbe
   )
 }
 
-// ── foglie del Sangiovese: pentagonali, a cinque lobi, denti irregolari, seno peziolare a U ──
+// ── foglie della vite: pentagonali, a cinque lobi, denti irregolari, seno peziolare a U ──
 // Tre varianti: lobi poco incisi, lobi profondi, quasi trilobata. Ogni foglia ha la lamina,
 // le nervature principali e secondarie, e il tratteggio sulla metà oltre la nervatura
 // (la foglia è piegata lungo la nervatura e quella metà è in ombra).
@@ -342,12 +342,21 @@ function LegnoInverno({ g }: { g: number }) {
   return (
     <g>
       {viaCapoVecchio < 1 && (
-        <g className="v-cade" style={{ opacity: 1 - viaCapoVecchio, transform: `translateY(${viaCapoVecchio * 30}px)` }}>
+        <g className="v-cade" style={{ opacity: 1 - viaCapoVecchio * viaCapoVecchio, transform: `translateY(${(viaCapoVecchio * viaCapoVecchio * 34).toFixed(2)}px)` }}>
           {TRALCI_VECCHI.map((t, k) => {
             const via = tra(g, t.taglio, t.taglio + 2.2)
             if (via >= 1) return null
             return (
-              <g key={k} className="v-cade" style={{ opacity: 1 - via, transform: `translateY(${(via * via * 60).toFixed(1)}px)` }}>
+              // il tralcio tagliato cade ruotando attorno al taglio, accelerando come un peso vero
+              <g
+                key={k}
+                className="v-cade"
+                style={{
+                  opacity: 1 - via * via,
+                  transformOrigin: `${t.pts[0][0]}px ${t.pts[0][1]}px`,
+                  transform: `translateY(${(via * via * 70).toFixed(2)}px) rotate(${((k % 2 ? 1 : -1) * via * via * 14).toFixed(2)}deg)`,
+                }}
+              >
                 <Legno pts={t.pts} w={[4.4, 1.3]} />
                 <Nodi pts={t.pts} ogni={0.1} larghezza={2.6} />
               </g>
@@ -358,7 +367,7 @@ function LegnoInverno({ g }: { g: number }) {
         </g>
       )}
       {taglioB < 1 && (
-        <g className="v-cade" style={{ opacity: 1 - taglioB, transform: `translateY(${(taglioB * 40).toFixed(1)}px)` }}>
+        <g className="v-cade" style={{ opacity: 1 - taglioB * taglioB, transform: `translateY(${(taglioB * taglioB * 46).toFixed(2)}px)` }}>
           <Legno pts={puntiBEretto().slice(2)} w={[4.2, 1.2]} />
           <Nodi pts={puntiBEretto()} ogni={0.1} larghezza={2.5} />
         </g>
@@ -556,13 +565,25 @@ const UnGermoglio = memo(function UnGermoglio({ gm, g }: { gm: Germoglio; g: num
           ? `color-mix(in oklab, ${ruggine ? 'color-mix(in oklab, var(--ambra) 70%, var(--vinaccia))' : 'var(--ambra)'} ${(autunno * 75).toFixed(0)}%, var(--avorio))`
           : tinta('--verde', 0.7 * giovane)
       const velo = Math.max(giovane * 0.16, autunno * 0.2)
+      // la caduta: scende accelerando e ondeggia come una foglia vera (pendolo che si smorza a terra),
+      // ruotando attorno al picciolo; tra un aggiornamento e l'altro la interpola il browser (vite.css)
+      const fase = r() * Math.PI * 2
+      const onda = Math.sin(cade * Math.PI * 3.2 + fase) * (1 - cade * 0.4)
+      const fx = p[0] + cade * lato * 18 + onda * 16 * cade
+      const fy = p[1] + cade * cade * 150
+      const fr = ang + cade * lato * 60 + onda * 26 * cade
+      const vel = cade > 0 && cade < 1
       foglie.push(
         <use
           key={`f${j}`}
           href={`#v-foglia-${tipo}`}
-          transform={`translate(${(p[0] + cade * lato * 20).toFixed(1)} ${(p[1] + cade * cade * 140).toFixed(1)}) rotate(${(ang + cade * lato * 70).toFixed(1)}) scale(${(dim * specchio * scorcio).toFixed(3)} ${dim.toFixed(3)})`}
-          opacity={1 - cade}
-          style={{ color: lontano(colore, clamp(-tono)), ['--velo' as string]: velo.toFixed(2) }}
+          className={vel ? 'v-in-volo' : undefined}
+          style={{
+            transform: `translate(${fx.toFixed(2)}px, ${fy.toFixed(2)}px) rotate(${fr.toFixed(2)}deg) scale(${(dim * specchio * scorcio).toFixed(4)}, ${dim.toFixed(4)})`,
+            opacity: 1 - cade * cade,
+            color: lontano(colore, clamp(-tono)),
+            ['--velo' as string]: velo.toFixed(2),
+          }}
         />,
       )
     }
@@ -690,7 +711,7 @@ const GRUPPI = [[8, 9, 0, 1, 2], [3, 4, 5], [6, 7]]
 export const ViteTavola = memo(function ViteTavola({ giorno }: { giorno: number }) {
   const g = giorno
   return (
-    <div className="vite-strati" role="img" aria-label="Tavola incisa della vite di Sangiovese allevata a Guyot, nello stato della stagione in corso">
+    <div className="vite-strati" role="img" aria-label="Tavola incisa della vite allevata a Guyot, nello stato della stagione in corso">
       <Definizioni />
       <svg className="vite-svg vite-legno" viewBox="0 0 600 800" aria-hidden="true">
         <Fissi />

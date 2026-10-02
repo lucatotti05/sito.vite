@@ -69,10 +69,8 @@ html.trascina {
   list-style: none;
 }
 
-/* la fase montata sotto il canvas non si dipinge finché il canvas la copre */
-html[data-modo="scena"]:not([data-svela="si"]) .vite-posto {
-  visibility: hidden;
-}
+/* la fase montata resta dipinta anche sotto il canvas opaco dell'Anno: al passaggio di consegne
+   il browser non deve dipingerla da capo (sarebbe lo scatto alla fine del volo) */
 
 /* l'interfaccia della fase entra quando il pannello passa la mano al DOM ed esce subito al ritorno */
 .velo-ui,

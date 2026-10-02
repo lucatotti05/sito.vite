@@ -8,11 +8,13 @@ import { CustomEase } from 'gsap/CustomEase'
 gsap.registerPlugin(CustomEase)
 
 /** Durate in secondi. */
-export const D = { micro: 0.16, ui: 0.28, entrata: 0.45, scena: 0.7 } as const
+export const D = { micro: 0.16, ui: 0.28, entrata: 0.45, scena: 0.7, volo: 1.15 } as const
 /** Ritardo tra le righe (e tra gli elementi di una sequenza). */
 export const PASSO = 0.06
 
 export const E = {
+  /** il volo tra Anno e Fase: parte piano, attraversa lo spazio, si posa lentissimo */
+  volo: CustomEase.create('ds-volo', 'M0,0 C0.5,0 0.18,1 1,1'),
   /** entrate: arrivo morbido */
   out: CustomEase.create('ds-out', '0.16,1,0.3,1'),
   /** movimenti da A a B */

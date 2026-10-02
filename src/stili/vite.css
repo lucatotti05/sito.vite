@@ -280,3 +280,14 @@ html.lanterna .v-etichette > g.rivelata :is(.v-etichetta, .v-guida-punto) {
 .vite-posto.rollio .v-fissi {
   opacity: 0;
 }
+
+/* fluidità: la tavola si aggiorna a passi (ViteNelPalco, crescita temperata); ciò che cade si
+   muove con una transizione lineare lunga quanto il passo, così il browser disegna i fotogrammi
+   in mezzo e il moto è continuo. Solo su ciò che si sta muovendo. */
+.v-in-volo,
+.v-cade {
+  transition: transform 90ms linear, opacity 90ms linear;
+}
+[data-movimento="ridotto"] :is(.v-in-volo, .v-cade) {
+  transition: none;
+}

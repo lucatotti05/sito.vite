@@ -31,13 +31,25 @@ html[data-primo-piano="collana"] .velo-ui {
     linear-gradient(270deg, var(--nero-90) 0%, var(--nero-60) 26%, var(--nero-0) 44%),
     linear-gradient(0deg, var(--nero-90) 0%, var(--nero-90) calc(var(--striscia-h) - 24px), var(--nero-0) calc(var(--striscia-h) + 72px));
 }
-/* ── titoli: colonne 1-6 della griglia, sotto la voce dell'angolo ───────────── */
+/* ── la griglia dei testi della fase: uguale in tutte le fasi ─────────────────
+   Il titolo sta in una fascia alta due righe e poggia sul suo fondo: l'ultima riga di ogni
+   titolo cade sulla stessa linea e l'introduzione parte sempre dallo stesso punto, in una
+   fascia alta tre righe. Sotto, il nodo prende solo lo spazio che resta (--fine-testi).
+   Il corpo del titolo segue la larghezza (token) ma anche l'altezza della finestra; i titoli
+   lunghi si riducono finché stanno in due righe (Titoli.tsx, --stringi). */
+:root {
+  --t-fs: min(clamp(64px, 7.5vw, 132px), 11svh);
+  --t-box: calc(var(--t-fs) * 0.92 * 2 + var(--t-fs) * 0.14);
+  /* due righe d'introduzione (la frase si ferma al primo punto, punto e virgola o due punti) */
+  --i-box: calc(clamp(20px, 1.6vw, 26px) * 1.35 * 2);
+  --t-top: calc(var(--angolo) + var(--s-7));
+  --fine-testi: calc(var(--t-top) + var(--t-box) + var(--s-4) + var(--i-box) + var(--s-5));
+}
 .titoli {
   position: absolute;
   z-index: 6;
   left: var(--margine-x);
-  /* sotto la voce dell'angolo in alto a sinistra */
-  top: calc(var(--angolo) + var(--s-8));
+  top: var(--t-top);
   /* sei colonne: la pianta sta a destra (camera.ts, regia) e il testo non le passa sopra */
   width: calc(6 * var(--colonna) + 5 * var(--gutter));
   height: 0;
@@ -50,6 +62,11 @@ html[data-primo-piano="collana"] .velo-ui {
 html.pratica-aperta .titoli,
 html.finale-su .titoli {
   opacity: 0;
+}
+/* il finale chiude anche nodo e indicatori: un solo testo alla volta */
+html.finale-su :is(.nodo-posto, .indicatore, .carta, .registro) {
+  opacity: 0 !important;
+  pointer-events: none;
 }
 .titolo {
   position: absolute;
@@ -64,8 +81,19 @@ html.finale-su .titoli {
   transition: visibility 0s;
 }
 .titolo-h {
-  margin: 0 0 var(--s-5);
+  display: flex;
+  align-items: flex-end;
+  height: var(--t-box);
+  margin: 0 0 var(--s-4);
+  font-size: calc(var(--t-fs) * var(--stringi, 1));
+}
+.titolo-righe {
+  display: block;
+  width: 100%;
   text-wrap: balance;
+}
+.titolo-corpo {
+  height: var(--i-box);
 }
 /* rivelazione a maschera, riga per riga (DESIGN.md, "Titolo di fase"): ogni parola sale dalla
    sua maschera; le parole della stessa riga hanno lo stesso ritardo (--riga, 60ms per riga).
@@ -138,7 +166,9 @@ html.finale-su .titoli {
   z-index: 7;
   left: var(--margine-x);
   bottom: calc(var(--striscia-h) + var(--s-3));
-  width: var(--col-4);
+  /* quattro colonne, ma mai più alto dello spazio libero sotto i testi (il disegno è 590 × 420,
+     più l'invito sotto) */
+  width: min(var(--col-4), calc((100svh - var(--fine-testi) - var(--striscia-h) - var(--s-3) - 52px) / 0.712));
   transform-origin: 30% 60%;
   /* chiuso / aperto: a tempo, interrompibile. Aperto senza trasformazione: su telefono la scheda
      è fixed e non deve avere un contenitore trasformato */
@@ -261,17 +291,41 @@ html.finale-su .titoli {
   position: absolute;
   z-index: 12;
   left: var(--margine-x);
-  /* prende il posto del titolo della fase */
-  top: calc(var(--angolo) + var(--s-8));
-  width: var(--col-5);
+  /* nella griglia del titolo della fase: stessa fascia, stessa linea */
+  top: var(--t-top);
+  width: calc(6 * var(--colonna) + 5 * var(--gutter));
   visibility: hidden;
+  pointer-events: none;
+  transition: visibility 0s linear var(--d-ui);
 }
-.finale-titolo {
-  margin: 0 0 var(--s-5);
-  text-wrap: balance;
+.finale.su {
+  visibility: visible;
+  pointer-events: auto;
+  transition: visibility 0s linear var(--d-ui);
+}
+.finale-titolo .titolo-righe {
+  display: block;
+}
+/* il titolo del finale entra solo dopo che quello della fase è uscito (--d-ui) */
+.finale-titolo .titolo-righe,
+.finale-corpo {
+  opacity: 0;
+  transform: translate3d(0, 24px, 0);
+  transition: opacity var(--d-ui) var(--ease-in), transform var(--d-ui) var(--ease-in);
+}
+.finale.su .finale-titolo .titolo-righe {
+  opacity: 1;
+  transform: none;
+  transition: opacity var(--d-entrata) var(--ease-out) var(--d-ui), transform var(--d-entrata) var(--ease-out) var(--d-ui);
+}
+.finale.su .finale-corpo {
+  opacity: 1;
+  transform: none;
+  transition: opacity var(--d-entrata) var(--ease-out) calc(var(--d-ui) + 120ms), transform var(--d-entrata) var(--ease-out) calc(var(--d-ui) + 120ms);
 }
 .finale-testo {
-  margin: 0 0 var(--s-6);
+  margin: 0 0 var(--s-5);
+  max-width: 52ch;
 }
 .finale-ricomincia {
   display: inline-flex;
@@ -294,11 +348,44 @@ html.finale-su .titoli {
   text-underline-offset: 5px;
 }
 
+/* schermi bassi (portatili con la finestra non a tutto schermo): il titolo segue l'altezza e
+   l'invito sotto il nodo si toglie, lo spazio va al nodo */
+@media (min-width: 760px) and (max-height: 780px) {
+  :root {
+    --t-fs: min(clamp(64px, 7.5vw, 132px), 9.5svh);
+  }
+  .nodo-invito {
+    display: none;
+  }
+  .nodo-posto {
+    width: min(var(--col-4), calc((100svh - var(--fine-testi) - var(--striscia-h) - var(--s-3)) / 0.712));
+  }
+}
+
+/* telefoni bassi (iPhone SE e simili): l'introduzione resta per i lettori di schermo, lo spazio va
+   al nodo */
+@media (max-width: 759px) and (max-height: 720px) {
+  :root {
+    --i-box: 0px;
+  }
+  .titolo-corpo .t-introduzione {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+
 /* ── telefono ───────────────────────────────────────────────────────── */
 @media (max-width: 759px) {
   /* il titolo sta sotto il calendario, su tutta la larghezza: a 44px nella colonna accanto non entrerebbe */
+  :root {
+    --t-fs: clamp(40px, 11vw, 56px);
+    --t-top: calc(var(--angolo) + var(--cal-h) + var(--s-5));
+    --i-box: calc(20px * 1.35 * 3);
+  }
   .titoli {
-    top: calc(var(--angolo) + var(--cal-h) + var(--s-5));
     width: calc(100vw - 2 * var(--margine-x));
   }
   .titolo-h {
@@ -317,7 +404,7 @@ html.finale-su .titoli {
   }
   .nodo-posto {
     left: var(--margine-x);
-    width: calc(100vw - 2 * var(--margine-x));
+    width: min(calc(100vw - 2 * var(--margine-x)), calc((100svh - var(--fine-testi) - var(--striscia-h) - var(--s-1) - 52px) / 0.712));
     bottom: calc(var(--striscia-h) + var(--s-1));
     transform-origin: 50% 80%;
   }
@@ -350,7 +437,5 @@ html.finale-su .titoli {
     left: var(--margine-x);
     right: var(--margine-x);
     width: auto;
-    top: auto;
-    bottom: calc(var(--striscia-h) + var(--s-6));
   }
 }
