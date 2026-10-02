@@ -57,7 +57,18 @@ function infiorescenza(k: number, j: number, g: number): Asse {
   return { base: [c[0], c[1] + l * 0.5], punta: [c[0], c[1] - l * 0.5] }
 }
 
+/** Un tratto del tralcio k (a metà della sua lunghezza) con l'asse verticale: le foglie d'autunno. */
+function tralcio(k: number, g: number, lungo = 70): Asse {
+  const gm = GERMOGLI[k]
+  const L = Math.max(1, lunghezzaGermoglio(gm, g))
+  const c = suPolilinea(puntiGermoglio(gm, L), 0.45)
+  return { base: [c[0], c[1] + lungo / 2], punta: [c[0], c[1] - lungo / 2] }
+}
+
 const ANCORE: Record<string, (g: number) => Asse> = {
+  /** lo stesso grappolo dell'infiorescenza, che dall'allegagione pende */
+  'grappolo-3': (g) => infiorescenza(3, 2, g),
+  'tralcio-3': (g) => tralcio(3, g),
   'infiorescenza-3': (g) => infiorescenza(3, 2, g),
   'gemma-sperone-0': (g) => gemmaSperone(0, g),
   'germoglio-sperone-0': (g) => germoglioSperone(0, g),
