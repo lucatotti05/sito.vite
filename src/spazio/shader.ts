@@ -16,6 +16,67 @@ float lanterna(vec2 fc) {
 }
 `
 
+/**
+ * IL PENNELLO DEL CURSORE: dove passa il cursore resta una scia (uTraccia: r = quantità di colore,
+ * gb = direzione del gesto) che trasforma il disegno in pittura a olio. Il tratto si allunga nella
+ * direzione del gesto, le campiture scure diventano foglie dipinte nella luce della stagione, le
+ * linee d'avorio colpi di luce a impasto, gli accenti (germogli, acini) colore pieno; il fondo un
+ * imprimitura d'ombra calda con le fibre del pennello. Il bordo della scia è a setole.
+ */
+const PENNELLO = /* glsl */ `
+float hashP(vec2 p) { return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }
+float rumP(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hashP(i), hashP(i + vec2(1, 0)), f.x), mix(hashP(i + vec2(0, 1)), hashP(i + vec2(1, 1)), f.x), f.y);
+}
+float fbmP(vec2 p) { return rumP(p) * 0.55 + rumP(p * 2.07 + 7.3) * 0.3 + rumP(p * 4.31 + 1.7) * 0.15; }
+mat2 lungo(vec2 dir) { vec2 d = normalize(dir + vec2(1e-4, 0.0)); return mat2(d.x, -d.y, d.y, d.x); }
+/** quanto si vede la pittura: la scia con un bordo a setole, nella direzione del gesto */
+float rivela(float m, vec2 P, vec2 dir) {
+  vec2 q = lungo(dir) * P;
+  float s = fbmP(q * vec2(0.018, 0.16));
+  return smoothstep(0.16, 0.42, m + (s - 0.5) * 0.34);
+}
+/**
+ * Il colore dipinto per il disegno nel punto P (px del disegno). c è il campione steso lungo il
+ * gesto (dà il colore delle campiture, a pennellate), cc il campione nitido nel punto (le linee del
+ * disegno restano linee: la pittura riempie, il disegno resta).
+ */
+vec3 dipingi(vec4 c, vec4 cc, vec2 P, vec2 dir, vec3 stagione) {
+  vec3 rgb = c.rgb / max(c.a, 1e-3);
+  float a = c.a;
+  float ch = max(rgb.r, max(rgb.g, rgb.b)) - min(rgb.r, min(rgb.g, rgb.b));
+  float lum = dot(rgb, vec3(0.3, 0.59, 0.11));
+  vec2 q = lungo(dir) * P;
+  // setole: striature fitte lungo il gesto, a ciocche
+  float setole = rumP(q * vec2(0.035, 0.55)) * 0.6 + rumP(q * vec2(0.012, 0.21) + 4.0) * 0.4;
+  float ciocca = fbmP(q * vec2(0.006, 0.03));
+  float macchia = fbmP(P * 0.0085);        // una tinta diversa per ogni foglia, circa
+  float velatura = fbmP(P * 0.021 + 3.1);
+  float pennellata = 0.72 + 0.5 * setole * (0.6 + 0.4 * ciocca);
+  // l'imprimitura: terra d'ombra calda con un velo della luce della stagione
+  vec3 fondo = mix(vec3(0.13, 0.08, 0.045), stagione * 0.4, 0.12 + 0.3 * macchia) * pennellata;
+  // le campiture scure (foglie, legno) diventano colore: dal verde profondo al verde giallo e all'ocra,
+  // più chiare in alto a sinistra come se la luce venisse da lì
+  vec3 scuro = mix(vec3(0.1, 0.19, 0.06), stagione * 0.55, 0.3);
+  vec3 chiaro = mix(vec3(0.46, 0.55, 0.17), stagione * 1.05, 0.35);
+  vec3 foglia = mix(scuro, chiaro, smoothstep(0.25, 0.8, macchia * 0.8 + velatura * 0.35));
+  foglia = mix(foglia, vec3(0.55, 0.38, 0.13), 0.3 * smoothstep(0.62, 0.95, velatura));
+  foglia *= pennellata;
+  // gli accenti (germogli, acini, foglie d'autunno) diventano colore pieno
+  vec3 accento = clamp(mix(vec3(lum), rgb, 1.9) * 1.35, 0.0, 1.0) * (0.85 + 0.3 * setole);
+  float colore = smoothstep(0.1, 0.26, ch) * a;
+  vec3 col = mix(fondo, foglia, smoothstep(0.15, 0.7, a) * (1.0 - colore));
+  col = mix(col, accento, colore);
+  // le linee del disegno restano nitide: avorio caldo, appena colorate dalla stagione
+  vec3 rc = cc.rgb / max(cc.a, 1e-3);
+  float linea = cc.a * smoothstep(0.5, 0.8, dot(rc, vec3(0.3, 0.59, 0.11)));
+  col = mix(col, mix(vec3(0.97, 0.89, 0.72), stagione + 0.35, 0.15), linea * 0.88);
+  return col;
+}
+`
+
 // ── suolo: filari, fili e pali (linee di 1px) ───────────────────────────
 export const SUOLO_V = /* glsl */ `
 uniform float uScorre;
@@ -87,13 +148,25 @@ uniform float uAlfa;
 uniform vec2 uRis;
 uniform float uDpr;
 uniform float uOrizzonte;
+uniform sampler2D uTraccia;
+uniform float uTracciaOn;
+${PENNELLO}
 void main() {
   vec2 P = vec2(gl_FragCoord.x, uRis.y * uDpr - gl_FragCoord.y) / uDpr;
+  vec3 dip = vec3(0.0);
+  if (uTracciaOn > 0.5) {
+    // nel vuoto la scia lascia un'imprimitura calda, a pennellate
+    vec4 tr = texture2D(uTraccia, gl_FragCoord.xy / (uRis * uDpr));
+    if (tr.r > 0.004) {
+      vec2 dir = vec2(tr.g, -tr.b);
+      dip = dipingi(vec4(0.0), vec4(0.0), P, dir, uStagione) * rivela(tr.r, P, dir) * 0.55;
+    }
+  }
   float dy = (uOrizzonte - P.y) / uRis.y; // > 0 sopra l'orizzonte
   float h = dy > 0.0 ? exp(-dy * 3.2) : exp(dy * 9.0);
   float x = (P.x / uRis.x - 0.5) * 2.0;
   h *= 1.0 - 0.55 * x * x;
-  gl_FragColor = vec4(uStagione * h * uAlfa, 0.0);
+  gl_FragColor = vec4(uStagione * h * uAlfa + dip, 0.0);
 }
 `
 
@@ -156,6 +229,9 @@ uniform float uBagliore;
 uniform float uAngolo;  // raggio degli angoli, in px a schermo (0 a pannello aperto)
 uniform float uRiflesso; // 1 = la copia specchiata sul suolo
 uniform float uLucido;  // forza della luce radente sul foglio (0 a pannello aperto)
+uniform sampler2D uTraccia;
+uniform float uTracciaOn;
+uniform vec2 uRisDev;   // misura del canvas in px del dispositivo
 varying vec2 vUv;
 varying vec3 vN;
 varying vec3 vV;
@@ -168,6 +244,7 @@ float rumore(vec2 p) {
   return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
 }
 vec4 campiona(sampler2D t, vec4 crop, vec2 uv) { return texture2D(t, crop.xy + uv * crop.zw); }
+${PENNELLO}
 
 void main() {
   vec2 px = vec2(1.0) / uBordo;           // misura del foglio in px a schermo
@@ -197,6 +274,23 @@ void main() {
   float g = exp(-dot(qb, qb) * 4.2);
   vec3 fondo = uFondo * mix(1.0, mix(1.14, 0.8, vUv.y), uLucido) + uStagione * g * uBagliore;
   vec3 col = mix(fondo, c.rgb, c.a);
+  // il pennello del cursore: sotto la scia la tavola del pannello diventa pittura
+  if (uTracciaOn > 0.5 && uRiflesso < 0.5 && uLucido > 0.01) {
+    vec4 tr = texture2D(uTraccia, gl_FragCoord.xy / uRisDev);
+    if (tr.r > 0.004) {
+      vec2 dir = vec2(tr.g, -tr.b);
+      vec2 d = normalize(dir + vec2(1e-4, 0.0)) * uBordo * 2.2;
+      vec4 s = vec4(0.0);
+      for (int i = -3; i <= 3; i++) {
+        vec4 k = campiona(uA, uCropA, uvA + d * float(i));
+        s += vec4(k.rgb * k.a, k.a);
+      }
+      s = s / 7.0 * uPronto;
+      vec4 cc = campiona(uA, uCropA, uvA) * uPronto;
+      float m = rivela(tr.r, pp, dir) * uLucido;
+      col = mix(col, dipingi(s, cc, pp + px * 0.5, dir, uStagione), m * 0.95);
+    }
+  }
   // il pannello centrale è più luminoso: gli altri affondano nel fondo
   col = mix(uFondo, col, uLuce);
   if (uRiflesso < 0.5) {
@@ -275,7 +369,16 @@ uniform float uMascheraOn;
 uniform float uApertura; // 0 = il portale nasce (forma organica), 1 = aperto (cerchio)
 uniform float uTempo;
 uniform vec3 uBordo;     // colore della luce sul bordo del portale (la luce della clip)
+// il pennello del cursore sulla tavola: scia e istantanea della tavola (rettangolo a schermo, px CSS)
+uniform sampler2D uTraccia;
+uniform float uTracciaOn;
+uniform sampler2D uDipinto;
+uniform vec4 uDipRett;
+uniform vec2 uDipTexel;
+uniform float uDipAlfa;
+uniform vec3 uStagione;
 ${LANTERNA}
+${PENNELLO}
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
 vec4 sopra(vec4 s, vec4 d) { return s + d * (1.0 - s.a); }
@@ -296,6 +399,34 @@ void main() {
       if (uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0) acc = sopra(texture2D(uSfocata, uv) * uSfAlfa, acc);
     }
     if (uBuio > 0.001) acc = sopra(vec4(uNero * uBuio, uBuio), acc);
+    if (uTracciaOn > 0.5) {
+      vec4 tr = texture2D(uTraccia, fc / (uRis * uDpr));
+      if (tr.r > 0.004) {
+        vec2 dir = vec2(tr.g, -tr.b);
+        vec2 uv = (P - uDipRett.xy) / uDipRett.zw;
+        bool dentro = uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0;
+        vec4 s = vec4(0.0);
+        vec4 cc = vec4(0.0);
+        if (dentro && uDipAlfa > 0.01) {
+          // il colore si stende nella direzione del gesto, con un tremito di setole di traverso
+          vec2 d = normalize(dir + vec2(1e-4, 0.0));
+          vec2 nn = vec2(-d.y, d.x);
+          for (int i = -3; i <= 3; i++) {
+            float fi = float(i);
+            vec4 k = texture2D(uDipinto, uv + (d * fi * 2.2 + nn * (rumP(uv * 420.0 + fi) - 0.5) * 1.6) * uDipTexel);
+            s += vec4(k.rgb * k.a, k.a);
+          }
+          s /= 7.0;
+          cc = texture2D(uDipinto, uv);
+        }
+        vec2 Pd = dentro ? uv / uDipTexel : P;
+        float m = rivela(tr.r, Pd, dir);
+        // senza istantanea (o mentre la vite cresce) la scia lascia solo l'imprimitura, leggera
+        float a = m * mix(0.38, 0.95, uDipAlfa * (dentro ? 1.0 : 0.0));
+        vec3 col = dipingi(s * uDipAlfa, cc * uDipAlfa, Pd, dir, uStagione);
+        acc = sopra(vec4(col * a, a), acc);
+      }
+    }
     if (uFilmAlfa > 0.001) {
       vec2 c = uMaschera.xy;
       vec2 dP = P - c;
@@ -355,5 +486,43 @@ void main() {
   float ga = uGrana * smoothstep(0.6, 1.0, g) * 1.1;
   acc = sopra(vec4(uAvorio * ga, ga), acc);
   gl_FragColor = acc;
+}
+`
+
+// ── la scia del pennello: una texture a bassa risoluzione che si scolora piano ────
+// r = quantità di colore, gb = direzione del gesto (accumulata con il colore). Ogni fotogramma la
+// scia precedente si scolora e deriva appena, e lungo il tratto percorso dal cursore si posano nuovi
+// colpi di pennello, irregolari, più larghi dove il gesto è lento.
+export const SCIA_F = /* glsl */ `
+uniform sampler2D uPrima;
+uniform vec2 uRis;      // px della scia
+uniform float uScolora;
+uniform vec4 uColpi[16]; // xy: centro (px della scia, y in alto), zw: direzione del gesto
+uniform float uRaggi[16];
+uniform int uN;
+float hashS(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+float rumS(vec2 p) {
+  vec2 i = floor(p), f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hashS(i), hashS(i + vec2(1, 0)), f.x), mix(hashS(i + vec2(0, 1)), hashS(i + vec2(1, 1)), f.x), f.y);
+}
+void main() {
+  vec2 uv = gl_FragCoord.xy / uRis;
+  // il colore steso deriva appena, come pigmento che si allarga
+  vec2 deriva = (vec2(rumS(gl_FragCoord.xy * 0.05), rumS(gl_FragCoord.xy * 0.05 + 9.1)) - 0.5) / uRis * 0.8;
+  vec4 c = texture2D(uPrima, uv + deriva) * uScolora;
+  for (int i = 0; i < 16; i++) {
+    if (i >= uN) break;
+    vec2 d = gl_FragCoord.xy - uColpi[i].xy;
+    vec2 dir = normalize(uColpi[i].zw + vec2(1e-4, 0.0));
+    // il colpo è un'ellisse allungata nel verso del gesto, dal bordo irregolare
+    vec2 q = vec2(dot(d, dir), dot(d, vec2(-dir.y, dir.x)));
+    float r = uRaggi[i] * (0.8 + 0.4 * rumS(gl_FragCoord.xy * 0.18 + float(i) * 3.7));
+    float g = exp(-(q.x * q.x / (r * r * 1.9) + q.y * q.y / (r * r)));
+    c.r = min(1.0, c.r + g * 0.55);
+    c.gb += uColpi[i].zw * g * 0.55;
+  }
+  c.gb = clamp(c.gb, -1.5, 1.5);
+  gl_FragColor = c;
 }
 `

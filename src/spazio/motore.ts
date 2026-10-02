@@ -3,11 +3,12 @@ import { ciclo } from '@/core/ciclo'
 import { C } from '@/core/colori'
 import { clamp, lerp, smooth } from '@/core/math'
 import { preferenze } from '@/core/preferenze'
-import { FASI } from '@/core/tempo'
+import { FASI, indiceFase, tFase } from '@/core/tempo'
+import { anno } from '@/core/anno'
 import { LUCI_STAGIONE } from '@/core/stagioni'
 import { FILM } from '@/components/film/registro'
 import { spazio } from './stato'
-import { CIELO_F, CIELO_V, PANNELLO_F, PANNELLO_V, SUOLO_F, SUOLO_V, TERRA_F, TERRA_V, VELO_F, VELO_V } from './shader'
+import { CIELO_F, CIELO_V, PANNELLO_F, PANNELLO_V, SCIA_F, SUOLO_F, SUOLO_V, TERRA_F, TERRA_V, VELO_F, VELO_V } from './shader'
 import { ASPETTO_CELLA, CELLE, FONT_NOME, PX_NOME, VUOTA, caricaTexture, libera, ritaglio, textureNome, urlCiclo, urlFermo } from './texture'
 
 /*
@@ -126,6 +127,16 @@ class Motore {
   terra!: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>
   cielo!: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>
   luceStagione = new THREE.Vector3()
+  /**
+   * IL PENNELLO DEL CURSORE: la scia (due texture a un quarto della risoluzione che si passano il
+   * testimone a ogni fotogramma) e l'istantanea della tavola che, sotto la scia, diventa pittura.
+   * Solo con il mouse e senza movimento ridotto, come la lanterna.
+   */
+  scia!: { a: THREE.WebGLRenderTarget; b: THREE.WebGLRenderTarget; scena: THREE.Scene; mat: THREE.ShaderMaterial; x: number; y: number; vx: number; vy: number; energia: number; nuovo: boolean }
+  uTraccia = { value: VUOTA as THREE.Texture }
+  uTracciaOn = { value: 0 }
+  uRisDev = { value: new THREE.Vector2(1, 1) }
+  dipinto = { tex: null as THREE.Texture | null, rett: [0, 0, 1, 1] as [number, number, number, number], texel: [1, 1] as [number, number], alfa: 0, bersaglio: 0 }
   pannelli: Pannello[] = []
   L = disposizione(window.innerWidth)
   vw = window.innerWidth
@@ -296,7 +307,7 @@ class Motore {
       new THREE.ShaderMaterial({
         vertexShader: CIELO_V,
         fragmentShader: CIELO_F,
-        uniforms: { uStagione: { value: this.luceStagione }, uAlfa: { value: 0.1 }, uRis: { value: new THREE.Vector2(1, 1) }, uDpr: { value: 1 }, uOrizzonte: { value: 0 } },
+        uniforms: { uStagione: { value: this.luceStagione }, uAlfa: { value: 0.1 }, uRis: { value: new THREE.Vector2(1, 1) }, uDpr: { value: 1 }, uOrizzonte: { value: 0 }, uTraccia: this.uTraccia, uTracciaOn: this.uTracciaOn },
         depthWrite: false,
         depthTest: false,
         transparent: true,
@@ -346,6 +357,9 @@ class Motore {
         uAngolo: { value: 0 },
         uRiflesso: { value: 0 },
         uLucido: { value: 1 },
+        uTraccia: this.uTraccia,
+        uTracciaOn: this.uTracciaOn,
+        uRisDev: this.uRisDev,
         ...this.uniformLanterna(),
       }
       const m = new THREE.ShaderMaterial({ vertexShader: PANNELLO_V, fragmentShader: PANNELLO_F, uniforms: u, ...premolt, depthWrite: true })
@@ -367,7 +381,7 @@ class Motore {
       })
     })
 
-    // i nomi si riscrivono quando il Bodoni corsivo è caricato (prima la misura sarebbe sbagliata)
+    // i nomi si riscrivono quando il Fraunces corsivo è caricato (prima la misura sarebbe sbagliata)
     Promise.resolve(document.fonts?.load(`italic 400 ${PX_NOME}px ${FONT_NOME}`)).then(() => {
       this.pannelli.forEach((p) => {
         const n = textureNome(FASI[p.i].titolo)
@@ -407,6 +421,13 @@ class Motore {
           uApertura: { value: 1 },
           uTempo: { value: 0 },
           uBordo: { value: new THREE.Vector3(0.91, 0.77, 0.54) },
+          uTraccia: this.uTraccia,
+          uTracciaOn: this.uTracciaOn,
+          uDipinto: { value: VUOTA },
+          uDipRett: { value: new THREE.Vector4(0, 0, 1, 1) },
+          uDipTexel: { value: new THREE.Vector2(1, 1) },
+          uDipAlfa: { value: 0 },
+          uStagione: { value: this.luceStagione },
           ...this.uniformLanterna(),
         },
         depthTest: false,
@@ -416,7 +437,103 @@ class Motore {
     )
     this.velo.frustumCulled = false
     this.veloScena.add(this.velo)
+
+    // la scia del pennello
+    const rt = () => new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, format: THREE.RGBAFormat, depthBuffer: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter })
+    const colpi = Array.from({ length: 16 }, () => new THREE.Vector4())
+    const mat = new THREE.ShaderMaterial({
+      vertexShader: VELO_V,
+      fragmentShader: SCIA_F,
+      uniforms: { uPrima: { value: VUOTA }, uRis: { value: new THREE.Vector2(4, 4) }, uScolora: { value: 0.98 }, uColpi: { value: colpi }, uRaggi: { value: new Array(16).fill(10) }, uN: { value: 0 } },
+      depthTest: false,
+      depthWrite: false,
+      blending: THREE.NoBlending,
+    })
+    const scena = new THREE.Scene()
+    const q = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat)
+    q.frustumCulled = false
+    scena.add(q)
+    this.scia = { a: rt(), b: rt(), scena, mat, x: -1e4, y: -1e4, vx: 0, vy: 0, energia: 0, nuovo: true }
   }
+
+  /** La scia del pennello: nuovi colpi lungo il tratto percorso dal cursore, la vecchia si scolora. */
+  private pennella(dt: number): boolean {
+    const sc = this.scia
+    const m = this.mouse
+    const on = m.ok && m.tx > -1e3
+    this.uTracciaOn.value = on && sc.energia > 0.002 ? 1 : on ? this.uTracciaOn.value : 0
+    if (!on) {
+      sc.energia = 0
+      return false
+    }
+    const R = 4 // la scia è a un quarto della risoluzione
+    const tx = m.tx / R, ty = (this.H - m.ty) / R
+    const u = sc.mat.uniforms
+    const colpi = u.uColpi.value as THREE.Vector4[]
+    const raggi = u.uRaggi.value as number[]
+    let n = 0
+    if (sc.x < -1e3) {
+      sc.x = tx
+      sc.y = ty
+    }
+    const dx = tx - sc.x, dy = ty - sc.y
+    const dist = Math.hypot(dx, dy)
+    if (dist > 0.6) {
+      // la velocità del gesto (px della scia al secondo), per la direzione e la larghezza del colpo
+      const v = dist / Math.max(dt, 1 / 240)
+      sc.vx = dx / dist
+      sc.vy = dy / dist
+      const passi = Math.min(16, Math.ceil(dist / 3))
+      const r = clamp(10.5 - v * 0.01, 5.5, 10.5)
+      for (let i = 1; i <= passi; i++) {
+        const k = i / passi
+        colpi[n].set(sc.x + dx * k, sc.y + dy * k, sc.vx, sc.vy)
+        raggi[n] = r
+        n++
+      }
+      sc.x = tx
+      sc.y = ty
+    }
+    const scolora = Math.exp(-dt / 1.25)
+    sc.energia = Math.min(3, sc.energia * scolora + n * 0.08)
+    if (sc.energia < 0.002 && !n) {
+      this.uTracciaOn.value = 0
+      return false
+    }
+    this.uTracciaOn.value = 1
+    u.uN.value = n
+    u.uScolora.value = scolora
+    u.uPrima.value = sc.a.texture
+    const r = this.renderer
+    r.setRenderTarget(sc.b)
+    r.render(sc.scena, this.veloCam)
+    r.setRenderTarget(null)
+    const t = sc.a
+    sc.a = sc.b
+    sc.b = t
+    this.uTraccia.value = sc.a.texture
+    return true
+  }
+
+  /** L'istantanea della tavola (con l'inquadratura del momento) che il pennello trasforma in pittura. */
+  impostaDipinto(tela: HTMLCanvasElement) {
+    const t = new THREE.Texture(tela as unknown as HTMLImageElement)
+    Object.assign(t, { flipY: false, colorSpace: THREE.NoColorSpace, generateMipmaps: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter })
+    t.needsUpdate = true
+    this.carica(t, () => {
+      libera(this.dipinto.tex)
+      this.dipinto.tex = t
+      this.dipinto.texel = [1 / tela.width, 1 / tela.height]
+    })
+  }
+  /** Dove sta l'istantanea sullo schermo ora (px CSS) e se è ancora fedele alla tavola (1) o no (0). */
+  posaDipinto(rett: [number, number, number, number], fedele: number) {
+    this.dipinto.rett = rett
+    this.dipinto.bersaglio = fedele
+    this.sporca()
+  }
+  /** Il pennello è acceso (mouse, niente movimento ridotto): ViteNelPalco fotografa la tavola solo allora. */
+  pennelloAcceso = () => this.mouse.ok
 
   private uniformLanterna() {
     return { uMouse: { value: new THREE.Vector2(-1e5, -1e5) }, uLanterna: { value: 0 }, uRaggio: { value: 260 } }
@@ -457,6 +574,11 @@ class Motore {
     vu.uDpr.value = this.dpr
     this.cielo.material.uniforms.uRis.value.set(this.vw, this.H)
     this.cielo.material.uniforms.uDpr.value = this.dpr
+    this.uRisDev.value.set(this.vw * this.dpr, this.H * this.dpr)
+    const ws = Math.max(4, Math.round(this.vw / 4)), hs = Math.max(4, Math.round(this.H / 4))
+    this.scia.a.setSize(ws, hs)
+    this.scia.b.setSize(ws, hs)
+    this.scia.mat.uniforms.uRis.value.set(ws, hs)
     if (L0.stretto !== stretto) this.pannelli.forEach((p) => (p.u.uCurva.value = this.L.kRiposo))
     this.sporca()
   }
@@ -599,6 +721,15 @@ class Motore {
       if (this.inizioApertura) this.apertura = ridotto ? 1 : Math.min(1, (ora - this.inizioApertura) / this.durataApertura)
       anima = true
       this.sporco = true
+    }
+
+    // il pennello del cursore: la scia vive finché non si è scolorita
+    if (!ridotto && this.pennella(dt)) anima = this.sporco = true
+    const dp = this.dipinto
+    const bersDip = dp.tex ? dp.bersaglio : 0
+    if (Math.abs(dp.alfa - bersDip) > 0.002) {
+      dp.alfa += (bersDip - dp.alfa) * (1 - Math.pow(0.001, dt * 2.5))
+      anima = this.sporco = true
     }
 
     // il portale che respira mentre si apre o si chiude
@@ -860,6 +991,13 @@ class Motore {
     vu.uSfAlfa.value = s.tex ? s.alfa : 0
     vu.uSfRuota.value.set(...s.ruota)
     vu.uBuio.value = s.buio
+    const d = this.dipinto
+    vu.uDipinto.value = d.tex ?? VUOTA
+    vu.uDipRett.value.set(...d.rett)
+    vu.uDipTexel.value.set(...d.texel)
+    vu.uDipAlfa.value = d.tex ? d.alfa : 0
+    const p = anno.get(), i = indiceFase(p)
+    stagione(i + (tFase(p, i) > 0.85 ? (tFase(p, i) - 0.85) / 0.15 : 0), this.luceStagione)
     this.aggiornaLanterna(vu)
     const r = this.renderer
     r.setClearColor(new THREE.Color(0, 0, 0), 0)

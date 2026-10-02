@@ -3,6 +3,8 @@ import { anno } from '@/core/anno'
 import { misure } from '@/core/misure'
 import { camera, inquadratura } from './camera'
 import { statoFilm } from '../film/raccordo'
+import { fotografa, rettIstantanea, type Istantanea } from '../film/fuoco'
+import { spazio } from '@/spazio/stato'
 import { Vite } from './Vite'
 import { motore } from '@/spazio/motore'
 
@@ -46,6 +48,46 @@ export function ViteNelPalco() {
   useEffect(() => {
     const base = { x: 0, y: 0, h: 0, W: 0, H: 0 }
     let fermo = 0
+    // il pennello del cursore (spazio/motore.ts): quando la camera si ferma la tavola si fotografa
+    // a metà risoluzione; l'istantanea segue poi la camera (spostamento e scala) e si spegne se la
+    // vite è cresciuta da allora o se la camera ruota (raccordo film), finché non se ne fa un'altra
+    let ist: Istantanea | null = null
+    let giornoIst = -1
+    let scatto = 0
+    let inCorso = false
+    const posaDipinto = () => {
+      if (!ist) return
+      const { vw, H } = misure
+      const p = anno.get()
+      const q = inquadratura(p, vw, H)
+      const fedele = !q.ruota && Math.abs(p * 365 - giornoIst) < 0.6 && ist.W === vw && ist.H === H ? 1 : 0
+      motore.posaDipinto(rettIstantanea(ist, q, H), fedele)
+    }
+    const scatta = () => {
+      const el = posto.current
+      if (!el || inCorso || !motore.pennelloAcceso() || spazio.get().modo !== 'fase') return
+      const { vw, H } = misure
+      const p = anno.get()
+      const q = inquadratura(p, vw, H)
+      if (q.ruota || statoFilm(p, vw, H)?.coperta) return
+      if (ist && Math.abs(p * 365 - giornoIst) < 0.05 && ist.vb.x === q.x && ist.vb.y === q.y && ist.vb.h === q.h) return
+      inCorso = true
+      fotografa(el, q, vw, H, { scala: 0.75, sfoca: false, fissi: true }).then((r) => {
+        inCorso = false
+        if (!r) return
+        ist = r
+        giornoIst = p * 365
+        motore.impostaDipinto(r.tela)
+        posaDipinto()
+      })
+    }
+    const programmaScatto = () => {
+      clearTimeout(scatto)
+      scatto = window.setTimeout(() => {
+        if ('requestIdleCallback' in window) requestIdleCallback(scatta, { timeout: 400 })
+        else scatta()
+      }, 260)
+    }
     /** il viewBox degli strati prende l'inquadratura q: le linee tornano nitide alla loro misura */
     const riallinea = (q: { x: number; y: number; w: number; h: number }, vw: number, H: number) => {
       const el = posto.current
@@ -83,7 +125,12 @@ export function ViteNelPalco() {
         strati.style.transform = `translate3d(${tx.toFixed(1)}px, ${ty.toFixed(1)}px, 0) scale(${k.toFixed(4)})`
       }
       clearTimeout(fermo)
-      if (!invisibile) fermo = window.setTimeout(() => riallinea(inquadratura(anno.get(), misure.vw, misure.H), misure.vw, misure.H), 160)
+      if (!invisibile)
+        fermo = window.setTimeout(() => {
+          riallinea(inquadratura(anno.get(), misure.vw, misure.H), misure.vw, misure.H)
+          programmaScatto()
+        }, 160)
+      posaDipinto()
       // momento film: la vite ruota sull'asse della gemma e la camera la porta a coincidere con la
       // gemma filmata; lì si apre il portale sulla clip (spazio/shader.ts). Fuori dal portale la tavola
       // resta nitida e si scurisce appena: nessuna immagine sfocata, nessun filtro
@@ -99,11 +146,15 @@ export function ViteNelPalco() {
     aggiorna()
     const a = anno.subscribe(aggiorna)
     const c = camera.subscribe(aggiorna)
+    // entrando nella fase (e quando la vite finisce di crescere) si prepara l'istantanea
+    const sp = spazio.subscribe(() => spazio.get().modo === 'fase' && programmaScatto())
     window.addEventListener('resize', aggiorna)
     return () => {
       a()
       c()
+      sp()
       clearTimeout(fermo)
+      clearTimeout(scatto)
       window.removeEventListener('resize', aggiorna)
     }
   }, [])
