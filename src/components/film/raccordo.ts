@@ -15,8 +15,8 @@ import { FILM, type Manifesto } from './registro'
  *               posizione, misura e asse, con la gemma della clip, che compare piccola (27 %)
  *               nello stesso punto; la vite sfoca e si scurisce, la luce si scalda e si abbassa
  *  0,17 ─ 0,23  dissolvenza locale: la gemma vera prende il posto di quella disegnata
- *  0,23 ─ 0,40  la clip si ingrandisce attorno alla gemma fino a coprire lo schermo, la maschera
- *               radiale si allarga; la vite disegnata resta agganciata e si ingrandisce con lei
+ *  0,23 ─ 0,40  la clip si ingrandisce attorno alla gemma fino a coprire lo schermo, il portale
+ *               si allarga; la vite disegnata resta agganciata e si avvicina appena (parallasse)
  *  0,23 ─ 0,77  scorrono i fotogrammi (sotto, l'anno avanza: la vite mette i germogli)
  *  0,60 ─ 0,77  speculare: la clip si allontana attorno al germoglio e la maschera si richiude
  *  0,77 ─ 0,83  dissolvenza sul germoglio disegnato, che coincide con quello dell'ultimo fotogramma
@@ -127,7 +127,12 @@ function calcola(p: number, vw: number, H: number): StatoFilm | null {
   const centro = daFotogramma(coprente, seg.centro)
   const q = riduci(coprente, centro, z)
   const asse = ancora(entra ? m.tavola.inizio : m.tavola.fine, g)
-  const ag = aggancio(asse.base, asse.punta, daFotogramma(q, seg.base), daFotogramma(q, seg.punta), H)
+  // la tavola resta agganciata al soggetto ma, mentre la clip cresce dentro il portale, si avvicina
+  // appena (parallasse, al più 1,35×): un ingrandimento di 3,7× la riempirebbe di tratti enormi e
+  // confusi attorno al portale. Il soggetto disegnato è già coperto dalla clip, il distacco non si vede
+  const zT = ridotto ? 1 : Math.exp(Math.log(T.piccola) * (1 - e * 0.23))
+  const qT = riduci(coprente, centro, zT)
+  const ag = aggancio(asse.base, asse.punta, daFotogramma(qT, seg.base), daFotogramma(qT, seg.punta), H)
   const k = ridotto ? 0 : entra ? smooth(tra(f, 0, T.aggancio)) : 1 - smooth(tra(f, T.esce, 1))
   const nF = m.fotogrammi.numero
   const t = tra(f, T.clip[0], T.clip[1])
