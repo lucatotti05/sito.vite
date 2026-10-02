@@ -111,6 +111,8 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
   const nodoK = useRef(1.5)
   /** larghezza in px della colonna libera dei testi: le etichette possono arrivare fin lì */
   const limiteX = useRef(0)
+  /** margini dello schermo in unità del disegno: nessuna etichetta a meno di 24px dal bordo */
+  const bordi = useRef({ sx: -1e4, dx: 1e4 })
   /** larghezza vera di ogni etichetta, in unità del disegno (misurata al ridimensionamento) */
   const larghezze = useRef<number[]>([])
   const righeEtich = useRef<number[]>([])
@@ -119,6 +121,11 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
 
   const rimisura = () => {
     limiteX.current = document.querySelector<HTMLElement>('.titoli')?.clientWidth ?? 0
+    const r = rSvg.current?.getBoundingClientRect()
+    if (r && r.width > 0) {
+      const K = 590 / r.width
+      bordi.current = { sx: -95 + (28 - r.left) * K, dx: -95 + (window.innerWidth - 28 - r.left) * K }
+    }
     const fs = 13 * nodoK.current
     larghezze.current = rEtich.current.map((e) => {
       if (!e) return 0
@@ -342,7 +349,7 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
       const x0 = q.ancora === 'end' ? q.ex - w : q.ancora === 'middle' ? q.ex - w / 2 : q.ex
       return { x0: x0 - fs * 0.1, x1: x0 + w + fs * 0.1, y0: q.ey - fs * 0.95, y1: q.ey + (q.righeN - 1) * lh + fs * 0.4 }
     }
-    const xMin = -93, xMax = Math.max(493, limiteX.current * K - 95 - 4), yMin = -18, yMax = 398
+    const xMin = Math.max(-93, bordi.current.sx), xMax = Math.min(Math.max(493, limiteX.current * K - 95 - 4), bordi.current.dx), yMin = -18, yMax = 398
     const contieni = (i: number) => {
       const b = scatola(posti[i], i)
       if (b.x0 < xMin) posti[i].ex += xMin - b.x0
