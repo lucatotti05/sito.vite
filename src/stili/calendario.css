@@ -18,8 +18,9 @@
 .calendario {
   position: absolute;
   z-index: 8;
-  top: var(--s-5);
-  right: var(--margine-x);
+  /* appesa dove nell'Anno c'è la voce del mese (angolo in alto a destra) */
+  top: calc(var(--angolo) - 8px);
+  right: var(--angolo);
   width: var(--cal-w);
   margin: 0;
   pointer-events: none;
@@ -182,7 +183,7 @@
 
 @media (max-width: 759px) {
   .calendario {
-    top: var(--s-4);
+    top: calc(var(--angolo) - 8px);
   }
   .cal-asola {
     top: var(--s-2);

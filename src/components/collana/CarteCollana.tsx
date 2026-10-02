@@ -7,7 +7,6 @@ import { easeInOut, lerp, tra } from '@/core/math'
 import { preferenze } from '@/core/preferenze'
 import { primoPiano, usePrimoPiano } from '@/core/primoPiano'
 import { FASI, indiceFase, tFase } from '@/core/tempo'
-import { puntoFuga } from '../scena/Scena'
 import { banco, carteDellaFase, disponibile, tipoDi, useBanco, type Voce } from './collana'
 import { Oggetto } from './Oggetto'
 
@@ -34,7 +33,7 @@ function Carta({ voce, numeroFase, profondita }: { voce: Voce; numeroFase: numbe
   // (450 ms e 260 ms, interrompibili): k 0 → 1 arriva, esce 0 → 1 lascia il posto
   const st = useRef({ k: 0, esce: 0, vuoleK: 0, vuoleEsce: 0 })
 
-  const disegna = (p: number) => {
+  const disegna = (_p: number) => {
     const n = el.current
     if (!n) return
     const { vw, H } = misure
@@ -78,7 +77,9 @@ function Carta({ voce, numeroFase, profondita }: { voce: Voce; numeroFase: numbe
       return
     }
     const C = { x: vw / 2, y: H / 2 }
-    const vp = puntoFuga(iFase, p, vw, H)
+    // la carta esce dalla voce "Collana", nell'angolo in basso a destra
+    const angolo = Math.max(24, vw * 0.05)
+    const vp = { x: vw - angolo - 30, y: H - angolo - 6 }
     const z0 = Z0 + d * 3
     const z = lerp(z0, 1 / scalaFin, k)
     const P0 = { x: (vp.x - C.x) * z0, y: (vp.y - C.y) * z0 }

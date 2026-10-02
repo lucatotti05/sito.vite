@@ -37,18 +37,29 @@ function regole() {
   return css
 }
 
-/** Fotografa la tavola con l'inquadratura `q` (senza rotazione) su un canvas ridotto. */
-export async function fotografa(posto: HTMLElement, q: Pick<Inquadratura, 'x' | 'y' | 'w' | 'h'>, W: number, H: number): Promise<Istantanea | null> {
+type Opzioni = { scala?: number; sfoca?: boolean; fissi?: boolean }
+/**
+ * Fotografa la tavola con l'inquadratura `q` (senza rotazione). Di norma su un canvas ridotto e
+ * sfocato (messa a fuoco del raccordo); con `scala` e `sfoca: false` è l'istantanea nitida che il
+ * pannello dello spazio mostra prima di passare la mano alla tavola vera (spazio/volo.ts).
+ */
+export async function fotografa(
+  posto: HTMLElement,
+  q: Pick<Inquadratura, 'x' | 'y' | 'w' | 'h'>,
+  W: number,
+  H: number,
+  { scala = 1 / RIDUZIONE, sfoca = true, fissi = false }: Opzioni = {},
+): Promise<Istantanea | null> {
   const defs = posto.querySelector('svg.vite-defs')?.innerHTML ?? ''
   // pali e fili restano fuori: durante la rotazione del raccordo attraverserebbero lo schermo in diagonale
   const strati = Array.from(posto.querySelectorAll('svg.vite-legno, svg.vite-chioma'))
     .map((s) => {
       const c = s.cloneNode(true) as SVGElement
-      c.querySelector('.v-fissi')?.remove()
+      if (!fissi) c.querySelector('.v-fissi')?.remove()
       return c.innerHTML
     })
     .join('')
-  const w = Math.max(1, Math.round(W / RIDUZIONE)), h = Math.max(1, Math.round(H / RIDUZIONE))
+  const w = Math.max(1, Math.round(W * scala)), h = Math.max(1, Math.round(H * scala))
   const testo =
     `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}" ` +
     `viewBox="${q.x} ${q.y} ${q.w} ${q.h}"><style>${regole()}</style>${defs}${strati}</svg>`
@@ -65,7 +76,7 @@ export async function fotografa(posto: HTMLElement, q: Pick<Inquadratura, 'x' | 
     if (!ctx) return null
     // una sfocatura sull'immagine piccola, calcolata una volta sola: ingrandita resta morbida, senza scalini
     // (dove il filtro del canvas non c'è, basta l'ingrandimento)
-    ctx.filter = 'blur(1.5px)'
+    if (sfoca) ctx.filter = 'blur(1.5px)'
     ctx.drawImage(img, 0, 0, w, h)
     ctx.filter = 'none'
     return { tela, vb: { x: q.x, y: q.y, h: q.h }, W, H }
@@ -82,4 +93,10 @@ export function trasformaIstantanea(ist: Istantanea, q: Pick<Inquadratura, 'x' |
   const tx = ((ist.vb.x - q.x) * H) / q.h
   const ty = ((ist.vb.y - q.y) * H) / q.h
   return `translate3d(${tx.toFixed(1)}px, ${ty.toFixed(1)}px, 0) scale(${(k * RIDUZIONE).toFixed(4)})`
+}
+
+/** Il rettangolo a schermo (px CSS) dell'istantanea sull'inquadratura corrente: per il velo WebGL. */
+export function rettIstantanea(ist: Istantanea, q: Pick<Inquadratura, 'x' | 'y' | 'h'>, H: number): [number, number, number, number] {
+  const k = ist.vb.h / q.h
+  return [((ist.vb.x - q.x) * H) / q.h, ((ist.vb.y - q.y) * H) / q.h, ist.W * k, ist.H * k]
 }

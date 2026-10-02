@@ -1,6 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type JSX, type KeyboardEvent } from 'react'
 import gsap from 'gsap'
 import { D, E } from '@/core/movimento'
+import { ciclo } from '@/core/ciclo'
 import praticheJson from '@/data/pratiche.json'
 import { anno, useAnnoFotogramma } from '@/core/anno'
 import { easeInOut, lerp, mixHex, tra } from '@/core/math'
@@ -14,7 +15,7 @@ import {
   Acino, Antera, Bocciolo, DecoroCaduta, DecoroFiore, DecoroFoglia, DecoroGermogliamento, DecoroGrappolo, DecoroLegno,
   DecoroMaturazione, DecoroPianto, DecoroVendemmia, FogliaSecca, Gemma, Goccia, Punta, Stazione, coloreAcino,
 } from './decori'
-import { CENTRO, FORME, etichettaFuori, misto, nastro, poligono, type Posa, type Pt } from './forme'
+import { CENTRO, FORME, etichettaFuori, misto, nastro, poligono, type Etichettatura, type Posa, type Pt } from './forme'
 
 export type Pratica = {
   id: string
@@ -119,7 +120,15 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
   const fermo = useRef(false)
   const ultimePose = useRef<Posa[]>([])
   const rSvg = useRef<SVGSVGElement>(null)
-  const rFuoco = useRef<SVGGElement>(null)
+  const rPiano = useRef<SVGGElement>(null)
+  const ultimeEtichette = useRef<Etichettatura[]>([])
+  /**
+   * L'orbita (dalla prova del germogliamento, scegli() e aggiornaNodo()): al clic il piano della
+   * forma si inclina di 58° e ruota con la molla finché la pratica scelta arriva davanti (in basso,
+   * verso chi guarda); le altre arretrano e si sfocano con la profondità. Si ruota e si inclina il
+   * piano, le forme botaniche non si deformano: marcatori ed etichette restano dritti.
+   */
+  const orbita = useRef({ ang: 0, vAng: 0, incl: 0, vIncl: 0, angT: 0, inclT: 0, scelta: -1 })
   const rScheda = useRef<HTMLElement>(null)
   const rSezione = useRef<HTMLElement>(null)
   const morph = useRef<{ k: number; da: Istantanea | null }>({ k: 1, da: null })
@@ -150,16 +159,61 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
     camera.guarda(null)
   }, [])
 
-  // la forma porta in primo piano la pratica scelta: si avvicina e si sposta verso di lei
+  // la pratica scelta: il piano ruota per portarla davanti e si inclina (molla interrompibile)
   useEffect(() => {
-    const g = rFuoco.current
-    if (!g) return
+    const o = orbita.current
     const i = pratiche.findIndex((x) => x.id === attiva)
     const q = i >= 0 ? ultimePose.current[i] : null
-    g.style.transform = q && !ridotto
-      ? `translate(${((CENTRO[0] - q.p[0]) * 0.22).toFixed(1)}px, ${((CENTRO[1] - q.p[1]) * 0.22).toFixed(1)}px) scale(1.08)`
-      : ''
+    o.scelta = i
+    if (q) {
+      const phi = (Math.atan2(q.p[1] - CENTRO[1], q.p[0] - CENTRO[0]) * 180) / Math.PI
+      let t = 90 - phi
+      while (t - o.ang > 180) t -= 360
+      while (t - o.ang < -180) t += 360
+      o.angT = t
+      o.inclT = 58
+    } else {
+      o.angT = 0
+      o.inclT = 0
+    }
+    if (ridotto) {
+      o.ang = o.angT
+      o.incl = o.inclT
+      o.vAng = o.vIncl = 0
+      applicaPiano()
+    }
+    ciclo.sveglia()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attiva, pratiche, ridotto])
+
+  useEffect(
+    () =>
+      ciclo.aggiungi(() => {
+        const o = orbita.current
+        const fermi = Math.abs(o.ang - o.angT) < 0.01 && Math.abs(o.vAng) < 0.01 && Math.abs(o.incl - o.inclT) < 0.01 && Math.abs(o.vIncl) < 0.01
+        if (fermi) {
+          if (o.ang !== o.angT || o.incl !== o.inclT) {
+            o.ang = o.angT
+            o.incl = o.inclT
+            applicaPiano()
+          }
+          return false
+        }
+        // molla: rigidità 170, smorzamento 22, massa 1 (DESIGN.md); riparte da posizione e velocità attuali
+        const dt = 1 / 60
+        for (let k = 0; k < 2; k++) {
+          const h = dt / 2
+          o.vAng += (-170 * (o.ang - o.angT) - 22 * o.vAng) * h
+          o.ang += o.vAng * h
+          o.vIncl += (-170 * (o.incl - o.inclT) - 22 * o.vIncl) * h
+          o.incl += o.vIncl * h
+        }
+        applicaPiano()
+        return true
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  )
 
   // etichette e bersagli a misura di schermo: l'SVG del nodo è ridotto, quindi si compensa
   useLayoutEffect(() => {
@@ -187,6 +241,57 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
       tw.kill()
     }
   }, [attiva, pratiche, ridotto])
+
+  /** Porta pose, etichette e guide sul piano ruotato e inclinato; il disegno della forma ruota con lui. */
+  function applicaPiano() {
+    const o = orbita.current
+    const a = (o.ang * Math.PI) / 180, inc = (o.incl * Math.PI) / 180
+    const ca = Math.cos(a), sa = Math.sin(a), ci = Math.cos(inc)
+    const [cx, cy] = CENTRO
+    const ruota = (p: Pt): Pt => {
+      const dx = p[0] - cx, dy = p[1] - cy
+      return [dx * ca - dy * sa, dx * sa + dy * ca]
+    }
+    const piano = rPiano.current
+    if (piano) piano.setAttribute('transform', Math.abs(o.ang) < 0.01 && o.incl < 0.01 ? '' : `translate(${cx} ${cy}) scale(1 ${ci.toFixed(4)}) rotate(${o.ang.toFixed(2)}) translate(${-cx} ${-cy})`)
+    const pose = ultimePose.current
+    const R = Math.max(1, ...pose.map((q) => Math.hypot(q.p[0] - cx, q.p[1] - cy)))
+    const k = Math.min(1, Math.max(0, o.incl / 58))
+    const quiete = o.scelta < 0 && k < 0.002 && Math.abs(o.ang) < 0.01
+    pose.forEach((q, j) => {
+      const [rx, ry] = ruota(q.p)
+      const P: Pt = [cx + rx, cy + ry * ci]
+      const prof = Math.min(1, Math.max(0, (ry / R + 1) / 2)) // 0 lontano, 1 vicino
+      const s = 0.72 + 0.5 * prof * k + (1 - k) * 0.28
+      const scelta = j === o.scelta
+      const op = scelta || o.scelta < 0 ? 1 : lerp(1, 0.35 + 0.4 * prof, k)
+      const sfoca = scelta || o.scelta < 0 ? 0 : (1 - prof) * 2.4 * k
+      const m = rMarc.current[j]
+      if (m) {
+        m.setAttribute('transform', `translate(${P[0].toFixed(1)} ${P[1].toFixed(1)}) rotate(${(q.ang ?? 0).toFixed(1)}) scale(${((q.scala ?? 1) * s).toFixed(3)})`)
+        m.style.opacity = quiete ? '' : `calc(var(--vis, 1) * ${op.toFixed(3)})`
+        m.style.filter = sfoca > 0.05 ? `blur(${sfoca.toFixed(2)}px)` : ''
+      }
+      // l'etichetta resta dritta: lo scarto dal marcatore ruota con il piano, l'ancora segue il lato
+      const et = ultimeEtichette.current[j]
+      const e = rEtich.current[j]
+      if (!et) return
+      const off = ruota([cx + et.x - q.p[0], cy + et.y - q.p[1]])
+      const ex = P[0] + off[0], ey = P[1] + off[1] * lerp(1, ci, 0.5)
+      const ancora = quiete ? et.ancora : off[0] < -4 ? 'end' : off[0] > 4 ? 'start' : 'middle'
+      if (e) {
+        e.setAttribute('transform', `translate(${ex.toFixed(1)} ${ey.toFixed(1)})${quiete ? '' : ` scale(${s.toFixed(3)})`}`)
+        e.setAttribute('text-anchor', ancora)
+        e.style.opacity = quiete ? '' : `calc(var(--vis, 1) * ${op.toFixed(3)})`
+        e.style.filter = sfoca > 0.05 ? `blur(${sfoca.toFixed(2)}px)` : ''
+      }
+      const gd = rGuide.current[j]
+      if (gd) {
+        const gx = ex + (ancora === 'end' ? 6 : ancora === 'start' ? -6 : 0)
+        gd.setAttribute('d', et.guida ? `M${P[0].toFixed(1)} ${P[1].toFixed(1)} L${gx.toFixed(1)} ${(ey - 5).toFixed(1)}` : '')
+      }
+    })
+  }
 
   const firma = useRef('')
   const aggiorna = (p: number) => {
@@ -227,29 +332,23 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
     const vis = ridotto || M.k >= 1 ? 1 : tra(M.k, 0.45, 1)
     let pose = forma.pose(t, pratiche.length)
     ultimePose.current = pose
+    const etichette: Etichettatura[] = []
     pose.forEach((q: Posa, k) => {
       const m = rMarc.current[k]
       if (m) {
-        m.setAttribute('transform', `translate(${q.p[0].toFixed(1)} ${q.p[1].toFixed(1)}) rotate(${(q.ang ?? 0).toFixed(1)}) scale(${(q.scala ?? 1).toFixed(3)})`)
         m.style.setProperty('--vis', vis.toFixed(3))
         m.style.setProperty('--apre', (q.apre ?? 1).toFixed(3))
         if (q.vira !== undefined) m.style.setProperty('--acino', coloreAcino(q.vira))
         m.tabIndex = vis > 0.5 ? 0 : -1
       }
       const et = forma.etichetta?.(k, q, t) ?? etichettaFuori(q.p)
-      const e = rEtich.current[k]
-      if (e) {
-        e.setAttribute('transform', `translate(${et.x.toFixed(1)} ${et.y.toFixed(1)})`)
-        e.setAttribute('text-anchor', et.ancora)
-        e.style.setProperty('--vis', vis.toFixed(3))
-      }
+      etichette.push(et)
+      rEtich.current[k]?.style.setProperty('--vis', vis.toFixed(3))
       const gd = rGuide.current[k]
-      if (gd) {
-        const ex = et.x + (et.ancora === 'end' ? 6 : et.ancora === 'start' ? -6 : 0)
-        gd.setAttribute('d', et.guida ? `M${q.p[0].toFixed(1)} ${q.p[1].toFixed(1)} L${ex.toFixed(1)} ${(et.y - 5).toFixed(1)}` : '')
-        gd.style.opacity = vis.toFixed(3)
-      }
+      if (gd) gd.style.opacity = vis.toFixed(3)
     })
+    ultimeEtichette.current = etichette
+    applicaPiano()
     legami.forEach(([a, b], k) => {
       const el = rLegami.current[k]
       if (!el || !pose[a] || !pose[b]) return
@@ -321,8 +420,8 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
         data-tasti-propri
         aria-label={`Pratiche: ${pratiche.map((p) => p.titolo).join(', ')}. Frecce per passare da una all'altra.`}
       >
-        <g ref={rFuoco} className="nodo-fuoco-forma">
         <g key={ridotto ? fase.id : 'nodo'} className={ridotto ? 'nodo-dissolvi' : undefined}>
+          <g ref={rPiano} className="nodo-piano">
           <path ref={rRiempi} className="forma-riempi" />
           <g ref={rDecoro} key={`d${fase.id}`} className="forma-decoro" aria-hidden="true">
             {Decoro && <Decoro iFase={iFase} />}
@@ -340,6 +439,7 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
                 />
               )
             })}
+          </g>
           </g>
           {pratiche.map((pr, k) => (
             <path key={`g${pr.id}`} ref={(e) => { rGuide.current[k] = e }} className="nodo-guida" aria-hidden="true" />
@@ -381,7 +481,6 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
               ))}
             </text>
           ))}
-        </g>
         </g>
       </svg>
       <p className="nodo-invito t-etichetta" aria-live="polite" style={{ visibility: scelta ? 'hidden' : undefined }}>

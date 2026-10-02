@@ -157,3 +157,13 @@ export function pDelFilm(i: number, f: number) {
   const t = TRATTI_FILM.get(i)
   return t ? pDaSigma(t.s0 + f * (t.s1 - t.s0)) : 0
 }
+
+/**
+ * La pista di scroll di una fase, in schermi: dal suo inizio alla sua fine nel progresso dell'anno
+ * (la tabella levigata sposta i confini di pochi centesimi: qui si resta dentro la fase).
+ */
+export function pistaFase(i: number) {
+  const s0 = sigmaDaP(FASI[i].inizio + 0.0004)
+  const s1 = sigmaDaP(Math.min(0.9996, FASI[i].fine - 0.0004))
+  return { s0, s1, lunga: s1 - s0 }
+}

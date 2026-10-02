@@ -226,6 +226,40 @@ html.pratica-aperta .vite-chioma {
 html.pratica-aperta .v-etichette > g {
   opacity: 0;
 }
+/* senza lanterna (tocco, movimento ridotto): le prime due note */
+html:not(.lanterna) .v-etichette > g:nth-child(n + 3) {
+  display: none;
+}
+/* con la lanterna le note dormono finché la luce non passa sull'organo: allora si scrivono
+   (prima la linea, poi il testo, --d-entrata) e svaniscono quando la luce si allontana */
+html.lanterna .v-etichette {
+  animation: none;
+}
+html.lanterna .v-etichette > g {
+  opacity: 0;
+  transition: opacity var(--d-ui) var(--ease-in) 120ms;
+}
+html.lanterna .v-etichette > g.rivelata {
+  opacity: 1;
+  transition: opacity var(--d-micro) var(--ease-out);
+}
+html.lanterna .v-etichette .v-guida {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset var(--d-ui) var(--ease-in);
+}
+html.lanterna .v-etichette > g.rivelata .v-guida {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset var(--d-entrata) var(--ease-out);
+}
+html.lanterna .v-etichette :is(.v-etichetta, .v-guida-punto) {
+  opacity: 0;
+  transition: opacity var(--d-ui) var(--ease-in);
+}
+html.lanterna .v-etichette > g.rivelata :is(.v-etichetta, .v-guida-punto) {
+  opacity: 1;
+  transition: opacity var(--d-entrata) var(--ease-out) 180ms;
+}
 /* sul telefono le note della tavola, scritte a misura di schermo, uscirebbero dal bordo:
    restano le annotazioni del film e il luogo della pratica (da riprendere con la tavola incisa) */
 @media (max-width: 759px) {
@@ -234,24 +268,6 @@ html.pratica-aperta .v-etichette > g {
   }
 }
 
-/* messa a fuoco del raccordo film: l'istantanea sfocata (1/6 dello schermo, ingrandita) e il velo
-   che scurisce. Solo transform e opacity, nessun filtro */
-.vite-fuoco {
-  position: absolute;
-  left: 0;
-  top: 0;
-  transform-origin: 0 0;
-  opacity: 0;
-  pointer-events: none;
-  will-change: transform, opacity;
-}
-.vite-buio {
-  position: absolute;
-  inset: 0;
-  background: var(--nero);
-  opacity: 0;
-  pointer-events: none;
-}
 /* la tavola nitida si dissolve con l'istantanea sfocata: un livello proprio, così l'opacità la fa il compositore */
 .vite-strati {
   will-change: transform, opacity;

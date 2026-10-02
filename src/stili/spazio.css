@@ -1,0 +1,227 @@
+/* ── lo spazio: un canvas WebGL a tutto schermo e quattro voci agli angoli ─────────
+   Strati del palco: tavola (3) · canvas dello spazio (4) · velo dei testi (5) · titoli e note (6)
+   · nodo (7) · calendario (8) · barra delle fasi (9) · angoli (20). Nell'Anno il canvas è opaco
+   e copre la fase montata sotto; nella Fase è trasparente (film, lanterna, grana). */
+:root {
+  --angolo: max(24px, 5vw);
+  /* la barra delle fasi sta sulla riga delle voci in basso: ciò che sta sopra parte da qui */
+  --striscia-h: calc(var(--angolo) + 40px);
+}
+@media (max-width: 759px) {
+  :root {
+    --striscia-h: calc(var(--angolo) + 64px);
+  }
+}
+
+/* nell'Anno la pagina non scorre: lo scroll muove l'arco */
+html:not(.scorre) {
+  overflow: hidden;
+}
+html:not(.scorre) body {
+  overscroll-behavior: none;
+}
+
+.spazio-tela {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: grab;
+}
+html[data-modo="fase"] .spazio-tela {
+  pointer-events: none;
+}
+
+/* il contenitore virtuale dell'arco (Lenis orizzontale): non si vede e non si tocca */
+.arco-virtuale {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100px;
+  height: 1px;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* i pannelli come pulsanti veri, per tastiera e lettori di schermo */
+.spazio-fasi {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.spazio-fasi ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* la fase montata sotto il canvas non si dipinge finché il canvas la copre */
+html[data-modo="scena"]:not([data-svela="si"]) .vite-posto {
+  visibility: hidden;
+}
+
+/* l'interfaccia della fase entra quando il pannello passa la mano al DOM ed esce subito al ritorno */
+.velo-ui,
+.calendario,
+.film-note,
+.film-sottotitolo {
+  transition: opacity var(--d-entrata) var(--ease-out), transform var(--d-entrata) var(--ease-out), visibility 0s;
+}
+html[data-dentro="no"] .velo-ui,
+html[data-dentro="no"] .film-note,
+html[data-dentro="no"] .film-sottotitolo,
+html[data-dentro="no"] .carta,
+html[data-dentro="no"] .registro {
+  opacity: 0 !important;
+  visibility: hidden;
+  transition: opacity var(--d-ui) var(--ease-in), transform var(--d-ui) var(--ease-in), visibility 0s linear var(--d-ui);
+}
+/* la pagina d'almanacco scende dall'angolo in alto a destra, dove nell'Anno c'è il mese */
+html[data-dentro="no"] .calendario {
+  opacity: 0;
+  transform: translate3d(0, -16px, 0);
+  visibility: hidden;
+  transition: opacity var(--d-ui) var(--ease-in), transform var(--d-ui) var(--ease-in), visibility 0s linear var(--d-ui);
+}
+html[data-dentro="si"] .calendario {
+  transition-delay: 120ms;
+}
+
+/* ── angoli (DESIGN.md, "Spazio"): Instrument Sans 12px maiuscolo, tracking +0.04em ── */
+.angoli {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+.angolo {
+  position: absolute;
+  pointer-events: auto;
+  font: 500 12px/1 var(--f-testo);
+  font-variant-numeric: lining-nums;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--avorio);
+  white-space: nowrap;
+}
+.angolo,
+.angolo button {
+  /* bersaglio di 44px senza spostare il testo dall'angolo */
+  min-height: 44px;
+  margin: -16px 0;
+  padding: 16px 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transition: color var(--d-micro) var(--ease-out), opacity var(--d-ui) var(--ease-out);
+}
+.angolo button {
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+}
+.angolo {
+  animation: dissolvi var(--d-entrata) var(--ease-out) both;
+  animation-delay: calc(900ms + var(--k, 0) * 60ms);
+}
+.angolo-td { --k: 1; }
+.angolo-bs { --k: 2; }
+.angolo-bd { --k: 3; }
+.angolo-ts {
+  left: var(--angolo);
+  top: var(--angolo);
+}
+.angolo-td {
+  right: var(--angolo);
+  top: var(--angolo);
+}
+.angolo-bs {
+  left: var(--angolo);
+  bottom: var(--angolo);
+  display: flex;
+  gap: 0.5em;
+  align-items: baseline;
+  cursor: default;
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+}
+.angolo-bs button {
+  color: var(--avorio-60);
+}
+.angolo-bs button[aria-pressed="true"] {
+  color: var(--avorio);
+  cursor: default;
+}
+.angolo-bs > span {
+  color: var(--avorio-60);
+}
+.angolo-bd {
+  right: var(--angolo);
+  bottom: var(--angolo);
+}
+.angolo-bd[aria-pressed="true"] {
+  color: var(--avorio);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 6px;
+}
+.angolo-bd:disabled {
+  color: var(--avorio-20);
+  cursor: default;
+}
+@media (hover: hover) {
+  .angolo:not(.angolo-bs):hover,
+  .angolo-bs button:not([aria-pressed="true"]):hover {
+    color: var(--avorio-85);
+  }
+}
+.angolo:active:not(:disabled) {
+  transform: translateY(1px);
+}
+/* il mese: cambia salendo dalla sua maschera */
+.angolo-maschera {
+  display: inline-block;
+  overflow: clip;
+  vertical-align: top;
+  padding-bottom: 0.1em;
+  margin-bottom: -0.1em;
+}
+.angolo-mese {
+  display: inline-block;
+  animation: angolo-sale var(--d-entrata) var(--ease-out) both;
+}
+@keyframes angolo-sale {
+  from {
+    transform: translate3d(0, 110%, 0);
+  }
+}
+.angolo-td.via {
+  animation: none;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--d-ui) var(--ease-in), visibility 0s linear var(--d-ui);
+}
+[data-movimento="ridotto"] .angolo-mese {
+  animation: dissolvi var(--d-ui) var(--ease-out) both;
+}
+
+/* ?anteprima: la tavola da sola su fondo trasparente (scripts/anteprime.mjs) */
+html.anteprima,
+html.anteprima body {
+  background: transparent;
+}
+.anteprima-palco {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+}

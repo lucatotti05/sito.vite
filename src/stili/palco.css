@@ -12,186 +12,6 @@
   background: var(--nero);
 }
 
-/* ── scena ──────────────────────────────────────────────────────────── */
-.scena {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
-.sc-cielo {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, var(--sc-cielo-a) 0%, var(--sc-cielo-b) 66%, var(--sc-cielo-b) 100%);
-}
-.sc-luce {
-  position: absolute;
-  inset: 0;
-}
-.strato {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  height: 100%;
-  width: 600svh;
-  will-change: transform;
-}
-.tessere {
-  display: block;
-  height: 100%;
-  width: 100%;
-}
-.sc-nebbia {
-  width: 100%;
-  overflow: hidden;
-  opacity: calc(var(--peso-inverno, 0) * 0.95);
-}
-.sc-nebbia-banda {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 200%;
-  height: 100%;
-  background:
-    radial-gradient(28% 9% at 20% 64%, color-mix(in oklab, var(--sc-cielo-b) 80%, #b9c4cf) 0%, transparent 100%),
-    radial-gradient(34% 8% at 62% 70%, color-mix(in oklab, var(--sc-cielo-b) 75%, #b9c4cf) 0%, transparent 100%),
-    radial-gradient(26% 10% at 88% 66%, color-mix(in oklab, var(--sc-cielo-b) 80%, #b9c4cf) 0%, transparent 100%),
-    linear-gradient(180deg, transparent 56%, color-mix(in oklab, var(--sc-cielo-b) 70%, transparent) 67%, transparent 80%);
-  opacity: 0.75;
-  will-change: transform;
-  animation: nebbia 70s linear infinite;
-}
-@keyframes nebbia {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
-/* calura d'estate e luce ambra di vendemmia: una velatura calda sull'orizzonte */
-.sc-calura {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, transparent 38%, color-mix(in oklab, var(--luce) 26%, transparent) 62%, transparent 82%),
-    radial-gradient(70% 40% at 15% 70%, color-mix(in oklab, var(--ambra) 30%, transparent), transparent 70%);
-  opacity: calc(var(--peso-estate, 0) * 0.55 + var(--peso-vendemmia, 0) * 0.5);
-}
-[data-movimento="ridotto"] .sc-nebbia-banda {
-  animation: none;
-}
-.particelle {
-  position: absolute;
-  inset: 0;
-  z-index: 2; /* dietro la vite: l'atmosfera non vela il soggetto */
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-.sc-scuro {
-  fill: color-mix(in oklab, var(--sc-medio) 62%, var(--nero));
-}
-.sc-righe {
-  fill: none;
-  stroke: color-mix(in oklab, var(--sc-medio) 72%, var(--nero));
-  stroke-width: 2;
-  opacity: 0.55;
-}
-.sc-fili {
-  fill: none;
-  stroke: color-mix(in oklab, var(--sc-filare) 70%, var(--luce));
-  stroke-width: 1.2;
-  opacity: 0.6;
-}
-.sc-ceppi {
-  fill: none;
-  stroke: var(--sc-filare);
-  stroke-width: 5;
-  stroke-linecap: round;
-}
-.sc-chioma {
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
-  transform: scaleY(var(--chioma, 0));
-  transition: none;
-}
-.sc-ciuffi {
-  fill: none;
-  /* d'inverno l'erba si copre di brina */
-  stroke: color-mix(in oklab, color-mix(in oklab, var(--sc-terra) 55%, var(--sc-chioma)) calc(100% - var(--peso-inverno, 0) * 45%), #c9d6de);
-  stroke-width: 2.2;
-  stroke-linecap: round;
-}
-.prop {
-  position: absolute;
-  left: 0;
-  top: 0;
-  will-change: transform;
-}
-.prop-svg {
-  display: block;
-  height: 100%;
-  width: auto;
-  overflow: visible;
-}
-.prop-alone {
-  opacity: calc(0.55 + var(--luce-forza) * 0.45);
-  mix-blend-mode: screen;
-}
-.prop-porta,
-.prop-finestra {
-  fill: color-mix(in oklab, var(--luce) 85%, var(--avorio));
-}
-.prop-finestra {
-  opacity: 0.7;
-}
-.prop-sarmenti {
-  fill: none;
-  stroke: color-mix(in oklab, var(--sc-terra) 50%, #3a2414);
-  stroke-width: 2.2;
-  stroke-linecap: round;
-}
-.prop-legaccio {
-  fill: none;
-  stroke: var(--luce);
-  stroke-width: 2;
-}
-.prop-polvere {
-  fill: none;
-  stroke: var(--luce);
-  stroke-width: 6;
-  stroke-linecap: round;
-  opacity: 0.35;
-}
-.prop-stelo {
-  fill: none;
-  stroke: color-mix(in oklab, var(--sc-chioma) 80%, var(--nero));
-  stroke-width: 1.5;
-}
-.prop-papavero {
-  fill: #b8321f;
-}
-
-/* luce radente della cantina: entra bassa da sinistra; colore e forza cambiano con le stagioni,
-   le ombre a destra prendono la tinta della stagione (fredda d'inverno, vinaccia in vendemmia) */
-.sc-luce {
-  background:
-    radial-gradient(110% 68% at -12% calc(84% - var(--luce-alt, 0.3) * 50%), color-mix(in oklab, var(--luce) calc(var(--luce-forza) * var(--accensione, 1) * 24%), transparent) 0%, transparent 58%),
-    linear-gradient(90deg, transparent 45%, color-mix(in oklab, var(--ombra) 60%, transparent) 100%),
-    radial-gradient(60% 50% at 50% 115%, var(--nero-60), transparent 70%);
-}
-.sc-fili {
-  opacity: 0.3;
-}
-
-/* velo della scena: più la camera stringe sulla vite, più la scena va fuori fuoco (si scurisce) */
-.velo {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  background:
-    radial-gradient(70% 80% at 58% 52%, transparent 0%, rgb(from var(--nero) r g b / 0.35) 100%),
-    rgb(from var(--nero) r g b / calc(0.25 + var(--fuoco, 0) * 0.55));
-}
 /* velo dell'interfaccia: sopra la vite, solo dove ci sono testi (colonna sinistra, striscia) */
 .velo-ui {
   position: absolute;
@@ -203,23 +23,13 @@
     linear-gradient(90deg, var(--nero-90) 0%, var(--nero-60) 24%, var(--nero-0) 46%),
     linear-gradient(0deg, var(--nero-90) 0%, var(--nero-0) 14%);
 }
-.grana {
-  /* grana fine e costante (DESIGN.md): una texture di rumore già trasparente, in fusione normale.
-     Niente mix-blend-mode a tutto schermo: costringerebbe a ricomporre tutto ciò che sta sotto */
-  position: absolute;
-  inset: 0;
-  z-index: 30;
-  pointer-events: none;
-  opacity: var(--grana-opacita);
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .93  0 0 0 0 .89  0 0 0 0 .83  0 0 0 1.6 -0.55'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-}
-
 /* ── titoli: colonne 1-7 della griglia, dal margine superiore ───────────── */
 .titoli {
   position: absolute;
   z-index: 6;
   left: var(--margine-x);
-  top: var(--margine-top);
+  /* sotto la voce dell'angolo in alto a sinistra */
+  top: calc(var(--angolo) + var(--s-8));
   width: var(--col-7);
   height: 0;
   pointer-events: none;
@@ -359,15 +169,25 @@ html.pratica-aperta .titoli {
   aspect-ratio: 0.82;
 }
 
-/* ── striscia delle fasi: una riga sottile, numeri in stile etichetta ─────── */
+/* ── striscia delle fasi: una riga sottile, numeri in stile etichetta ───────
+   Solo nel livello Fase, sulla stessa riga delle voci in basso, tra l'una e l'altra */
 .striscia {
   position: absolute;
   z-index: 9;
-  left: 0;
-  right: 0;
+  left: calc(var(--angolo) + 150px);
+  right: calc(var(--angolo) + 120px);
   bottom: 0;
   height: var(--striscia-h);
-  padding: 0 var(--margine-x);
+  opacity: 0;
+  visibility: hidden;
+  transform: translate3d(0, 8px, 0);
+  transition: opacity var(--d-ui) var(--ease-in), transform var(--d-ui) var(--ease-in), visibility 0s linear var(--d-ui);
+}
+.striscia.su {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: opacity var(--d-entrata) var(--ease-out) 160ms, transform var(--d-entrata) var(--ease-out) 160ms, visibility 0s;
 }
 .striscia-corpo {
   position: relative;
@@ -384,7 +204,8 @@ html.pratica-aperta .titoli {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: var(--s-5);
+  /* i numeri sulla linea delle voci degli angoli */
+  bottom: calc(var(--angolo) - 9px);
 }
 .striscia-fasi li {
   flex-basis: 0;
@@ -414,49 +235,15 @@ html.pratica-aperta .titoli {
 .striscia-fasi button[aria-current] {
   color: var(--avorio);
 }
-/* solo i numeri: il nome della fase è nel titolo; niente nomi troncati */
-.striscia-nome {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-}
-.striscia-mesi {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: grid;
-  grid-template-columns: 31fr 28fr 31fr 30fr 31fr 30fr 31fr 31fr 30fr 31fr 30fr 31fr;
-  font: 500 13px/1.4 var(--f-testo);
-  letter-spacing: 0.02em;
-  color: var(--avorio-60);
-}
 /* indicatore di posizione: una linea di 1px in oro (l'unico oro della schermata) */
 .striscia-ago {
   position: absolute;
   left: 0;
-  bottom: calc(var(--s-5) + 8px);
+  bottom: calc(var(--angolo) + 21px);
   width: 1px;
-  height: 22px;
+  height: 12px;
   background: var(--oro);
   will-change: transform;
-}
-
-/* ── apertura: il buio si apre attorno alla vite ─────────────────────── */
-.apertura {
-  position: absolute;
-  inset: 0;
-  z-index: 35;
-  pointer-events: none;
-  --foro: 0;
-  background: radial-gradient(
-    circle at 50% 44%,
-    var(--nero-0) calc(var(--foro) * 85vmax),
-    var(--nero-90) calc(var(--foro) * 85vmax + 18vmax),
-    var(--nero) calc(var(--foro) * 85vmax + 40vmax)
-  );
 }
 
 /* ── finale: composto sulla scena, nessun pannello ─────────────────── */
@@ -498,12 +285,9 @@ html.pratica-aperta .titoli {
 
 /* ── telefono ───────────────────────────────────────────────────────── */
 @media (max-width: 759px) {
-  :root {
-    --striscia-h: 58px;
-  }
   /* il titolo sta sotto il calendario, su tutta la larghezza: a 44px nella colonna accanto non entrerebbe */
   .titoli {
-    top: calc(var(--s-4) + var(--cal-h) + var(--s-5));
+    top: calc(var(--angolo) + var(--cal-h) + var(--s-5));
     width: calc(100vw - 2 * var(--margine-x));
   }
   .titolo-h {
@@ -512,11 +296,6 @@ html.pratica-aperta .titoli {
   .titolo-guida,
   .titolo-nota {
     display: none;
-  }
-  .velo {
-    background:
-      linear-gradient(180deg, rgb(from var(--nero) r g b / 0.75) 0%, var(--nero-0) 22%, var(--nero-0) 52%, var(--nero-60) 70%),
-      rgb(from var(--nero) r g b / calc(0.2 + var(--fuoco, 0) * 0.5));
   }
   .velo-ui {
     background:
@@ -537,18 +316,22 @@ html.pratica-aperta .titoli {
     bottom: calc(var(--striscia-h) + var(--s-6));
     width: 34vw;
   }
+  .striscia {
+    left: var(--angolo);
+    right: var(--angolo);
+  }
   .striscia-fasi {
     height: 40px;
-    bottom: var(--s-4);
+    bottom: calc(var(--angolo) + 24px);
+  }
+  .striscia-ago {
+    bottom: calc(var(--angolo) + 24px + 40px + 4px);
   }
   .striscia-fasi li {
     flex-grow: 1 !important; /* sul telefono tutte uguali: bersagli larghi abbastanza */
   }
   .striscia-fasi button {
     justify-content: center;
-  }
-  .striscia-mesi {
-    display: none;
   }
   .finale {
     left: var(--margine-x);

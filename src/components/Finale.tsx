@@ -2,7 +2,8 @@ import { useRef } from 'react'
 import { useAnnoFotogramma } from '@/core/anno'
 import { tra } from '@/core/math'
 import { FASI, tFase } from '@/core/tempo'
-import { ricomincia } from './Scorrimento'
+import { esci } from '@/spazio/volo'
+import { spazio } from '@/spazio/stato'
 
 /** Negli ultimi istanti di dicembre: un finale breve e il pulsante per ricominciare l'anno. */
 export function Finale() {
@@ -25,7 +26,7 @@ export function Finale() {
       <p className="finale-testo t-testo">
         I tralci sono legno, le gemme dormono sotto le perule. Tra poche settimane si torna a potare: il ciclo ricomincia da qui.
       </p>
-      <button ref={btn} type="button" className="finale-ricomincia" onClick={ricomincia}>
+      <button ref={btn} type="button" className="finale-ricomincia" onClick={() => esci(-spazio.get().aperta)}>
         Ricomincia l’anno
       </button>
     </section>

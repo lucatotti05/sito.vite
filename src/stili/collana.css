@@ -403,18 +403,7 @@
   color: var(--avorio);
   text-decoration-color: var(--avorio-60);
 }
-.indicatore-collana {
-  right: var(--margine-x);
-  top: calc(var(--s-5) + var(--cal-h) + var(--s-6));
-}
 .indicatore-nodo {
   left: var(--margine-x);
   bottom: calc(var(--striscia-h) + var(--s-5));
-}
-@media (max-width: 759px) {
-  /* sul telefono il titolo sta sotto il calendario: "Collana" va a sinistra del calendario */
-  .indicatore-collana {
-    top: var(--s-5);
-    right: calc(var(--margine-x) + var(--cal-w) + var(--s-4));
-  }
 }

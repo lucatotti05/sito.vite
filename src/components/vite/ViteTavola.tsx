@@ -628,13 +628,18 @@ function Etichette({ g }: { g: number }) {
     const p = germoglio3(2.6)
     lista.push({ testo: 'raspo dopo la vendemmia', a: [p[0] + 8, p[1] + 34], off: [120, 60] })
   }
+  // gli organi sempre presenti: la lanterna li rivela quando ci passa vicino
+  lista.push({ testo: 'ceppo', a: [302, 640], off: [-100, 20] })
+  if (g >= G.legaturaA && !lista.some((e) => e.testo === 'capo a frutto')) lista.push({ testo: 'capo a frutto', a: suPolilinea(capo, 0.7), off: [80, 70] })
+  if (g >= G.germoglioDa + 8 && g < G.cadutaA) lista.push({ testo: g < G.lignificaDa ? 'germoglio' : 'tralcio', a: germoglio3(1.1), off: [-120, -30] })
   return (
     <g className="v-etichette">
-      {/* DESIGN.md: al massimo due annotazioni visibili insieme */}
-      {lista.slice(0, 2).map((e) => (
-        <g key={e.testo} transform={`translate(${e.a[0].toFixed(1)} ${e.a[1].toFixed(1)})`}>
+      {/* DESIGN.md: al massimo due annotazioni visibili insieme (senza lanterna, le prime due;
+          con la lanterna, le due più vicine al cursore: spazio/lanterna.ts) */}
+      {lista.map((e) => (
+        <g key={e.testo} data-x={e.a[0].toFixed(1)} data-y={e.a[1].toFixed(1)} transform={`translate(${e.a[0].toFixed(1)} ${e.a[1].toFixed(1)})`}>
           <g className="v-nota">
-            <path d={`M0 0 L${e.off[0]} ${e.off[1]}`} className="v-guida" />
+            <path d={`M0 0 L${e.off[0]} ${e.off[1]}`} pathLength={1} className="v-guida" />
             <circle r="1.5" className="v-guida-punto" />
             <text x={e.off[0] + (e.off[0] > 0 ? 6 : -6)} y={e.off[1] + 5} textAnchor={e.off[0] > 0 ? 'start' : 'end'} className="v-etichetta">
               {e.testo}

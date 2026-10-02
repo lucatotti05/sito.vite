@@ -66,9 +66,6 @@
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
 
-  /* ── misure del palco (struttura del sito, non stile) ── */
-  --striscia-h: 54px;
-
   /* valori iniziali della luce (inverno); poi li aggiorna Atmosfera */
   --luce: #a9b6c4;
   --ombra: #0b1016;

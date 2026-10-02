@@ -1,18 +1,17 @@
 import { useLayoutEffect, useRef } from 'react'
 import { useAnno } from '@/core/anno'
-import { FASI, indiceFase, pDaSigma } from '@/core/tempo'
+import { FASI, indiceFase } from '@/core/tempo'
+import { useSpazio } from '@/spazio/stato'
 
 /*
  * Titoli delle fasi (DESIGN.md, "Titolo di fase"). Lo scroll decide QUALE titolo è attivo;
  * l'entrata è una rivelazione a maschera riga per riga (--d-entrata, --ease-out, 60ms tra le
  * righe), l'uscita è in --d-ui con --ease-in e finisce prima che entri il nuovo (palco.css).
  * Sotto il titolo una sola riga d'introduzione: niente metadati (fase e BBCH vanno nel calendario).
- * Il primo è il frontespizio. Con movimento ridotto: solo dissolvenze.
+ * Il titolo entra quando il pannello ha passato la mano alla fase (spazio/volo.ts) ed esce appena
+ * si torna verso l'Anno. Con movimento ridotto: solo dissolvenze.
  */
 
-/** Il frontespizio resta finché non si sono scorsi 0,45 schermi. */
-const P_COPERTINA = pDaSigma(0.45)
-const titoloA = (p: number) => (p < P_COPERTINA ? 0 : indiceFase(p) + 1)
 
 /** La prima frase della sintesi: l'introduzione della fase (il resto è per i lettori di schermo). */
 const primaFrase = (t: string) => {
@@ -37,7 +36,9 @@ function Parole({ testo }: { testo: string }) {
 }
 
 export function Titoli() {
-  const corrente = useAnno(titoloA)
+  const dentro = useSpazio((d) => d.dentro)
+  const fase = useAnno(indiceFase) + 1
+  const corrente = dentro ? fase : 0
   const rif = useRef<HTMLDivElement>(null)
 
   // a quale riga appartiene ogni parola: si misura solo quando cambiano caratteri o misure, mai
@@ -67,23 +68,6 @@ export function Titoli() {
 
   return (
     <div className="titoli" ref={rif}>
-      <header className={`titolo titolo-copertina${corrente === 0 ? ' attivo' : ''}`} aria-hidden={corrente !== 0}>
-        <h1 className="titolo-h t-titolo-fase">
-          <Parole testo="L’anno della vite" />
-        </h1>
-        <div className="titolo-corpo">
-          <p className="t-introduzione">Il Sangiovese in Toscana, un anno in dieci fasi.</p>
-          <p className="titolo-guida t-etichetta">
-            Scorri e l’anno avanza: la vite cambia e la camera si avvicina a ciò che conta. Le pratiche del periodo stanno
-            sulla forma in basso; <span className="solo-tocco">toccale</span>
-            <span className="solo-puntatore">selezionale</span> per leggerle. Con <kbd>←</kbd> <kbd>→</kbd> ti muovi,
-            con <kbd>⇧</kbd> e una freccia salti di fase.
-          </p>
-          <p className="titolo-nota t-etichetta">
-            Date dei periodi e codici BBCH sono indicativi per il Sangiovese in Toscana e restano da verificare.
-          </p>
-        </div>
-      </header>
       {FASI.map((f, i) => (
         <section key={f.id} className={`titolo${corrente === i + 1 ? ' attivo' : ''}`} aria-hidden={corrente !== i + 1}>
           <h2 className="titolo-h t-titolo-fase">

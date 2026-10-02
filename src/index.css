@@ -9,6 +9,7 @@
 @import "./stili/nodo.css";
 @import "./stili/collana.css";
 @import "./stili/film.css";
+@import "./stili/spazio.css";
 
 @theme inline {
   --color-background: var(--nero);

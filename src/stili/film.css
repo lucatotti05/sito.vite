@@ -1,21 +1,8 @@
 /* ── momento film ─────────────────────────────────────────────────────
-   Sopra la vite (z 3, dopo nel DOM), sotto velo dell'interfaccia, testi, calendario, barra e
-   grana: quegli strati non cambiano durante il passaggio. */
-/* il contenitore non crea un contesto di sovrapposizione: la clip sta a livello 3 (sopra la vite),
-   note e sottotitoli a livello 6, sopra il velo dell'interfaccia (5) come i titoli */
+   La clip è nel canvas dello spazio (livello 4, sopra la vite); qui note e sottotitoli, a livello 6
+   sopra il velo dell'interfaccia (5) come i titoli. Il contenitore non crea un contesto. */
 .film {
   display: contents;
-}
-.film-tela {
-  position: absolute;
-  z-index: 3;
-  pointer-events: none;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-  visibility: hidden;
-  opacity: 0;
 }
 .film-note {
   position: absolute;

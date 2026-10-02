@@ -1,111 +1,95 @@
 import { useLayoutEffect, useRef, type ReactNode } from 'react'
 import gsap from 'gsap'
 import { ciclo } from '@/core/ciclo'
-import { D, E } from '@/core/movimento'
-import { ScrollToPlugin } from 'gsap/ScrollToPlugin'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from 'lenis'
 import 'lenis/dist/lenis.css'
 import { anno } from '@/core/anno'
 import { osservaPalco } from '@/core/misure'
-import { preferenze, usePreferenze } from '@/core/preferenze'
-import { FASI, SCHERMI, TRATTI_FILM, indiceFase, pDaSigma, sigmaDaP, tFase } from '@/core/tempo'
+import { usePreferenze } from '@/core/preferenze'
+import { FASI, TRATTI_FILM, pDaSigma, pistaFase } from '@/core/tempo'
+import { spazio, useSpazio } from '@/spazio/stato'
 
-gsap.registerPlugin(ScrollTrigger, ScrollToPlugin)
+gsap.registerPlugin(ScrollTrigger)
 
-// solo per le prove automatiche: posizione di scroll (0–1) che corrisponde a un punto dell'anno
-;(window as unknown as { __sigma: (p: number) => number }).__sigma = (p) => sigmaDaP(p) / SCHERMI
-// e il punto f (0–1) del primo momento film
+/*
+ * LO SCROLL DELLA FASE. Nel livello Fase lo scroll verticale (rotella, swipe, frecce) fa avanzare
+ * la fase aperta: la pista è lunga quanto la sola fase (larghezzaFase, in schermi) e ogni punto
+ * diventa il progresso dell'anno con la stessa tabella di prima (tempo.ts). Vite, film, titoli,
+ * nodo e calendario continuano a leggere solo `anno`.
+ * Nel livello Anno la pagina non scorre: lo scroll orizzontale muove l'arco (spazio/input.ts).
+ */
+
+// solo per le prove automatiche: posizione di scroll (0–1) del punto f (0–1) del primo momento film
 ;(window as unknown as { __film: (f: number) => number }).__film = (f) => {
-  const t = [...TRATTI_FILM.values()][0]
-  return t ? (t.s0 + f * (t.s1 - t.s0)) / SCHERMI : 0
+  const [i, t] = [...TRATTI_FILM.entries()][0] ?? [0, null]
+  if (!t) return 0
+  const pista = pistaFase(i)
+  return (t.s0 + f * (t.s1 - t.s0) - pista.s0) / pista.lunga
 }
 
 let contenitore: HTMLElement | null = null
-/** Scroll fluido (Lenis) per rotella e trackpad; il tocco resta nativo. Spento con movimento ridotto. */
 let lenis: Lenis | null = null
-/** fase verso cui sta andando uno scorrimento animato: le pressioni ripetute di ⇧ + freccia si sommano */
-let obiettivo: number | null = null
+let montata = 0
+
+const corsa = () => (contenitore ? contenitore.offsetHeight - window.innerHeight : 0)
+const pInizio = (i: number) => pDaSigma(pistaFase(i).s0)
 
 /**
- * Porta lo scroll al punto dell'anno p. Con `fluido` lo scorrimento è animato (durata in base
- * alla distanza; si interrompe se l'utente scorre); con movimento ridotto è sempre immediato.
+ * Monta la fase i nel DOM: la pista prende la sua lunghezza e (con `daCapo`, o se cambia fase)
+ * lo scroll torna al suo inizio. L'anno si posa sull'inizio della fase.
  */
-export function vaiA(p: number, fluido = false) {
-  if (!contenitore) return
-  const corsa = contenitore.offsetHeight - window.innerHeight
-  const y = contenitore.offsetTop + (sigmaDaP(p) / SCHERMI) * corsa
-  gsap.killTweensOf(window)
-  if (!fluido || preferenze.get().ridotto) {
-    if (lenis) lenis.scrollTo(y, { immediate: true, force: true })
-    else window.scrollTo({ top: y, behavior: 'instant' })
-    return
+export function montaFase(i: number, daCapo = false) {
+  const j = Math.max(0, Math.min(FASI.length - 1, i))
+  const cambia = j !== montata
+  montata = j
+  spazio.set({ aperta: j })
+  if (contenitore) contenitore.style.height = `calc(${pistaFase(j).lunga.toFixed(3)} * 100svh + 100svh)`
+  if (cambia || daCapo) {
+    if (lenis) lenis.scrollTo(0, { immediate: true, force: true })
+    window.scrollTo(0, 0)
+    anno.set(pInizio(j))
   }
-  // un salto di fase è un passaggio di scena non guidato dallo scroll: --d-scena, --ease-in-out
-  const durata = D.scena
-  ciclo.sveglia()
-  if (lenis) {
-    // si interrompe da sola se l'utente scorre: Lenis prende il nuovo bersaglio
-    lenis.scrollTo(y, {
-      duration: durata,
-      easing: (t) => E.inOut(t),
-      force: true,
-      onComplete: () => (obiettivo = null),
-    })
-    return
-  }
-  gsap.to(window, {
-    scrollTo: { y, autoKill: true },
-    duration: durata,
-    ease: E.inOut,
-    onComplete: () => (obiettivo = null),
-    onInterrupt: () => (obiettivo = null),
-  })
+  ScrollTrigger.refresh()
 }
-/** Un passo di tastiera: con Lenis scorre fluido verso il bersaglio (le pressioni ripetute si sommano). */
+
+/** Nel livello Fase la pagina scorre; nell'Anno no. */
+export function attivaScroll(si: boolean) {
+  document.documentElement.classList.toggle('scorre', si)
+  if (si) lenis?.start()
+  else lenis?.stop()
+  ciclo.sveglia()
+}
+
+/** Se lo scroll della fase è arrivato a un estremo (per la spinta oltre l'inizio o la fine). */
+export function limiteScroll(): 'su' | 'giu' | null {
+  const y = lenis ? lenis.targetScroll : window.scrollY
+  const max = corsa()
+  if (y <= 1) return 'su'
+  if (y >= max - 1) return 'giu'
+  return null
+}
+
+/** Un passo di tastiera: con Lenis scorre fluido (le pressioni ripetute si sommano). */
 function scorriDi(d: number) {
   ciclo.sveglia()
-  if (lenis) lenis.scrollTo(lenis.targetScroll + d, { force: true })
+  if (lenis) lenis.scrollTo(lenis.targetScroll + d, { force: false })
   else window.scrollBy({ top: d, behavior: 'instant' })
 }
-/** Va all'inizio di una fase (indice 0–9) e la scrive nell'indirizzo come ?fase=N. */
-export function vaiAFase(i: number, fluido = true) {
-  const j = Math.max(0, Math.min(FASI.length - 1, i))
-  obiettivo = fluido && !preferenze.get().ridotto ? j : null
-  vaiA(FASI[j].inizio + 0.0004, fluido)
-  const u = new URL(location.href)
-  u.searchParams.set('fase', String(j + 1))
-  u.hash = ''
-  history.replaceState(history.state, '', u)
-}
-/** Ricomincia l'anno dal frontespizio. */
-export function ricomincia() {
-  vaiA(0, true)
-  const u = new URL(location.href)
-  u.searchParams.delete('fase')
-  u.hash = ''
-  history.replaceState(history.state, '', u)
-}
 
-/**
- * Lo scroll verticale (rotella, swipe, frecce) diventa il progresso dell'anno.
- * Il contenitore è alto quanto l'anno; il palco resta fermo (sticky) e tutto ciò che si muove
- * in orizzontale legge `anno`.
- */
 export function Scorrimento({ children }: { children: ReactNode }) {
   const rif = useRef<HTMLDivElement>(null)
   const { ridotto } = usePreferenze()
+  const aperta = useSpazio((d) => d.aperta)
 
   useLayoutEffect(() => {
     contenitore = rif.current
-    // Lenis leviga rotella e trackpad e passa ogni posizione a ScrollTrigger; lo scrub è diretto
-    // (nessun secondo smorzamento: prima lo scrub da 0,75 s si sommava e il sito sembrava in ritardo)
-    // Lenis gira nel ciclo unico (core/ciclo.ts) solo mentre scorre: a riposo il ciclo si ferma
     let stacca: (() => void) | null = null
     if (!ridotto && new URLSearchParams(location.search).get('lenis') !== '0') {
       const l = new Lenis({ lerp: 0.1, wheelMultiplier: 1, smoothWheel: true, syncTouch: false, autoRaf: false })
       lenis = l
       l.on('scroll', ScrollTrigger.update)
+      if (!document.documentElement.classList.contains('scorre')) l.stop()
       stacca = ciclo.aggiungi((ora) => {
         l.raf(ora)
         return l.isScrolling !== false
@@ -115,7 +99,11 @@ export function Scorrimento({ children }: { children: ReactNode }) {
       trigger: rif.current,
       start: 'top top',
       end: 'bottom bottom',
-      onUpdate: (self) => anno.set(pDaSigma(self.progress * SCHERMI)),
+      onUpdate: (self) => {
+        if (spazio.get().modo !== 'fase' && spazio.get().livello !== 'fase') return
+        const pista = pistaFase(montata)
+        anno.set(pDaSigma(pista.s0 + self.progress * pista.lunga))
+      },
     })
     return () => {
       st.kill()
@@ -136,40 +124,25 @@ export function Scorrimento({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  // ?fase=5 (o #fase-5) nell'indirizzo porta direttamente a quella fase
-  useLayoutEffect(() => {
-    const daIndirizzo = () => {
-      const n = Number(new URLSearchParams(location.search).get('fase') ?? location.hash.match(/^#fase-(\d+)$/)?.[1])
-      if (n >= 1 && n <= FASI.length) requestAnimationFrame(() => vaiA(FASI[n - 1].inizio + 0.0004))
-    }
-    daIndirizzo()
-    window.addEventListener('hashchange', daIndirizzo)
-    return () => window.removeEventListener('hashchange', daIndirizzo)
-  }, [])
-
   useLayoutEffect(() => {
     const tasti = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return
+      if (spazio.get().modo !== 'fase') return
       const el = e.target as HTMLElement
       if (el.closest('dialog, input, textarea, select, [data-tasti-propri]')) return
       const passo = window.innerHeight * 0.14
-      const i = obiettivo ?? indiceFase(anno.get())
       switch (e.key) {
-        case 'ArrowRight':
         case 'ArrowDown':
-          if (e.shiftKey) vaiAFase(i + 1)
-          else scorriDi(passo)
+          scorriDi(passo)
           break
-        case 'ArrowLeft':
         case 'ArrowUp':
-          if (e.shiftKey) vaiAFase(obiettivo === null && tFase(anno.get(), i) > 0.04 ? i : i - 1)
-          else scorriDi(-passo)
+          scorriDi(-passo)
           break
         case 'PageDown':
-          vaiAFase(i + 1)
+          scorriDi(window.innerHeight * 0.8)
           break
         case 'PageUp':
-          vaiAFase(obiettivo === null && tFase(anno.get(), i) > 0.04 ? i : i - 1)
+          scorriDi(-window.innerHeight * 0.8)
           break
         default:
           return
@@ -181,7 +154,7 @@ export function Scorrimento({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <div ref={rif} className="corsa" style={{ height: `calc(${SCHERMI.toFixed(3)} * 100svh + 100svh)` }}>
+    <div ref={rif} className="corsa" style={{ height: `calc(${pistaFase(aperta).lunga.toFixed(3)} * 100svh + 100svh)` }}>
       <div className="palco">{children}</div>
     </div>
   )
