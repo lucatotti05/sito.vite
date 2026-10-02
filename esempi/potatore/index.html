@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Il Potatore: gioco didattico sulla potatura invernale della vite, Guyot e cordone speronato, secondo i principi della potatura ramificata di Simonit &amp; Sirch.">
+<meta name="theme-color" content="#EEE8DA">
+<title>Il Potatore — gioco di potatura della vite</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23233A2C'/%3E%3Cpath d='M9 26c3-6 6-11 13-17' stroke='%23C99A5E' stroke-width='3.2' stroke-linecap='round' fill='none'/%3E%3Cellipse cx='14.2' cy='17.6' rx='2' ry='2.8' transform='rotate(40 14.2 17.6)' fill='%23F3E3D2'/%3E%3Cpath d='M19.5 7.5l5 5' stroke='%23E08A4B' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/potatore.css">
+</head>
+<body>
+<a class="skip" href="#main">Vai al contenuto</a>
+
+<!-- Icone: un solo set di linea, tratto 1,6 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-shears" viewBox="0 0 24 24"><circle cx="6.8" cy="17.4" r="2.8"/><circle cx="17.2" cy="17.4" r="2.8"/><path d="M8.7 15.3 16.4 4.2"/><path d="M15.3 15.3 7.6 4.2"/></symbol>
+  <symbol id="i-cane" viewBox="0 0 24 24"><path d="M4.5 20.5C9 14.5 12.5 9.5 19.5 4"/><path d="M8.6 15.4c-1.9-.2-3-1.4-3.1-3 1.8 0 3 1.1 3.1 3Z"/><path d="M13.2 9.9c-.1-1.9.9-3.2 2.5-3.5.2 1.8-.8 3.1-2.5 3.5Z"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5Z"/><path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5c.8 0 1.5-.7 1.5-1.5Z"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></symbol>
+  <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M19 12H5"/><path d="m11 6-6 6 6 6"/></symbol>
+  <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path d="M4.5 4.5v4h4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.2 4.2L19 7"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4.2 20.8 19H3.2Z"/><path d="M12 10v4"/><path d="M12 16.6v.1"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M6 12h12"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M18 7h2M4 17h3M11 17h9"/><circle cx="15.5" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></symbol>
+  <symbol id="i-sprout" viewBox="0 0 24 24"><path d="M12 20.5V11"/><path d="M12 11.5C12 8 9.6 5.6 5.5 5.6c0 3.6 2.6 5.9 6.5 5.9Z"/><path d="M12 14c0-3.1 2.2-5.2 5.8-5.2 0 3.1-2.3 5.2-5.8 5.2Z"/></symbol>
+  <symbol id="i-grapes" viewBox="0 0 24 24"><path d="M12 7V3.5"/><path d="M12 5c1.4-1.5 3.3-1.9 5-1.2"/><circle cx="9.4" cy="9.4" r="2.2"/><circle cx="14.6" cy="9.4" r="2.2"/><circle cx="12" cy="13.3" r="2.2"/><circle cx="7.9" cy="13.4" r="2.2"/><circle cx="16.1" cy="13.4" r="2.2"/><circle cx="10" cy="17.3" r="2.2"/><circle cx="14" cy="17.3" r="2.2"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3.6 2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8Z"/></symbol>
+  <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="m6.4 17.6 11.2-11.2"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10-6.5Z"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5"/><path d="M12 8v.1"/></symbol>
+  <symbol id="i-zoom-in" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/><path d="M10.5 7.8v5.4M7.8 10.5h5.4"/></symbol>
+  <symbol id="i-zoom-out" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/><path d="M7.8 10.5h5.4"/></symbol>
+  <symbol id="i-hand" viewBox="0 0 24 24"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10"/><path d="M12 9.5a1.5 1.5 0 0 1 3 0V11"/><path d="M15 10.5a1.5 1.5 0 0 1 3 0v3.2c0 3.8-2.6 6.8-6.3 6.8-2.3 0-3.7-1-5-2.8l-2.3-3.3a1.5 1.5 0 0 1 2.4-1.8L9 14"/></symbol>
+</svg>
+
+<header class="topbar">
+  <div class="container">
+    <a class="brand" href="#main" aria-label="Il Potatore">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="9" fill="#233A2C"/>
+        <path d="M9 26c3-6 6-11 13-17" stroke="#C99A5E" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+        <ellipse cx="14.2" cy="17.6" rx="2" ry="2.8" transform="rotate(40 14.2 17.6)" fill="#F3E3D2"/>
+        <path d="M19.5 7.5l5 5" stroke="#E08A4B" stroke-width="2.2" stroke-linecap="round"/>
+      </svg>
+      <span class="brand-text" translate="no">Il Potatore</span>
+    </a>
+    <ol class="stepper" id="stepper" aria-label="Fasi del gioco">
+      <li data-step="tutorial"><span class="n">1</span>Tutorial</li>
+      <li data-step="setup"><span class="n">2</span>Impostazioni</li>
+      <li data-step="game"><span class="n">3</span>Potatura</li>
+      <li data-step="growth"><span class="n">4</span>Crescita</li>
+      <li data-step="result"><span class="n">5</span>Risultato</li>
+    </ol>
+    <div class="step-compact" id="stepCompact" aria-hidden="true">
+      <span class="bar"><i></i><i></i><i></i><i></i><i></i></span>
+      <span><b id="stepCompactName">Tutorial</b></span>
+    </div>
+  </div>
+</header>
+
+<main id="main" class="container" tabindex="-1">
+
+  <!-- ============ TUTORIAL ============ -->
+  <section class="screen" id="tutorialScreen" data-step="tutorial" aria-labelledby="heroTitle">
+    <div class="hero">
+      <div>
+        <p class="eyebrow"><span class="dot"></span>Ingegneria delle produzioni viticole · Gioco didattico</p>
+        <h1 class="title" id="heroTitle" translate="no">Il <em>Potatore</em></h1>
+        <p class="lead">Scegli il tralcio giusto, conta le gemme, decidi dove tagliare — seguendo i principi della potatura ramificata di Simonit &amp; Sirch.</p>
+        <ol class="hero-steps">
+          <li><span><b>Scegli</b> forma, obiettivo e difficoltà</span></li>
+          <li><span><b>Tocca un tralcio</b>, poi il nodo dove tagliare</span></li>
+          <li><span><b>Conferma</b> e leggi il verdetto agronomico</span></li>
+        </ol>
+      </div>
+      <div class="instrument tut" id="tutorialBox">
+        <div class="core">
+          <div class="tut-top">
+            <span class="tut-count num" id="tutCount">01 / 07</span>
+            <div class="tut-progress" id="tutProgress" role="group" aria-label="Schede del tutorial"></div>
+          </div>
+          <div class="tut-body" id="tutorialBody" aria-live="polite"></div>
+          <div class="tut-nav">
+            <button class="link-btn" id="btnSkipTutorial" type="button"><span>Salta<span class="hide-xs"> il tutorial</span></span></button>
+            <div class="right">
+              <button class="icon-btn" id="btnTutBack" type="button" aria-label="Scheda precedente"><svg class="ico" aria-hidden="true"><use href="#i-arrow-left"/></svg></button>
+              <button class="btn" id="btnTutNext" type="button"><span id="btnTutNextLabel">Avanti</span><span class="btn-ico"><svg class="ico sm" aria-hidden="true"><use href="#i-arrow-right"/></svg></span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ IMPOSTAZIONI ============ -->
+  <section class="screen" id="setupScreen" data-step="setup" aria-labelledby="setupTitle">
+    <div class="sec-head">
+      <div>
+        <p class="sec-eyebrow">Impostazioni</p>
+        <h2 class="section-title" id="setupTitle">Prepara la tua vite</h2>
+      </div>
+      <p>Ogni vite è generata al momento: nessuna sarà uguale all'altra. Il tuo miglior punteggio viene salvato per ogni combinazione.</p>
+    </div>
+
+    <div class="resume" id="resumeBanner" role="region" aria-label="Vite in corso" hidden>
+      <p id="resumeText"></p>
+      <button class="btn small" id="btnResume" type="button"><span>Torna alla vite</span><span class="btn-ico"><svg class="ico sm" aria-hidden="true"><use href="#i-arrow-right"/></svg></span></button>
+    </div>
+
+    <div class="setup-groups">
+      <fieldset class="group" id="opt-forma">
+        <div class="group-head">
+          <legend class="legend"><p class="sec-eyebrow">01 · Forma di allevamento</p><h3>Come è allevata la vite</h3></legend>
+          <p>Determina la struttura permanente della vite e come vanno distribuite le gemme produttive.</p>
+        </div>
+        <div class="options two">
+          <label class="opt" data-v="guyot">
+            <input type="radio" name="forma" value="guyot">
+            <span class="pict" aria-hidden="true"><svg viewBox="0 0 52 52"><path d="M4 40H48" stroke="#8C8F8C" stroke-width="1"/><path d="M26 50V34" stroke="#6A5947" stroke-width="5" stroke-linecap="round"/><path d="M25 35C22 30 14 32 12 39 11 40 9 40 6 40" stroke="#A56F43" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M27 34c1-4 2-7 3-10" stroke="#A56F43" stroke-width="2.4" stroke-linecap="round"/><circle cx="18" cy="33.6" r="1.6" fill="#7B3F24"/><circle cx="12.6" cy="37.6" r="1.6" fill="#7B3F24"/><circle cx="8" cy="39.4" r="1.6" fill="#7B3F24"/><circle cx="28.4" cy="29.6" r="1.6" fill="#7B3F24"/><circle cx="29.6" cy="25.6" r="1.6" fill="#7B3F24"/></svg></span>
+            <span class="t">Guyot</span>
+            <span class="d">Un capo a frutto (6-12 gemme) più uno sperone di rinnovo a 2 gemme, dalla testa del ceppo.</span>
+            <span class="tag">classica, media complessità</span>
+            <span class="check" aria-hidden="true"><svg class="ico"><use href="#i-check"/></svg></span>
+          </label>
+          <label class="opt" data-v="cordone">
+            <input type="radio" name="forma" value="cordone">
+            <span class="pict" aria-hidden="true"><svg viewBox="0 0 52 52"><path d="M26 50V36" stroke="#6A5947" stroke-width="5" stroke-linecap="round"/><path d="M5 36H47" stroke="#6A5947" stroke-width="5" stroke-linecap="round"/><g stroke="#A56F43" stroke-width="2.4" stroke-linecap="round"><path d="M9 34l-1-8"/><path d="M20 34l1-8"/><path d="M32 34l-1-8"/><path d="M43 34l1-8"/></g><g fill="#7B3F24"><circle cx="8.3" cy="30" r="1.5"/><circle cx="7.8" cy="26" r="1.5"/><circle cx="20.7" cy="30" r="1.5"/><circle cx="21.2" cy="26" r="1.5"/><circle cx="31.4" cy="30" r="1.5"/><circle cx="30.9" cy="26" r="1.5"/><circle cx="43.6" cy="30" r="1.5"/><circle cx="44.1" cy="26" r="1.5"/></g></svg></span>
+            <span class="t">Cordone speronato</span>
+            <span class="d">Un cordone permanente con speroni ogni 20-25 cm: su ogni vecchio sperone scegli quale tralcio tenere e quanto tagliarlo.</span>
+            <span class="tag">più decisioni, per esperti</span>
+            <span class="check" aria-hidden="true"><svg class="ico"><use href="#i-check"/></svg></span>
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset class="group" id="opt-obiettivo">
+        <div class="group-head">
+          <legend class="legend"><p class="sec-eyebrow">02 · Obiettivo enologico</p><h3>Quanto vuoi produrre</h3></legend>
+          <p>Cambia il carico di gemme ideale da lasciare: meno gemme concentrano la vigoria su meno grappoli. In vigna il carico dipende anche dal vigore della pianta.</p>
+        </div>
+        <div class="options">
+          <label class="opt" data-v="qualita">
+            <input type="radio" name="obiettivo" value="qualita">
+            <span class="pict" aria-hidden="true"><svg viewBox="0 0 52 52"><path d="M6 30H46" stroke="#A56F43" stroke-width="3" stroke-linecap="round"/><g fill="#7B3F24"><circle cx="11" cy="26.5" r="2"/><circle cx="17" cy="26.5" r="2"/><circle cx="23" cy="26.5" r="2"/><circle cx="29" cy="26.5" r="2"/><circle cx="35" cy="26.5" r="2"/><circle cx="41" cy="26.5" r="2"/></g><g fill="#C8BFAB"><circle cx="11" cy="20" r="1.4"/><circle cx="41" cy="20" r="1.4"/></g></svg></span>
+            <span class="t">Alta qualità</span>
+            <span class="d">Rese basse, massima concentrazione. Carico di gemme ridotto.</span>
+            <span class="tag">Guyot 6-8 · cordone 1-2 per sperone</span>
+            <span class="check" aria-hidden="true"><svg class="ico"><use href="#i-check"/></svg></span>
+          </label>
+          <label class="opt" data-v="equilibrio">
+            <input type="radio" name="obiettivo" value="equilibrio">
+            <span class="pict" aria-hidden="true"><svg viewBox="0 0 52 52"><path d="M4 30H48" stroke="#A56F43" stroke-width="3" stroke-linecap="round"/><g fill="#7B3F24"><circle cx="8" cy="26.5" r="2"/><circle cx="13" cy="26.5" r="2"/><circle cx="18" cy="26.5" r="2"/><circle cx="23" cy="26.5" r="2"/><circle cx="28" cy="26.5" r="2"/><circle cx="33" cy="26.5" r="2"/><circle cx="38" cy="26.5" r="2"/><circle cx="43" cy="26.5" r="2"/></g></svg></span>
+            <span class="t">Equilibrio</span>
+            <span class="d">Compromesso tra qualità e produzione, il più comune in pratica.</span>
+            <span class="tag">Guyot 8-10 · cordone 2 per sperone</span>
+            <span class="check" aria-hidden="true"><svg class="ico"><use href="#i-check"/></svg></span>
+          </label>
+          <label class="opt" data-v="quantita">
+            <input type="radio" name="obiettivo" value="quantita">
+            <span class="pict" aria-hidden="true"><svg viewBox="0 0 52 52"><path d="M3 30H49" stroke="#A56F43" stroke-width="3" stroke-linecap="round"/><g fill="#7B3F24"><circle cx="6" cy="26.5" r="1.8"/><circle cx="10" cy="26.5" r="1.8"/><circle cx="14" cy="26.5" r="1.8"/><circle cx="18" cy="26.5" r="1.8"/><circle cx="22" cy="26.5" r="1.8"/><circle cx="26" cy="26.5" r="1.8"/><circle cx="30" cy="26.5" r="1.8"/><circle cx="34" cy="26.5" r="1.8"/><circle cx="38" cy="26.5" r="1.8"/><circle cx="42" cy="26.5" r="1.8"/><circle cx="46" cy="26.5" r="1.8"/></g></svg></span>
+            <span class="t">Quantità</span>
+            <span class="d">Rese più alte, carico di gemme generoso.</span>
+            <span class="tag">Guyot 10-12 · cordone 2-3 per sperone</span>
+            <span class="check" aria-hidden="true"><svg class="ico"><use href="#i-check"/></svg></span>
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset class="group" id="opt-difficolta">
+        <div class="group-head">
+          <legend class="legend"><p class="sec-eyebrow">03 · Difficoltà</p><h3>Quante insidie trovare</h3></legend>
+          <p>Ai livelli più alti aumentano i tralci tra cui scegliere, le gemme cieche e i difetti meno evidenti: diametro, maturazione, lato, origine.</p>
+        </div>
+        <div class="options">
+          <label class="opt" data-v="facile">
+            <input type="radio" name="difficolta" value="facile">
+            <span class="pict" aria-hidden="true"><svg viewBox="0 0 52 52"><rect x="12" y="30" width="7" height="10" rx="2" fill="#A9581F"/><rect x="22.5" y="22" width="7" height="18" rx="2" fill="#D8CDB6"/><rect x="33" y="14" width="7" height="26" rx="2" fill="#D8CDB6"/></svg></span>
+            <span class="t">Facile</span>
+            <span class="d">Pochi tralci, difetti evidenti: si imparano le regole di base.</span>
+            <span class="rec" data-rec="facile"></span>
+            <span class="check" aria-hidden="true"><svg class="ico"><use href="#i-check"/></svg></span>
+          </label>
+          <label class="opt" data-v="medio">
+            <input type="radio" name="difficolta" value="medio">
+            <span class="pict" aria-hidden="true"><svg viewBox="0 0 52 52"><rect x="12" y="30" width="7" height="10" rx="2" fill="#A9581F"/><rect x="22.5" y="22" width="7" height="18" rx="2" fill="#A9581F"/><rect x="33" y="14" width="7" height="26" rx="2" fill="#D8CDB6"/></svg></span>
+            <span class="t">Medio</span>
+            <span class="d">Gemme cieche anche sul tralcio giusto, tralci difettosi sullo sperone dell'anno scorso.</span>
+            <span class="rec" data-rec="medio"></span>
+            <span class="check" aria-hidden="true"><svg class="ico"><use href="#i-check"/></svg></span>
+          </label>
+          <label class="opt" data-v="difficile">
+            <input type="radio" name="difficolta" value="difficile">
+            <span class="pict" aria-hidden="true"><svg viewBox="0 0 52 52"><rect x="12" y="30" width="7" height="10" rx="2" fill="#A9581F"/><rect x="22.5" y="22" width="7" height="18" rx="2" fill="#A9581F"/><rect x="33" y="14" width="7" height="26" rx="2" fill="#A9581F"/></svg></span>
+            <span class="t">Difficile</span>
+            <span class="d">Più tralci e difetti meno evidenti; in più il vigore della pianta da valutare e le ferite da tenere sullo stesso lato.</span>
+            <span class="rec" data-rec="difficile"></span>
+            <span class="check" aria-hidden="true"><svg class="ico"><use href="#i-check"/></svg></span>
+          </label>
+        </div>
+      </fieldset>
+    </div>
+
+    <div class="setup-bar instrument">
+      <div class="core">
+        <div class="summary">
+          <span class="k" id="setupSummaryK">La tua combinazione</span>
+          <span class="v" id="setupSummary"><span class="muted">Scegli forma, obiettivo e difficoltà</span></span>
+        </div>
+        <button class="btn" id="btnStart" type="button" aria-disabled="true"><span id="btnStartLabel">Seleziona le tre opzioni per iniziare</span><span class="btn-ico"><svg class="ico sm" aria-hidden="true"><use href="#i-shears"/></svg></span></button>
+      </div>
+    </div>
+
+    <div class="setup-foot">
+      <details class="records" id="recordsBox">
+        <summary><svg class="ico sm" aria-hidden="true"><use href="#i-star"/></svg>I tuoi record per combinazione<svg class="ico sm chev" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
+        <div class="records-table-wrap" id="recordsTable"></div>
+      </details>
+      <button class="link-btn" id="btnReviewTutorial" type="button"><svg class="ico sm" aria-hidden="true"><use href="#i-book"/></svg>Rivedi il tutorial</button>
+    </div>
+  </section>
+
+  <!-- ============ POTATURA ============ -->
+  <section class="screen" id="gameScreen" data-step="game" aria-labelledby="gameTitle">
+    <h2 class="sr-only" id="gameTitle">Potatura della vite</h2>
+    <div class="game">
+      <div class="stage-wrap instrument">
+        <div class="core" id="stageBox">
+          <div class="hud">
+            <div class="hud-pill" id="hudInfo">
+              <b id="gtForma">—</b><span class="sep hide-sm"></span><span id="gtObiettivo" class="hide-sm">—</span><span class="sep"></span><span class="num">target <span id="gtTarget">—</span></span><span class="num hide-sm" id="gtExtra" hidden></span>
+            </div>
+            <div class="hud-right">
+              <div class="hud-pill hide-sm"><span class="num">vite <span id="gtVineNum">1</span></span><span class="sep hide-sm"></span><span class="num hide-sm">media <span id="gtAvgScore">—</span></span></div>
+              <button class="icon-btn" id="btnZoom" type="button" aria-label="Mostra tutta la vite" aria-pressed="true" hidden><svg class="ico" aria-hidden="true"><use href="#i-zoom-out"/></svg></button>
+              <button class="icon-btn" id="btnChangeSettings" type="button" aria-label="Cambia impostazioni"><svg class="ico" aria-hidden="true"><use href="#i-sliders"/></svg></button>
+            </div>
+          </div>
+          <svg id="vineSvg" class="stage-svg" role="img" aria-labelledby="vineSvgTitle"><title id="vineSvgTitle">La vite da potare</title></svg>
+          <div class="stage-legend" aria-hidden="true">
+            <span class="chip"><i class="lg-bud"></i>gemma franca</span>
+            <span class="chip"><i class="lg-bud blind"></i>gemma cieca</span>
+            <span class="chip"><i class="lg-cut"></i>taglio</span>
+          </div>
+          <div class="toast" id="toast" role="status" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <aside class="panel" id="panel" aria-label="Pannello di potatura">
+        <button class="sheet-handle" id="sheetHandle" type="button" aria-expanded="false" aria-controls="panel"><span class="sr-only">Mostra dettagli</span><span class="lbl" aria-hidden="true"><span id="sheetHandleLbl">Dettagli</span><svg class="ico"><use href="#i-chevron"/></svg></span></button>
+
+        <div class="panel-sec status" id="statusBox">
+          <span class="p-eyebrow" id="statusStep">Passo 1 di 3</span>
+          <h3 id="statusTitle">Scegli il capo a frutto</h3>
+          <p id="statusText" aria-live="polite">Tocca il tralcio da tenere lungo per la produzione di quest'anno.</p>
+        </div>
+
+        <div class="panel-notice" id="panelNotice" role="status" aria-live="polite" hidden></div>
+
+        <div class="panel-sec" id="roleSec">
+          <div class="seg-label"><span class="p-eyebrow" style="margin:0">Ruolo da assegnare</span></div>
+          <div class="seg" id="roleButtons" role="group" aria-label="Ruolo da assegnare">
+            <button type="button" data-role="capo" aria-pressed="true"><span class="rdot"></span>Capo a frutto</button>
+            <button type="button" data-role="sperone" aria-pressed="false"><span class="rdot"></span>Sperone di rinnovo</button>
+          </div>
+        </div>
+
+        <div class="panel-sec">
+          <div class="seg-label"><span class="p-eyebrow" style="margin:0" id="chipsLabel">Tralci</span></div>
+          <div class="cane-chips" id="caneChips" role="group" aria-labelledby="chipsLabel"></div>
+        </div>
+
+        <div class="panel-sec" id="caneSec">
+          <div id="selectedCaneInfo"></div>
+        </div>
+
+        <div class="panel-sec more">
+          <span class="p-eyebrow">Le tue scelte</span>
+          <ul class="choices" id="selectionList"></ul>
+        </div>
+
+        <div class="panel-sec more panel-extra">
+          <details class="glossary">
+            <summary><svg class="ico" aria-hidden="true"><use href="#i-book"/></svg>Glossario e principi<svg class="ico sm chev" aria-hidden="true"><use href="#i-chevron"/></svg></summary>
+            <dl>
+              <dt>Nodo</dt><dd>Punto del tralcio dove è inserita una gemma; da qui partirà il nuovo germoglio.</dd>
+              <dt>Internodo</dt><dd>Il tratto di tralcio compreso tra due nodi consecutivi.</dd>
+              <dt>Gemma franca</dt><dd>Gemma ben formata e vitale, inserita su un nodo del tralcio: è quella che si conta e che darà il germoglio produttivo dell'anno.</dd>
+              <dt>Gemma cieca</dt><dd>Gemma non vitale, per esempio danneggiata da freddo o grandine: non germoglia e non va contata come produttiva.</dd>
+              <dt>Gemme della corona</dt><dd>1-2 gemme piccole e ravvicinate alla base di ogni tralcio: poco fertili, non si contano. Nel righello sono segnate con una C.</dd>
+              <dt>Legno di due anni</dt><dd>Lo sperone lasciato l'inverno scorso: i tralci che ne nascono sono i candidati giusti per il capo a frutto.</dd>
+              <dt>Succhione</dt><dd>Tralcio nato dal legno vecchio della testa o del tronco: gemme basali poco fertili, mai come capo a frutto.</dd>
+              <dt>Vigore (livello difficile)</dt><dd>Si legge dal diametro medio dei tralci: sopra 9,5 mm la pianta è vigorosa e si lascia una gemma in più, sotto 7,5 mm una in meno.</dd>
+              <dt>Ferite sullo stesso lato (livello difficile)</dt><dd>Ogni tralcio tolto lascia una ferita a sinistra o a destra del legno: raggruppandole su un lato, sull'altro il flusso della linfa resta continuo.</dd>
+              <dt>Taglio di ritorno</dt><dd>Nel cordone: si tiene il tralcio basale del vecchio sperone e si toglie il distale, così lo sperone non si allunga.</dd>
+              <dt>Capo a frutto</dt><dd>Il tralcio potato lungo (6-12 gemme) che porterà la produzione dell'anno.</dd>
+              <dt>Sperone di rinnovo</dt><dd>Tralcio potato corto (2 gemme), più in basso del capo e vicino alla testa: da qui partirà il capo a frutto dell'anno successivo.</dd>
+            </dl>
+            <h5>I 4 principi della potatura ramificata (metodo Simonit&amp;Sirch)</h5>
+            <dl>
+              <dt>1 · Ramificazione controllata</dt><dd>Lasciar occupare alla pianta spazio con il tronco e i tralci, costruendo una cronologia ordinata del legno anno dopo anno.</dd>
+              <dt>2 · Continuità del flusso linfatico</dt><dd>Ogni taglio dovrebbe proseguire, non interrompere, il percorso della linfa: scegliere tralci ben posizionati rispetto ai tagli precedenti.</dd>
+              <dt>3 · Tagli piccoli e mirati</dt><dd>Le ferite ampie creano “coni di disseccamento” che riducono i vasi linfatici e aprono la strada ai patogeni del legno.</dd>
+              <dt>4 · Legno di rispetto</dt><dd>Un piccolo moncone lasciato apposta per allontanare il disseccamento dal flusso linfatico principale, sacrificandosi al posto del legno vivo.</dd>
+            </dl>
+          </details>
+          <button class="link-btn" id="btnResetVine" type="button"><svg class="ico sm" aria-hidden="true"><use href="#i-reset"/></svg><span id="btnResetVineLbl" aria-live="polite">Ricomincia questa vite</span></button>
+        </div>
+
+        <div class="confirm-row">
+          <button class="btn block" id="btnConfirm" type="button" aria-disabled="true"><span>Conferma potatura</span><span class="btn-ico"><svg class="ico sm" aria-hidden="true"><use href="#i-check"/></svg></span></button>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ============ CRESCITA ============ -->
+  <section class="screen" id="growthScreen" data-step="growth" aria-labelledby="growthTitle">
+    <div class="sec-head">
+      <div>
+        <p class="sec-eyebrow">Crescita · primavera</p>
+        <h2 class="section-title" id="growthTitle">Come germoglia la tua vite</h2>
+      </div>
+      <p id="growthIntro">Il capo a frutto è stato piegato ad archetto e legato al filo; il legno tolto è stato eliminato. Ora guarda dove nascono i germogli.</p>
+    </div>
+    <div class="growth-grid">
+      <div class="instrument growth-stage">
+        <div class="core">
+          <svg id="growthSvg" class="stage-svg" role="img" aria-labelledby="growthSvgTitle"><title id="growthSvgTitle">La vite dopo la potatura, in primavera</title></svg>
+        </div>
+      </div>
+      <div class="growth-side">
+        <div class="note" id="growthCaptionBox"><p id="growthCaption">I germogli nascono dalle gemme lasciate: più lunghi verso la punta (acrotonia), assenti sulle gemme cieche.</p></div>
+        <div class="note">
+          <ul class="legend-list" aria-label="Legenda">
+            <li><svg viewBox="0 0 34 22" aria-hidden="true"><path d="M6 20C7 13 9 8 12 3" stroke="#5E8144" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M11 9c4-1 7 1 8 5-4 1-7-1-8-5Z" fill="#7FA35A"/></svg>Germoglio nato da una gemma franca</li>
+            <li><svg viewBox="0 0 34 22" aria-hidden="true"><path d="M2 16H32" stroke="#9B6A3E" stroke-width="4" stroke-linecap="round"/><ellipse cx="17" cy="12" rx="3" ry="4" fill="#A39C8C"/><path d="M15 12.5l4-2" stroke="#5F594D" stroke-width="1.2"/></svg>Gemma cieca: al massimo una controgemma, debole e pallida</li>
+            <li><svg viewBox="0 0 34 22" aria-hidden="true"><path d="M3 18C12 16 22 10 31 3" stroke="#6B6456" stroke-width="1.4" stroke-dasharray="3 3" fill="none"/></svg>Acrotonia: germogli più vigorosi verso la punta, attenuata dall'archetto</li>
+          </ul>
+        </div>
+        <div class="growth-actions">
+          <button class="btn block" id="btnSeeScore" type="button"><span>Vedi il punteggio</span><span class="btn-ico"><svg class="ico sm" aria-hidden="true"><use href="#i-arrow-right"/></svg></span></button>
+          <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">
+            <button class="link-btn" id="btnReplayGrowth" type="button"><svg class="ico sm" aria-hidden="true"><use href="#i-play"/></svg>Rivedi la crescita</button>
+            <button class="link-btn" id="btnSkipGrowth" type="button">Salta l'animazione<svg class="ico sm" aria-hidden="true"><use href="#i-arrow-right"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RISULTATO ============ -->
+  <section class="screen" id="resultScreen" data-step="result" aria-labelledby="scoreVerdict">
+    <div class="sec-head">
+      <div>
+        <p class="sec-eyebrow" id="resultEyebrow">Risultato · vite 1</p>
+        <h2 class="section-title">Il verdetto agronomico</h2>
+      </div>
+      <p id="resultIntro">Confronta la tua potatura con quella ideale su questa stessa vite.</p>
+    </div>
+    <div class="result-grid">
+      <div class="col">
+        <div class="instrument score-card">
+          <div class="core">
+            <div class="score-top">
+              <div>
+                <span class="p-eyebrow">Punteggio su questa vite</span>
+                <div class="score-num"><b id="scoreNum">0</b><span>/100</span></div>
+              </div>
+              <div class="stars" id="starsRow" role="img" aria-label="0 stelle su 3">
+                <svg class="ico" aria-hidden="true"><use href="#i-star"/></svg>
+                <svg class="ico" aria-hidden="true"><use href="#i-star"/></svg>
+                <svg class="ico" aria-hidden="true"><use href="#i-star"/></svg>
+              </div>
+            </div>
+            <div class="meter" aria-hidden="true"><i id="scoreMeter"></i></div>
+            <div class="meter-ticks" aria-hidden="true"><span style="left:0">0</span><span style="left:50%">50</span><span style="left:75%">75</span><span style="left:92%">92</span><span style="left:100%">100</span></div>
+            <p class="verdict" id="scoreVerdict">—</p>
+            <p class="verdict-sub" id="verdictSub"></p>
+            <div class="score-meta" id="scoreMeta"></div>
+            <div class="result-actions">
+              <button class="btn" id="btnNextVine" type="button"><span>Prossima vite</span><span class="btn-ico"><svg class="ico sm" aria-hidden="true"><use href="#i-arrow-right"/></svg></span></button>
+              <button class="btn quiet" id="btnChangeSettings2" type="button"><svg class="ico sm" aria-hidden="true"><use href="#i-sliders"/></svg>Cambia impostazioni</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h3 id="principlesTitle">I principi su questa vite</h3>
+          <ul class="principles" id="principlesList"></ul>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <h3>La tua potatura e quella ideale</h3>
+          <div class="compare">
+            <figure class="cmp-fig">
+              <div class="instrument"><div class="core"><svg id="cmpYours" role="img" aria-labelledby="cmpYoursCap"></svg></div></div>
+              <figcaption><span class="k">La tua potatura</span><span class="v" id="cmpYoursCap">—</span></figcaption>
+            </figure>
+            <figure class="cmp-fig">
+              <div class="instrument"><div class="core"><svg id="cmpIdeal" role="img" aria-labelledby="cmpIdealCap"></svg></div></div>
+              <figcaption><span class="k">Potatura ideale</span><span class="v" id="cmpIdealCap">—</span></figcaption>
+            </figure>
+          </div>
+          <div class="ideal-text" id="idealBox"></div>
+        </div>
+        <div class="card">
+          <h3>Il dettaglio</h3>
+          <div id="feedbackGrid"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="container">
+    <span>Il Potatore — gioco didattico di potatura della vite</span>
+    <span>Ingegneria delle Produzioni Viticole · uso personale</span>
+  </div>
+</footer>
+
+<script src="assets/potatore.js"></script>
+</body>
+</html>

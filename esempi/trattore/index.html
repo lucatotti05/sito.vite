@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Il trattore in campo — simulazione 3D</title>
+<meta name="description" content="Simulazione interattiva del trattore in campo: aderenza, resistenze, potenza, stabilità e presa di potenza, con formule e grandezze aggiornate in tempo reale.">
+<meta name="theme-color" content="#EEE8DA">
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Trattore">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="color-scheme" content="light">
+<link rel="preload" href="assets/fonts/fraunces-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/ibm-plex-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<script>document.documentElement.classList.add("js");</script>
+<style>
+  /* ---------- Font locali (funzionano offline) ---------- */
+  @font-face{font-family:"Fraunces";src:url("assets/fonts/fraunces-latin-wght-normal.woff2") format("woff2");font-weight:300 800;font-style:normal;font-display:swap;}
+  @font-face{font-family:"Fraunces";src:url("assets/fonts/fraunces-latin-wght-italic.woff2") format("woff2");font-weight:300 800;font-style:italic;font-display:swap;}
+  @font-face{font-family:"IBM Plex Sans";src:url("assets/fonts/ibm-plex-sans-latin-400-normal.woff2") format("woff2");font-weight:400;font-display:swap;}
+  @font-face{font-family:"IBM Plex Sans";src:url("assets/fonts/ibm-plex-sans-latin-500-normal.woff2") format("woff2");font-weight:500;font-display:swap;}
+  @font-face{font-family:"IBM Plex Sans";src:url("assets/fonts/ibm-plex-sans-latin-600-normal.woff2") format("woff2");font-weight:600;font-display:swap;}
+  @font-face{font-family:"IBM Plex Mono";src:url("assets/fonts/ibm-plex-mono-latin-400-normal.woff2") format("woff2");font-weight:400;font-display:swap;}
+  @font-face{font-family:"IBM Plex Mono";src:url("assets/fonts/ibm-plex-mono-latin-500-normal.woff2") format("woff2");font-weight:500;font-display:swap;}
+  @font-face{font-family:"IBM Plex Mono";src:url("assets/fonts/ibm-plex-mono-latin-600-normal.woff2") format("woff2");font-weight:600;font-display:swap;}
+
+  /* ---------- Token (vedi DESIGN.md) ---------- */
+  :root{
+    /* superfici: carta calda, dal fondo pagina al piano di lavoro */
+    --bg:#EEE8DA; --surface:#F7F3E9; --surface-2:#FFFDF7; --sunken:#E6DFCE; --tray:#E2D9C5;
+    /* inchiostri: tutti almeno AA su --bg */
+    --ink:#221E18; --ink-2:#4F493E; --ink-3:#6B6456;
+    --line:#DCD3BF; --line-strong:#C4B99F;
+    --brand:#233A2C; --brand-2:#2F4A39; --brand-ink:#F3EEE2;
+    --accent:#A9581F; --accent-ink:#8A4415; --accent-soft:#F3E3D2; --accent-glow:#F2B77E;
+    --danger:#9B3B2E; --danger-soft:#F3DCD6; --ok:#2E6B45; --ok-soft:#DCE9DF;
+    /* forze (scena, etichette, legenda) */
+    --f-fa:#2E8B4F; --f-fra:#6B6456; --f-fu:#D8541C; --f-m:#3E5C76;
+    /* tipografia */
+    --serif:"Fraunces", "Iowan Old Style", Georgia, serif;
+    --math:"Fraunces", Georgia, "Noto Serif", "Times New Roman", serif;   /* il greco (α η ω) arriva da Georgia */
+    --sans:"IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono:"IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    --t-xs:12px; --t-sm:13px; --t-md:14px; --t-base:16px; --t-lg:18px; --t-xl:22px;
+    --t-h2:clamp(28px,4.2vw,40px); --t-h1:clamp(40px,7.2vw,76px);
+    /* forme e profondità */
+    --r-xs:6px; --r-sm:8px; --r-md:12px; --r-lg:16px; --r-xl:22px;
+    --shadow-1:0 1px 2px rgba(35,58,44,.06);
+    --shadow-2:0 1px 0 rgba(255,255,255,.55) inset, 0 28px 56px -36px rgba(35,58,44,.42), 0 2px 6px -2px rgba(35,58,44,.08);
+    --hairline:inset 0 0 0 1px rgba(35,58,44,.09);
+    /* movimento */
+    --ease:cubic-bezier(.32,.72,0,1); --d1:160ms; --d2:240ms; --d3:420ms;
+    --z-hud:5; --z-panel:8; --z-popup:10; --z-bar:18; --z-nav:20;
+    --gutter:clamp(16px,5vw,40px);
+    --sec:clamp(72px,9vw,120px);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;scroll-padding-top:72px;-webkit-text-size-adjust:100%;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:var(--t-base);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden;font-feature-settings:"kern";}
+  ::selection{background:var(--accent-soft);color:var(--ink);}
+  :focus-visible{outline:2px solid var(--accent-ink);outline-offset:3px;border-radius:var(--r-xs);}
+  a{color:var(--brand);}
+  html{color-scheme:light;}
+  button, a, select, input[type=range], .seg button, .mv-speed button{touch-action:manipulation;-webkit-tap-highlight-color:rgba(169,88,31,.12);}
+  .skip{position:absolute;left:-999px;top:8px;background:var(--brand);color:var(--brand-ink);padding:10px 14px;border-radius:var(--r-sm);z-index:99;}
+  .skip:focus{left:8px;}
+  .container{max-width:1200px;margin:0 auto;padding:0 var(--gutter);}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums;}
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+
+  /* ---------- Formule (MathML) ---------- */
+  math{font-family:var(--math);font-size:1.12em;math-style:compact;}
+  math[display="block"]{display:block math;margin:0;}
+  mi{text-transform:none;font-style:italic;}
+  mi[mathvariant="normal"], mtext{font-style:normal;}
+  msub > :last-child{font-size:.78em;}
+  mo{padding-inline:.06em;}
+  mn{font-variant-numeric:tabular-nums lining-nums;}
+  .unit{font-family:var(--sans);font-style:normal;font-size:.86em;color:var(--ink-2);letter-spacing:.01em;}
+
+  /* ---------- Barra di navigazione ---------- */
+  .topbar{position:sticky;top:0;z-index:var(--z-nav);background:rgba(238,232,218,.86);backdrop-filter:saturate(1.3) blur(12px);-webkit-backdrop-filter:saturate(1.3) blur(12px);box-shadow:0 1px 0 var(--line);}
+  .topbar .container{display:flex;align-items:center;gap:16px;height:60px;}
+  .brand{display:flex;align-items:center;gap:10px;color:var(--brand);text-decoration:none;font-family:var(--serif);font-weight:600;font-size:17px;letter-spacing:-.01em;white-space:nowrap;flex:none;}
+  .brand svg{flex:none;}
+  .nav{display:flex;gap:2px;margin-left:auto;overflow-x:auto;scrollbar-width:none;padding:4px;background:rgba(255,253,247,.55);border-radius:999px;box-shadow:var(--hairline);-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 18px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 18px),transparent);}
+  .nav::-webkit-scrollbar{display:none;}
+  .nav a{display:flex;align-items:center;min-height:36px;font-size:var(--t-md);font-weight:500;color:var(--ink-2);text-decoration:none;padding:0 14px;border-radius:999px;white-space:nowrap;transition:background var(--d2) var(--ease),color var(--d2) var(--ease);}
+  .nav a:last-child{margin-right:14px;}
+  .nav a:hover{color:var(--ink);background:rgba(35,58,44,.06);}
+  .nav a[aria-current="true"]{background:var(--brand);color:var(--brand-ink);}
+  @media (min-width:900px){.nav{-webkit-mask-image:none;mask-image:none;}.nav a:last-child{margin-right:0;}}
+  @media (max-width:560px){.brand .brand-text{display:none;}.topbar .container{gap:10px;}.nav{margin-left:0;flex:1;}}
+
+  /* ---------- Hero ---------- */
+  .hero{padding:clamp(40px,7vw,96px) 0 0;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:clamp(24px,5vw,64px);align-items:center;}
+  @media (max-width:900px){.hero{grid-template-columns:1fr;}}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:var(--t-xs);font-weight:500;color:var(--accent-ink);letter-spacing:.06em;text-transform:uppercase;margin:0 0 22px;padding:6px 12px 6px 10px;background:var(--surface-2);border-radius:999px;box-shadow:var(--hairline);}
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+  h1.title{font-family:var(--serif);font-weight:600;font-size:var(--t-h1);line-height:.98;letter-spacing:-.03em;margin:0 0 24px;color:var(--brand);max-width:12ch;text-wrap:balance;font-variation-settings:"SOFT" 40,"opsz" 144;}
+  h1.title em{font-style:italic;font-weight:500;color:var(--accent-ink);}
+  .lead{font-size:clamp(17px,1.7vw,19px);line-height:1.6;color:var(--ink-2);max-width:56ch;margin:0;text-wrap:pretty;}
+  .hero-figure{margin:0;position:relative;}
+  .hero-figure .tray{background:var(--tray);border-radius:var(--r-xl);padding:6px;box-shadow:var(--shadow-2);}
+  .hero-figure .core{border-radius:calc(var(--r-xl) - 6px);overflow:hidden;background:radial-gradient(120% 90% at 50% 30%,#FFFDF7 0%,#F1EBDD 60%,#E6DECB 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.7);aspect-ratio:4/3;display:grid;place-items:center;}
+  .hero-figure img{width:100%;height:100%;object-fit:contain;display:block;}
+  .hero-figure figcaption{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;}
+  .chip{font-family:var(--mono);font-size:var(--t-xs);color:var(--ink-2);background:var(--surface-2);border-radius:999px;padding:4px 10px;box-shadow:var(--hairline);font-variant-numeric:tabular-nums;}
+  .steps{list-style:none;margin:36px 0 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;counter-reset:s;}
+  @media (max-width:640px){.steps{grid-template-columns:1fr;gap:14px;}}
+  .steps li{counter-increment:s;font-size:var(--t-md);line-height:1.5;color:var(--ink-2);padding-top:14px;border-top:1px solid var(--line-strong);}
+  .steps li::before{content:counter(s,decimal-leading-zero);display:block;font-family:var(--mono);font-size:var(--t-xs);font-weight:600;color:var(--accent-ink);margin-bottom:6px;}
+  .steps b{display:block;font-weight:600;color:var(--ink);font-size:15px;margin-bottom:2px;}
+
+  /* ---------- Sezioni ---------- */
+  section.block{padding-top:var(--sec);}
+  .sec-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 48px;align-items:end;margin-bottom:28px;}
+  @media (max-width:900px){.sec-head{grid-template-columns:1fr;margin-bottom:22px;}}
+  .sec-eyebrow{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:var(--t-xs);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink);margin:0 0 12px;}
+  .sec-eyebrow::after{content:"";flex:0 0 36px;height:1px;background:var(--line-strong);}
+  h2.section-title{font-family:var(--serif);font-weight:600;font-size:var(--t-h2);letter-spacing:-.022em;line-height:1.06;color:var(--brand);margin:0;text-wrap:balance;font-variation-settings:"opsz" 96;}
+  .sec-sub{font-size:var(--t-base);line-height:1.6;color:var(--ink-2);margin:0;max-width:52ch;text-wrap:pretty;}
+
+  /* ---------- Strumento: cornice a doppio bordo per le scene 3D ---------- */
+  .instrument{background:var(--tray);border-radius:var(--r-xl);padding:6px;box-shadow:var(--shadow-2);}
+  .instrument > .core{border-radius:calc(var(--r-xl) - 6px);overflow:hidden;background:var(--surface);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),inset 0 0 0 1px rgba(35,58,44,.06);}
+  @media (max-width:560px){.instrument{border-radius:18px;padding:5px;}.instrument > .core{border-radius:13px;}}
+
+  /* ---------- Simulazione ---------- */
+  .stage-wrap{position:relative;background:linear-gradient(180deg,#A9CADB 0%,#C9E0E4 38%,#E7EFE2 100%);overflow:hidden;aspect-ratio:16/9;max-height:80vh;min-height:380px;width:100%;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:pan-y;}
+  .stage-wrap.dragging{cursor:grabbing;}
+  #scene{width:100%;height:100%;display:block;}
+  .sim-canvas,.sim-canvas canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  .sim-canvas{opacity:0;transition:opacity .6s var(--ease);}
+  .stage-wrap.is-3d .sim-canvas{opacity:1;}
+  .stage-wrap.is-3d #scene{opacity:0;transition:opacity .6s var(--ease);}
+  @media (max-width:760px){.stage-wrap{aspect-ratio:auto;height:min(72svh,600px);min-height:460px;}}
+
+  .hud-topbar{position:absolute;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;pointer-events:none;z-index:var(--z-hud);}
+  .pill{display:inline-flex;align-items:center;gap:8px;font-family:var(--sans);font-size:var(--t-sm);font-weight:500;color:var(--ink);background:rgba(255,253,247,.92);border-radius:999px;padding:6px 12px 6px 10px;box-shadow:0 1px 2px rgba(35,58,44,.12),var(--hairline);white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
+  .pill .dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(169,88,31,.18);}
+  .pill .sep{width:1px;height:14px;background:var(--line-strong);}
+  .pill .num{font-size:var(--t-xs);color:var(--ink-2);}
+  .orbit-hint{position:absolute;left:14px;bottom:14px;transform:none;white-space:nowrap;display:inline-flex;align-items:center;gap:8px;font-size:var(--t-sm);font-weight:500;color:var(--ink);background:rgba(255,253,247,.92);border-radius:999px;padding:7px 14px;z-index:var(--z-hud);pointer-events:none;box-shadow:0 1px 2px rgba(35,58,44,.12),var(--hairline);transition:opacity var(--d3) var(--ease),transform var(--d3) var(--ease);}
+  .orbit-hint svg{width:16px;height:16px;flex:none;}
+  .orbit-hint.gone{opacity:0;transform:translateY(6px);}
+
+  /* etichette delle forze (posizionate dalla scena 3D) */
+  .force-label{position:absolute;left:0;top:0;display:inline-flex;align-items:center;gap:6px;font-family:var(--math);font-size:16px;line-height:1;color:#FFFDF7;background:rgba(34,30,24,.86);border-radius:999px;padding:5px 10px 6px 8px;pointer-events:none;z-index:var(--z-hud);opacity:0;transition:opacity var(--d2) var(--ease);white-space:nowrap;box-shadow:0 0 0 1.5px rgba(255,253,247,.9),0 4px 10px -4px rgba(0,0,0,.35);}
+  .force-label::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--c,#fff);box-shadow:0 0 0 1.5px rgba(255,253,247,.9);}
+  .force-label i{font-style:italic;}
+  .force-label sub{font-style:normal;font-size:.7em;vertical-align:-.25em;margin-left:1px;}
+
+  /* pannello delle formule (ex popup): a destra su desktop, scheda in basso su mobile */
+  .formula-panel{position:absolute;top:60px;right:14px;width:min(330px,34%);z-index:var(--z-panel);pointer-events:none;}
+  .popup{position:absolute;top:0;left:0;right:0;background:rgba(255,253,247,.97);color:var(--ink);border-radius:var(--r-lg);padding:14px 16px 16px;box-shadow:0 18px 40px -22px rgba(35,58,44,.55),var(--hairline);opacity:0;transform:translateY(8px);transition:opacity var(--d3) var(--ease),transform var(--d3) var(--ease);}
+  .popup.show{opacity:1;transform:none;}
+  .popup .fp-k{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-ink);margin:0 0 8px;}
+  .popup .fp-k::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent);}
+  .popup .fp-t{font-family:var(--serif);font-weight:600;font-size:17px;letter-spacing:-.01em;color:var(--brand);margin:0 0 10px;line-height:1.2;}
+  .popup .fp-f{font-size:17px;color:var(--ink);padding:10px 12px;background:var(--surface);border-radius:var(--r-sm);box-shadow:var(--hairline);overflow-x:auto;}
+  .popup .fp-r{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 10px;margin-top:12px;}
+  .popup .fp-r math{font-size:17px;color:var(--ink-2);}
+  .popup .fp-v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:26px;font-weight:600;letter-spacing:-.02em;color:var(--brand);line-height:1.05;}
+  .popup .fp-v .u{font-family:var(--sans);font-size:14px;font-weight:500;color:var(--ink-2);margin-left:3px;letter-spacing:0;}
+  .popup .fp-c{font-size:var(--t-sm);color:var(--ink-2);margin:6px 0 0;}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--sans);font-size:var(--t-sm);font-weight:600;border-radius:999px;padding:3px 10px 3px 8px;background:var(--ok-soft);color:var(--ok);}
+  .badge::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;}
+  .badge.bad{background:var(--danger-soft);color:var(--danger);}
+  #leader{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:var(--z-hud);opacity:0;transition:opacity var(--d3) var(--ease);}
+  #leader.on{opacity:1;}
+  #leader path{fill:none;stroke:var(--brand);stroke-width:1.25;stroke-dasharray:3 3;}
+  #leader circle.a{fill:var(--accent);stroke:#FFFDF7;stroke-width:2;}
+  #leader circle.b{fill:var(--brand);}
+  @media (max-width:760px){
+    .formula-panel{top:auto;left:10px;right:10px;bottom:10px;width:auto;}
+    .popup{top:auto;bottom:0;padding:12px 14px 13px;}
+    .popup .fp-t{font-size:16px;margin-bottom:8px;}
+    .popup .fp-f{font-size:16px;padding:8px 10px;}
+    .popup .fp-v{font-size:22px;}
+    .popup .fp-c{display:none;}
+    .orbit-hint{bottom:auto;top:52px;left:12px;}
+    .playbar{grid-template-columns:auto minmax(0,1fr) auto;padding:12px 12px 10px;}
+    .playbar .timeline{grid-column:1 / -1;grid-row:1;}
+    .playbar #btnPlay{grid-column:1;grid-row:2;}
+    .playbar .sim-speed{grid-column:2;grid-row:2;justify-self:end;}
+    .playbar .sim-speed button{min-width:42px;padding:0 7px;}
+    .playbar #btnPlay{padding:0 14px 0 10px;}
+    .playbar #btnReset{grid-column:3;grid-row:2;}
+    .legend{padding:0 14px 14px;gap:4px 14px;}
+  }
+
+  /* barra di riproduzione con le fasi */
+  .playbar{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:10px 16px;padding:14px 16px 12px;background:var(--surface);border-top:1px solid var(--line);}
+  .timeline{min-width:0;}
+  .timeline input{display:block;width:100%;}
+  .phase-rail{list-style:none;margin:4px 0 0;padding:0;display:flex;gap:3px;}
+  .phase-rail li{position:relative;flex:var(--w) 1 0;min-width:0;font-size:11.5px;font-weight:500;color:var(--ink-3);padding-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color var(--d2) var(--ease);}
+  .phase-rail li::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;border-radius:3px;background:var(--line);transition:background var(--d2) var(--ease);}
+  .phase-rail li.on{color:var(--ink);}
+  .phase-rail li.on::before{background:var(--accent);}
+  .tl-meta{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:2px;}
+  .phase-label{font-size:var(--t-sm);font-weight:600;color:var(--ink);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sim-time{font-family:var(--mono);font-size:var(--t-xs);color:var(--ink-3);font-variant-numeric:tabular-nums;flex:none;}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 18px;padding:10px 16px 14px;background:var(--surface);font-size:var(--t-sm);color:var(--ink-2);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .legend i.sw{width:14px;height:3px;border-radius:2px;background:var(--c);}
+  .legend math{font-size:15px;color:var(--ink);}
+  @media (max-width:760px){.phase-rail li{font-size:0;}.phase-rail li.on{font-size:0;}}
+
+  /* ---------- Pulsanti ---------- */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;font-family:var(--sans);font-size:var(--t-md);font-weight:600;background:var(--brand);color:var(--brand-ink);border:0;border-radius:999px;padding:0 18px 0 14px;cursor:pointer;box-shadow:0 1px 0 rgba(255,255,255,.12) inset,0 6px 14px -8px rgba(35,58,44,.7);transition:background var(--d2) var(--ease),transform var(--d1) var(--ease),box-shadow var(--d2) var(--ease);}
+  .btn:hover{background:var(--brand-2);}
+  .btn:active{transform:scale(.97);}
+  .btn svg{width:16px;height:16px;flex:none;}
+  .btn .ico{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:rgba(243,238,226,.14);margin-left:-4px;transition:transform var(--d2) var(--ease);}
+  .btn:hover .ico{transform:scale(1.06);}
+  .btn.quiet{background:var(--surface-2);color:var(--brand);box-shadow:var(--hairline),var(--shadow-1);padding:0 16px 0 14px;}
+  .btn.quiet:hover{background:#fff;}
+  .btn.icon-only{width:44px;padding:0;}
+  .btn[aria-pressed="true"].quiet{background:var(--accent-soft);color:var(--accent-ink);box-shadow:inset 0 0 0 1px rgba(169,88,31,.45);}
+
+  /* ---------- Cursori ---------- */
+  input[type=range]{--p:50%;width:100%;-webkit-appearance:none;appearance:none;height:32px;background:transparent;margin:0;cursor:pointer;}
+  input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:4px;background:linear-gradient(to right,var(--accent) var(--p),var(--line-strong) var(--p));}
+  input[type=range]::-moz-range-track{height:4px;border-radius:4px;background:var(--line-strong);}
+  input[type=range]::-moz-range-progress{height:4px;border-radius:4px;background:var(--accent);}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--surface-2);border:0;box-shadow:0 0 0 2px var(--accent),0 3px 8px -2px rgba(35,58,44,.35);margin-top:-9px;transition:transform var(--d1) var(--ease),box-shadow var(--d2) var(--ease);}
+  input[type=range]:hover::-webkit-slider-thumb{box-shadow:0 0 0 2px var(--accent),0 0 0 7px rgba(169,88,31,.14),0 3px 8px -2px rgba(35,58,44,.35);}
+  input[type=range]:active::-webkit-slider-thumb{transform:scale(1.12);}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--surface-2);border:2px solid var(--accent);}
+  input[type=range]:focus-visible{outline:none;}
+  input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 2px var(--accent),0 0 0 6px rgba(138,68,21,.35);}
+
+  /* ---------- Scenario ---------- */
+  .lab{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(20px,3vw,40px);align-items:start;}
+  @media (max-width:980px){.lab{grid-template-columns:1fr;}}
+  .panel{background:var(--surface-2);border-radius:var(--r-xl);padding:clamp(20px,2.6vw,28px);box-shadow:var(--hairline),var(--shadow-1);}
+  @media (min-width:981px){.lab .panel.sticky{position:sticky;top:84px;}}
+  .panel h3, .results h3{font-family:var(--serif);font-weight:600;font-size:var(--t-xl);letter-spacing:-.012em;color:var(--brand);margin:0 0 4px;}
+  .panel .hint{font-size:var(--t-sm);color:var(--ink-3);margin:0 0 18px;}
+  fieldset{border:0;margin:0;padding:0;min-width:0;}
+  fieldset + fieldset{margin-top:22px;padding-top:20px;border-top:1px solid var(--line);}
+  legend.group{font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);padding:0;margin:0 0 12px;}
+  .grid-controls{display:grid;grid-template-columns:1fr;gap:14px;}
+  .ctrl label, .ctrl .lbl{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:var(--t-md);font-weight:500;color:var(--ink-2);margin-bottom:2px;}
+  .ctrl label math, .ctrl .lbl math{font-size:16px;color:var(--ink);}
+  .ctrl .val{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink);font-weight:600;font-size:var(--t-sm);background:var(--sunken);border-radius:var(--r-xs);padding:2px 8px;white-space:nowrap;}
+  select.terrain{width:100%;min-height:46px;font-family:var(--sans);font-size:15px;font-weight:500;color:var(--ink);background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%234F493E' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 14px center;-webkit-appearance:none;appearance:none;border:0;border-radius:var(--r-md);padding:0 40px 0 14px;box-shadow:var(--hairline);cursor:pointer;transition:box-shadow var(--d2) var(--ease);margin-top:6px;}
+  select.terrain:hover{box-shadow:inset 0 0 0 1px var(--line-strong);}
+  .seg{display:grid;grid-template-columns:1fr 1fr;padding:4px;gap:4px;background:var(--sunken);border-radius:999px;margin-top:6px;}
+  .seg button{min-height:40px;font-family:var(--sans);font-size:var(--t-md);font-weight:500;background:transparent;border:none;border-radius:999px;cursor:pointer;color:var(--ink-2);transition:background var(--d2) var(--ease),color var(--d2) var(--ease),box-shadow var(--d2) var(--ease);}
+  .seg button:hover{color:var(--ink);}
+  .seg button.active{background:var(--surface-2);color:var(--brand);box-shadow:0 1px 3px rgba(35,58,44,.18),var(--hairline);font-weight:600;}
+
+  /* ---------- Grandezze ---------- */
+  .results{display:grid;gap:26px;}
+  .res-group h4{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px;}
+  .res-group h4::after{content:"";flex:1;height:1px;background:var(--line);}
+  .hud-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+  .hud-card{position:relative;background:var(--surface-2);border-radius:var(--r-lg);padding:16px 16px 14px;box-shadow:var(--hairline),var(--shadow-1);display:flex;flex-direction:column;gap:10px;min-width:0;transition:transform var(--d2) var(--ease),box-shadow var(--d2) var(--ease);}
+  .hud-grid.two{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .hud-card.wide{grid-column:1 / -1;order:2;}
+  .hud-card:hover{transform:translateY(-2px);box-shadow:var(--hairline),0 14px 24px -18px rgba(35,58,44,.5);}
+  .hud-card .k{font-size:var(--t-sm);font-weight:500;color:var(--ink-2);line-height:1.35;}
+  .hud-card .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:clamp(22px,2.2vw,26px);color:var(--brand);font-weight:600;letter-spacing:-.02em;line-height:1.05;transition:color var(--d2) var(--ease);}
+  .hud-card .v .u{font-family:var(--sans);font-size:14px;font-weight:500;color:var(--ink-2);margin-left:4px;letter-spacing:0;}
+  .hud-card .v.bad{color:var(--danger);}
+  .hud-card .f{font-size:15px;color:var(--ink);padding-top:10px;border-top:1px dashed var(--line);overflow-x:auto;overflow-y:hidden;margin-top:auto;}
+  #h-stabL{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;font-family:var(--sans);font-size:15px;font-weight:600;letter-spacing:0;color:var(--ok);background:var(--ok-soft);border-radius:999px;padding:4px 12px 4px 10px;}
+  #h-stabL::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor;}
+  #h-stabL.bad{color:var(--danger);background:var(--danger-soft);}
+  @media (max-width:980px) and (min-width:561px){.hud-grid{grid-template-columns:repeat(3,minmax(0,1fr));}.hud-grid.two{grid-template-columns:repeat(2,minmax(0,1fr));}}
+  @media (max-width:560px){
+    .hud-grid,.hud-grid.two{grid-template-columns:1fr;gap:8px;}
+    .hud-card{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"k v" "f f";gap:8px 12px;padding:14px;}
+    .hud-card .k{grid-area:k;align-self:center;}
+    .hud-card .v{grid-area:v;font-size:21px;text-align:right;align-self:center;}
+    .hud-card .f{grid-area:f;padding-top:8px;}
+    #h-stabL{justify-self:end;}
+  }
+  .note{display:flex;gap:12px;align-items:flex-start;font-size:var(--t-sm);line-height:1.55;color:var(--ink-2);margin:0;padding:14px 16px;background:var(--accent-soft);border-radius:var(--r-md);}
+  .note svg{flex:none;width:18px;height:18px;color:var(--accent-ink);margin-top:1px;}
+
+  /* riepilogo fisso su mobile mentre si muovono i cursori */
+  .summary-bar{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:var(--z-bar);display:none;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px;background:rgba(35,58,44,.96);color:var(--brand-ink);border-radius:var(--r-lg);padding:6px;box-shadow:0 18px 36px -18px rgba(20,34,26,.7);transform:translateY(130%);transition:transform var(--d3) var(--ease);}
+  .summary-bar.on{transform:none;}
+  .summary-bar div{padding:6px 10px;min-width:0;}
+  .summary-bar dt{font-size:11.5px;color:rgba(243,238,226,.78);margin:0 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .summary-bar dd{margin:0;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:15px;font-weight:600;white-space:nowrap;}
+  .summary-bar dd .u{font-family:var(--sans);font-size:12px;font-weight:500;opacity:.8;margin-left:2px;}
+  .summary-bar dd.bad{color:#FFB4A3;}
+  @media (max-width:980px){.summary-bar{display:grid;}}
+
+  /* ---------- Motore 3D ---------- */
+  .mv{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:0;background:var(--surface);}
+  @media (max-width:900px){.mv{grid-template-columns:1fr;}}
+  .mv-main{display:flex;flex-direction:column;min-width:0;}
+  .mv-stage{position:relative;aspect-ratio:16/11;min-height:380px;max-height:80vh;background:radial-gradient(120% 90% at 42% 34%,#FFFDF7 0%,#F1ECDF 55%,#E1D9C6 100%);overflow:hidden;}
+  @media (max-width:760px){.mv-stage{aspect-ratio:auto;height:min(66svh,560px);min-height:420px;}}
+  .mv-canvas,.mv-canvas canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;}
+  .mv-poster{position:absolute;inset:6% 8%;width:84%;height:88%;object-fit:contain;transition:opacity .5s var(--ease);pointer-events:none;}
+  .mv.is-ready .mv-poster{opacity:0;}
+  .mv-progress{position:absolute;left:0;right:0;top:0;height:3px;opacity:0;transition:opacity var(--d2);}
+  .mv-progress i{display:block;height:100%;background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform .2s linear;}
+  .mv.is-loading .mv-progress{opacity:1;}
+  .mv-status{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);font-size:var(--t-sm);font-weight:500;color:var(--ink);background:rgba(255,253,247,.92);border-radius:999px;padding:7px 14px;opacity:0;transition:opacity var(--d2);pointer-events:none;white-space:nowrap;box-shadow:var(--hairline);}
+  .mv.is-loading .mv-status{opacity:1;}
+  .mv-error{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;background:var(--surface-2);box-shadow:var(--hairline),var(--shadow-1);border-radius:var(--r-md);padding:8px 8px 8px 14px;font-size:var(--t-md);color:var(--danger);z-index:var(--z-popup);width:max-content;max-width:calc(100% - 32px);}
+  .mv-error[hidden]{display:none;}
+  .mv .hud-topbar .pill b{font-family:var(--mono);font-weight:600;font-size:var(--t-xs);color:var(--accent-ink);}
+  .mv-bar{display:grid;grid-template-columns:auto auto auto minmax(0,1fr) auto auto;align-items:center;gap:8px;padding:12px 14px;border-top:1px solid var(--line);background:var(--surface);}
+  .mv-bar .grow{min-width:0;}
+  @media (max-width:760px){
+    .mv-bar{display:flex;flex-wrap:wrap;gap:8px;padding:12px;}
+    .mv-bar .grow{display:block;flex:1 1 0;min-width:0;}
+    .mv-bar #mvExplode,.mv-bar #mvXray{order:5;flex:1 1 40%;}
+  }
+  .mv-speed{display:inline-grid;grid-template-columns:repeat(3,auto);padding:4px;gap:2px;background:var(--sunken);border-radius:999px;}
+  .mv-speed button{min-height:36px;min-width:50px;padding:0 10px;font-family:var(--mono);font-size:var(--t-xs);font-weight:500;background:transparent;border:0;border-radius:999px;color:var(--ink-2);cursor:pointer;transition:background var(--d2) var(--ease),color var(--d2) var(--ease);}
+  .mv-speed button:hover{color:var(--ink);}
+  .mv-speed button.active{background:var(--surface-2);color:var(--brand);font-weight:600;box-shadow:0 1px 3px rgba(35,58,44,.18),var(--hairline);}
+  .mv-side{border-left:1px solid var(--line);padding:22px;display:flex;flex-direction:column;gap:22px;background:var(--surface);}
+  @media (max-width:900px){.mv-side{border-left:0;border-top:1px solid var(--line);padding:18px;}}
+  .mv-card{background:var(--surface-2);box-shadow:var(--hairline),var(--shadow-1);border-radius:var(--r-lg);padding:16px 18px 18px;position:relative;min-height:156px;transition:box-shadow var(--d2) var(--ease);}
+  .mv.has-sel .mv-card{box-shadow:inset 0 0 0 1.5px var(--accent),var(--shadow-1);}
+  .mv-card .g{font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-ink);margin:0 0 8px;}
+  .mv-card h3{font-family:var(--serif);font-weight:600;font-size:var(--t-xl);letter-spacing:-.012em;line-height:1.15;color:var(--brand);margin:0 0 8px;padding-right:40px;text-wrap:balance;}
+  .mv-card p{font-size:15px;line-height:1.55;color:var(--ink-2);margin:0;}
+  .mv-card-close{position:absolute;top:8px;right:8px;width:40px;height:40px;border:0;border-radius:999px;background:transparent;color:var(--ink-3);cursor:pointer;display:none;align-items:center;justify-content:center;transition:background var(--d2) var(--ease),color var(--d2) var(--ease);}
+  .mv-card-close:hover{background:var(--sunken);color:var(--ink);}
+  .mv.has-sel .mv-card-close{display:flex;}
+  .mv-fasi h4{font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px;}
+  .mv-fasi ol{list-style:none;margin:0;padding:0;display:grid;gap:2px;}
+  .mv-fasi li{display:grid;grid-template-columns:12px 1fr auto;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--r-sm);font-size:var(--t-md);color:var(--ink-2);transition:background var(--d2) var(--ease),color var(--d2) var(--ease);}
+  .mv-fasi li .sw{width:12px;height:12px;border-radius:4px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);}
+  .mv-fasi li .r{font-family:var(--mono);font-size:var(--t-xs);color:var(--ink-3);font-variant-numeric:tabular-nums;}
+  .mv-fasi li.on{background:var(--surface-2);color:var(--ink);font-weight:600;box-shadow:inset 3px 0 0 var(--accent),var(--hairline);}
+  .mv-sheet{display:none;}
+  @media (max-width:900px){
+    .mv-sheet{display:block;position:absolute;left:10px;right:10px;bottom:10px;background:rgba(255,253,247,.97);border-radius:var(--r-lg);box-shadow:inset 0 0 0 1.5px var(--accent),0 16px 32px -18px rgba(35,58,44,.55);padding:12px 14px 13px;transform:translateY(calc(100% + 16px));transition:transform var(--d3) var(--ease);pointer-events:none;z-index:var(--z-hud);}
+    .mv.has-sel .mv-sheet{transform:none;}
+    .mv-sheet .g{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-ink);margin:0 0 3px;}
+    .mv-sheet h3{font-family:var(--serif);font-weight:600;font-size:18px;color:var(--brand);margin:0 0 3px;}
+    .mv-sheet .f{font-size:var(--t-md);line-height:1.45;color:var(--ink-2);margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  }
+  .mv-specs{display:grid;grid-template-columns:1fr 1fr;gap:0;margin:0;border-top:1px solid var(--line);}
+  .mv-specs div{padding:12px 0;border-bottom:1px solid var(--line);}
+  .mv-specs div:nth-child(odd){padding-right:12px;border-right:1px solid var(--line);}
+  .mv-specs div:nth-child(even){padding-left:14px;}
+  .mv-specs dt{color:var(--ink-3);font-size:var(--t-xs);margin-bottom:3px;}
+  .mv-specs dd{margin:0;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:15px;color:var(--brand);font-weight:600;}
+
+  /* ---------- Teoria ---------- */
+  .theory-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 clamp(24px,5vw,72px);counter-reset:t;}
+  @media (max-width:760px){.theory-grid{grid-template-columns:1fr;}}
+  .theory-item{padding:26px 0 28px;border-top:1px solid var(--line-strong);counter-increment:t;display:grid;grid-template-columns:44px minmax(0,1fr);gap:0 8px;}
+  .theory-item::before{content:counter(t,decimal-leading-zero);font-family:var(--mono);font-size:var(--t-xs);font-weight:600;color:var(--accent-ink);padding-top:6px;grid-row:span 3;}
+  .theory-item h3{font-family:var(--serif);font-weight:600;font-size:var(--t-xl);letter-spacing:-.012em;line-height:1.2;color:var(--brand);margin:0 0 8px;}
+  .theory-item p{font-size:15px;line-height:1.6;color:var(--ink-2);margin:0 0 16px;max-width:54ch;}
+  .theory-item .ff{justify-self:start;display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;font-size:18px;color:var(--ink);background:var(--surface-2);box-shadow:var(--hairline);border-radius:var(--r-md);padding:12px 16px;max-width:100%;overflow-x:auto;}
+  .theory-item .ff .or{font-family:var(--sans);font-size:var(--t-xs);font-weight:500;color:var(--ink-3);}
+  @media (max-width:430px){.theory-item{grid-template-columns:34px minmax(0,1fr);}.theory-item .ff{font-size:16px;padding:10px 12px;}.theory-item .ff.long{font-size:14px;}}
+  /* nomi di funzione (cos, sin) in tondo */
+  mi.fn, math mi[mathvariant="normal"].fn{font-style:normal;}
+
+  /* ---------- Legenda dei simboli ---------- */
+  .symbols{margin-top:clamp(48px,6vw,72px);padding:clamp(20px,3vw,32px);background:var(--surface-2);border-radius:var(--r-xl);box-shadow:var(--hairline),var(--shadow-1);scroll-margin-top:80px;}
+  .symbols h3{font-family:var(--serif);font-weight:600;font-size:var(--t-xl);letter-spacing:-.012em;color:var(--brand);margin:0 0 6px;}
+  .symbols .sec-sub{font-size:15px;margin-bottom:22px;}
+  .sym-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px clamp(20px,3vw,40px);}
+  @media (max-width:980px){.sym-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+  @media (max-width:640px){.sym-grid{grid-template-columns:1fr;}}
+  .sym-group h4{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:0 0 6px;}
+  .sym-group h4::after{content:"";flex:1;height:1px;background:var(--line);}
+  .sym-group dl{margin:0;}
+  .sym{display:grid;grid-template-columns:52px minmax(0,1fr);gap:0 10px;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line);}
+  .sym:last-child{border-bottom:0;}
+  .sym dt{font-size:19px;color:var(--brand);}
+  .sym dd{margin:0;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;font-size:var(--t-md);line-height:1.45;color:var(--ink-2);}
+  .sym dd .n{min-width:0;}
+  .sym dd .uv{font-family:var(--mono);font-size:var(--t-xs);color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap;background:var(--sunken);border-radius:var(--r-xs);padding:1px 7px;align-self:flex-start;}
+  .legend .legend-more{margin-left:auto;display:inline-flex;align-items:center;gap:6px;min-height:32px;font-weight:600;color:var(--accent-ink);text-decoration:none;border-radius:999px;padding:0 4px;}
+  .legend .legend-more:hover{text-decoration:underline;text-underline-offset:3px;}
+
+  /* ---------- Footer ---------- */
+  footer{margin-top:var(--sec);padding:28px 0 calc(96px + env(safe-area-inset-bottom));border-top:1px solid var(--line-strong);font-size:var(--t-sm);color:var(--ink-2);}
+  footer .container{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:14px 24px;}
+  footer .f-brand{display:flex;align-items:center;gap:10px;font-family:var(--serif);font-weight:600;font-size:16px;color:var(--brand);}
+  footer .f-text{max-width:60ch;margin:0;}
+  .to-top{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:999px;color:var(--brand);font-weight:500;text-decoration:none;box-shadow:var(--hairline);background:var(--surface-2);transition:background var(--d2) var(--ease);}
+  .to-top:hover{background:#fff;}
+  @media (min-width:981px){footer{padding-bottom:calc(40px + env(safe-area-inset-bottom));}}
+
+  /* ---------- Entrata delle sezioni ---------- */
+  .js .reveal{opacity:0;transform:translateY(14px);transition:opacity .7s var(--ease),transform .7s var(--ease);}
+  .js .reveal.in{opacity:1;transform:none;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001ms !important;transition-duration:.001ms !important;}
+    html{scroll-behavior:auto;}
+    .js .reveal{opacity:1;transform:none;}
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#simulazione">Vai alla simulazione</a>
+
+<header class="topbar">
+  <div class="container">
+    <a class="brand" href="#top" aria-label="Il trattore in campo, inizio pagina">
+      <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#233A2C"/><circle cx="16" cy="16" r="9" fill="none" stroke="#F3EEE2" stroke-width="2.5"/><circle cx="16" cy="16" r="3" fill="#C0692A"/></svg>
+      <span class="brand-text">Il trattore in campo</span>
+    </a>
+    <nav class="nav" aria-label="Sezioni">
+      <a href="#simulazione">Simulazione</a>
+      <a href="#scenario">Scenario e grandezze</a>
+      <a href="#motore">Motore 3D</a>
+      <a href="#teoria">Teoria</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <div class="container">
+    <header class="hero">
+      <div class="hero-text">
+        <p class="eyebrow"><span class="dot" aria-hidden="true"></span>Ingegneria delle produzioni viticole · simulazione integrata</p>
+        <h1 class="title">Il trattore in campo, <em>in 3D</em></h1>
+        <p class="lead">Una simulazione unica che mette in scena tutta la teoria delle due dispense: il trattore affronta pianura, salita, curva e lavorazione sotto sforzo. Ruota la vista, segui la timeline e osserva le forze comparire nel punto e nel momento in cui agiscono davvero.</p>
+        <ol class="steps">
+          <li><b>Ruota la vista</b>Trascina dentro la scena per cambiare il punto di vista, in qualunque direzione.</li>
+          <li><b>Avvia il giro di lavoro</b>Con Play parte il ciclo completo: a ogni fase compare la forza o la formula in gioco.</li>
+          <li><b>Cambia lo scenario</b>Pendenza, terreno, peso e coppia aggiornano scena e formule in tempo reale.</li>
+        </ol>
+      </div>
+      <figure class="hero-figure">
+        <div class="tray"><div class="core"><img src="assets/img/trattore-hero.webp" alt="Trattore specializzato da vigneto a quattro ruote motrici con fresatrice portata" width="1200" height="900" decoding="async" fetchpriority="high"></div></div>
+        <figcaption><span class="chip">4 RM · vigneto</span><span class="chip">carreggiata 1,5 m</span><span class="chip">baricentro 0,95 m</span><span class="chip">fresatrice da p.d.p.</span></figcaption>
+      </figure>
+    </header>
+  </div>
+
+  <section class="block" id="simulazione" aria-labelledby="t-sim">
+    <div class="container">
+      <div class="sec-head reveal">
+        <div>
+          <p class="sec-eyebrow">01 · Simulazione</p>
+          <h2 class="section-title" id="t-sim">Simulazione</h2>
+        </div>
+        <p class="sec-sub">Pianura, salita, curva in pendenza e lavorazione con presa di potenza, in un unico giro di circa 34 secondi.</p>
+      </div>
+      <div class="instrument">
+        <div class="core sim-shell">
+          <div class="stage-wrap" id="stageWrap">
+            <div class="hud-topbar">
+              <span class="pill"><span class="dot" aria-hidden="true"></span><span id="hudPhase">Avvicinamento in piano</span><span class="sep" aria-hidden="true"></span><span class="num" id="hudSpeed">v = 7,2 km/h</span></span>
+            </div>
+            <div class="orbit-hint" id="orbitHint"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 8c0-2 2.7-3.5 6-3.5S14 6 14 8s-2.7 3.5-6 3.5"/><path d="M6 9.5 8 11.5 6 13.5"/></svg>Trascina per ruotare</div>
+            <svg id="scene" viewBox="0 0 1800 1000" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Scena 3D del trattore sul campo">
+              <g id="sky"></g>
+              <g id="dyn"></g>
+            </svg>
+            <svg id="leader" aria-hidden="true"><path d=""/><circle class="a" r="5" cx="-10" cy="-10"/><circle class="b" r="3" cx="-10" cy="-10"/></svg>
+            <div class="formula-panel" id="popupLayer" aria-live="polite"></div>
+          </div>
+          <div class="playbar">
+            <button class="btn" id="btnPlay" type="button"></button>
+            <div class="timeline">
+              <div class="tl-meta"><span class="phase-label" id="phaseLabel">Avvicinamento in piano</span><span class="sim-time" id="simTime">0,0 / 34 s</span></div>
+              <input type="range" id="scrubber" min="0" max="1000" value="0" aria-label="Avanzamento del giro di lavoro">
+              <ol class="phase-rail" id="phaseRail" aria-hidden="true">
+                <li style="--w:28">Piano</li><li style="--w:17">Salita</li><li style="--w:17">Curva</li><li style="--w:23">Presa di potenza</li><li style="--w:15">Rientro</li>
+              </ol>
+            </div>
+            <div class="mv-speed sim-speed" id="simSpeed" role="group" aria-label="Velocità della simulazione">
+              <button type="button" data-v="0.25" aria-pressed="false">0,25×</button>
+              <button type="button" data-v="0.5" aria-pressed="false">0,5×</button>
+              <button type="button" data-v="1" class="active" aria-pressed="true">1×</button>
+            </div>
+            <button class="btn quiet icon-only" id="btnReset" type="button" aria-label="Reimposta la vista" title="Reimposta la vista"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 8a5.5 5.5 0 1 0 1.7-4"/><path d="M2.5 2.5v3h3"/></svg></button>
+          </div>
+          <div class="legend" aria-label="Legenda delle forze">
+            <span><i class="sw" style="--c:var(--f-fa)"></i><math><msub><mi>F</mi><mi mathvariant="normal">a</mi></msub></math> aderenza</span>
+            <span><i class="sw" style="--c:var(--f-fra)"></i><math><msub><mi>F</mi><mtext>ra</mtext></msub></math> resistenze</span>
+            <span><i class="sw" style="--c:var(--f-fu)"></i><math><msub><mi>F</mi><mi mathvariant="normal">u</mi></msub></math> forza utile</span>
+            <span><i class="sw" style="--c:var(--f-m)"></i><math><mi>M</mi></math> coppia alla p.d.p.</span>
+            <a class="legend-more" href="#simboli">Tutti i simboli<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="scenario" aria-labelledby="t-scen">
+    <div class="container">
+      <div class="sec-head reveal">
+        <div>
+          <p class="sec-eyebrow">02 · Scenario</p>
+          <h2 class="section-title" id="t-scen">Scenario e grandezze</h2>
+        </div>
+        <p class="sec-sub">Ogni cursore ricalcola le nove grandezze a destra e i valori che compaiono nella scena.</p>
+      </div>
+      <div class="lab">
+        <div class="panel sticky">
+          <h3>Scenario</h3>
+          <fieldset>
+            <legend class="group">Terreno e mezzo</legend>
+            <div class="grid-controls">
+              <div class="ctrl">
+                <label for="s-terrain">Terreno <span class="val sr-only" id="v-terrain">Terra battuta</span></label>
+                <select class="terrain" id="s-terrain">
+                  <option value="0">Terra battuta</option>
+                  <option value="1">Cotica erbosa</option>
+                  <option value="2">Stoppie di grano</option>
+                  <option value="3">Letto di semina</option>
+                  <option value="4">Terreno bagnato</option>
+                </select>
+              </div>
+              <div class="ctrl"><span class="lbl" id="l-type">Organo di contatto</span>
+                <div class="seg" id="s-type" role="group" aria-labelledby="l-type"><button type="button" data-v="ruote" class="active" aria-pressed="true">Ruote</button><button type="button" data-v="cingoli" aria-pressed="false">Cingoli</button></div>
+              </div>
+              <div class="ctrl"><label for="s-P"><span>Peso trattore + zavorra <math><mi>P</mi></math></span> <span class="val" id="v-P">5000 kg</span></label><input type="range" id="s-P" min="2000" max="9000" step="100" value="5000"></div>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend class="group">Percorso</legend>
+            <div class="grid-controls">
+              <div class="ctrl"><label for="s-i"><span>Pendenza del campo <math><mi>i</mi></math></span> <span class="val" id="v-i">18%</span></label><input type="range" id="s-i" min="0" max="40" step="1" value="18"></div>
+              <div class="ctrl"><label for="s-v"><span>Velocità di lavoro <math><mi>v</mi></math></span> <span class="val" id="v-v">7,2 km/h</span></label><input type="range" id="s-v" min="2" max="14" step="0.2" value="7.2"></div>
+              <div class="ctrl"><label for="s-r"><span>Raggio di curva <math><mi>r</mi></math></span> <span class="val" id="v-r">15 m</span></label><input type="range" id="s-r" min="5" max="40" step="1" value="15"></div>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend class="group">Trasmissione</legend>
+            <div class="grid-controls">
+              <div class="ctrl"><label for="s-eta"><span>Rendimento di trazione <math><msub><mi>η</mi><mtext>tr</mtext></msub></math></span> <span class="val" id="v-eta">0,50</span></label><input type="range" id="s-eta" min="0.3" max="0.7" step="0.01" value="0.5"></div>
+              <div class="ctrl"><label for="s-M"><span>Coppia alla presa di potenza <math><mi>M</mi></math></span> <span class="val" id="v-M">400 N·m</span></label><input type="range" id="s-M" min="100" max="900" step="10" value="400"></div>
+            </div>
+          </fieldset>
+        </div>
+
+        <div class="results">
+          <div class="res-group">
+            <h4>Trazione</h4>
+            <div class="hud-grid two">
+              <div class="hud-card"><div class="k">Forza di aderenza <math><msub><mi>F</mi><mi mathvariant="normal">a</mi></msub></math></div><div class="v" id="h-Fa">—</div><div class="f"><math><msub><mi>F</mi><mi mathvariant="normal">a</mi></msub><mo>=</mo><mi>P</mi><mo>·</mo><mi class="fn">cos</mi><mo>&#x2061;</mo><mi>α</mi><mo>·</mo><msub><mi>C</mi><mi mathvariant="normal">a</mi></msub></math></div></div>
+              <div class="hud-card wide"><div class="k">Forza utile <math><msub><mi>F</mi><mi mathvariant="normal">u</mi></msub></math></div><div class="v" id="h-Fu">—</div><div class="f"><math><msub><mi>F</mi><mi mathvariant="normal">u</mi></msub><mo>≤</mo><mi>P</mi><mo>·</mo><mrow><mo>[</mo><mrow><mo>(</mo><msub><mi>C</mi><mi mathvariant="normal">a</mi></msub><mo>−</mo><msub><mi>C</mi><mtext>ra</mtext></msub><mo>)</mo></mrow><mo>·</mo><mi class="fn">cos</mi><mo>&#x2061;</mo><mi>α</mi><mo>−</mo><mi class="fn">sin</mi><mo>&#x2061;</mo><mi>α</mi><mo>]</mo></mrow></math></div></div>
+              <div class="hud-card"><div class="k">Potenza utile di trazione</div><div class="v" id="h-Wutr">—</div><div class="f"><math><msub><mi>W</mi><mtext>u,tr</mtext></msub><mo>=</mo><msub><mi>F</mi><mi mathvariant="normal">u</mi></msub><mo>·</mo><mi>v</mi></math></div></div>
+            </div>
+          </div>
+          <div class="res-group">
+            <h4>Potenze</h4>
+            <div class="hud-grid">
+              <div class="hud-card"><div class="k">Potenza erogata dal motore</div><div class="v" id="h-Wum">—</div><div class="f"><math><msub><mi>W</mi><mtext>u,m</mtext></msub><mo>=</mo><mfrac><msub><mi>W</mi><mtext>u,tr</mtext></msub><msub><mi>η</mi><mtext>tr</mtext></msub></mfrac></math></div></div>
+              <div class="hud-card"><div class="k">Potenza nominale</div><div class="v" id="h-WN">—</div><div class="f"><math><msub><mi>W</mi><mi mathvariant="normal">N</mi></msub><mo>=</mo><mfrac><msub><mi>W</mi><mtext>u,m</mtext></msub><mn>0,75</mn></mfrac></math></div></div>
+              <div class="hud-card"><div class="k">Potenza alla p.d.p.</div><div class="v" id="h-Wpdp">—</div><div class="f"><math><mi>W</mi><mo>=</mo><mi>M</mi><mo>·</mo><mi>ω</mi></math></div></div>
+            </div>
+          </div>
+          <div class="res-group">
+            <h4>Stabilità</h4>
+            <div class="hud-grid two">
+              <div class="hud-card"><div class="k">Pendenza trasversale massima <math><msub><mi>i</mi><mtext>max</mtext></msub></math></div><div class="v" id="h-imax">—</div><div class="f"><math><msub><mi>i</mi><mtext>max</mtext></msub><mo>=</mo><mfrac><mi>s</mi><mrow><mn>2</mn><mi>h</mi></mrow></mfrac></math></div></div>
+              <div class="hud-card"><div class="k">Velocità critica in curva</div><div class="v" id="h-vcrit">—</div><div class="f"><math><msubsup><mi>v</mi><mtext>crit</mtext><mn>2</mn></msubsup><mo>=</mo><mfrac><mrow><mi>r</mi><mo>·</mo><mi>g</mi><mo>·</mo><mi>s</mi></mrow><mrow><mn>2</mn><mi>h</mi></mrow></mfrac></math></div></div>
+              <div class="hud-card wide"><div class="k">Stabilità longitudinale</div><div class="v" id="h-stabL">—</div><div class="f"><math><msub><mi>F</mi><mi mathvariant="normal">a</mi></msub><mo>·</mo><msub><mi>r</mi><mi mathvariant="normal">p</mi></msub><mo>&lt;</mo><mi>G</mi><mo>·</mo><mrow><mo>(</mo><mi>d</mi><mo>·</mo><mi class="fn">cos</mi><mo>&#x2061;</mo><mi>α</mi><mo>−</mo><mi>h</mi><mo>·</mo><mi class="fn">sin</mi><mo>&#x2061;</mo><mi>α</mi><mo>)</mo></mrow><mo>+</mo><msub><mi>T</mi><mi mathvariant="normal">a</mi></msub></math></div></div>
+            </div>
+          </div>
+          <p class="note"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="9" cy="9" r="7.25"/><path d="M9 8v5" stroke-linecap="round"/><circle cx="9" cy="5.4" r=".9" fill="currentColor" stroke="none"/></svg><span>Le nove grandezze restano sempre visibili e si aggiornano con lo scenario. Il pannello delle formule nella scena richiama la stessa formula, con lo stesso valore, mentre il trattore sta vivendo quella condizione.</span></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="motore" aria-labelledby="t-motore">
+    <div class="container">
+      <div class="sec-head reveal">
+        <div>
+          <p class="sec-eyebrow">03 · Motore 3D</p>
+          <h2 class="section-title" id="t-motore">Il motore diesel, pezzo per pezzo</h2>
+        </div>
+        <p class="sec-sub">Monocilindro a quattro tempi in sezione, con valvole in testa comandate da aste e bilancieri. Guarda il ciclo completo, apri la vista esplosa e tocca un pezzo per sapere a cosa serve. <a href="ciclo-motore.html">Il ciclo a quattro tempi, scorrendo →</a></p>
+      </div>
+      <div class="instrument">
+        <div class="core mv" data-motore-viewer data-model="models/motore_diesel.glb">
+          <div class="mv-main">
+            <div class="mv-stage">
+              <img class="mv-poster" src="models/motore_diesel-poster.webp" alt="Motore diesel monocilindro in sezione: pistone, biella, albero motore, distribuzione e iniettore" width="720" height="800" decoding="async" loading="lazy">
+              <div class="mv-canvas"></div>
+              <div class="mv-progress"><i></i></div>
+              <div class="hud-topbar">
+                <span class="pill"><span class="dot" aria-hidden="true"></span><span id="mvFase">Aspirazione</span><span class="sep" aria-hidden="true"></span><b id="mvAngolo" class="num">0°</b></span>
+              </div>
+              <div class="mv-status">Caricamento del modello…</div>
+              <div class="mv-sheet" aria-hidden="true"><p class="g"></p><h3></h3><p class="f"></p></div>
+              <div class="mv-error" hidden role="alert"><span>Il modello non si è caricato.</span><button class="btn quiet mv-retry" type="button">Riprova</button></div>
+            </div>
+            <div class="mv-bar">
+              <button class="btn" id="mvPlay" type="button"></button>
+              <button class="btn quiet" id="mvExplode" type="button" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 1.5v4M8 10.5v4M1.5 8h4M10.5 8h4"/><path d="M6 3.5 8 1.5l2 2M6 12.5l2 2 2-2M3.5 6 1.5 8l2 2M12.5 6l2 2-2 2"/></svg>Vista esplosa</button>
+              <button class="btn quiet" id="mvXray" type="button" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2" stroke-dasharray="2.5 2"/><circle cx="8" cy="8" r="2.5"/></svg>Trasparenza</button>
+              <span class="grow"></span>
+              <div class="mv-speed" role="group" aria-label="Velocità dell'animazione">
+                <button type="button" data-v="0.25" aria-pressed="false">0,25×</button>
+                <button type="button" data-v="0.5" aria-pressed="false">0,5×</button>
+                <button type="button" data-v="1" class="active" aria-pressed="true">1×</button>
+              </div>
+              <button class="btn quiet icon-only" id="mvReset" type="button" aria-label="Reimposta la vista" title="Reimposta la vista"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 8a5.5 5.5 0 1 0 1.7-4"/><path d="M2.5 2.5v3h3"/></svg></button>
+            </div>
+          </div>
+          <aside class="mv-side" aria-label="Dettagli">
+            <div class="mv-card" aria-live="polite">
+              <p class="g" id="mvGruppo">Guida</p>
+              <h3 id="mvNome">Tocca un pezzo</h3>
+              <p id="mvFunzione"></p>
+              <button class="mv-card-close" type="button" aria-label="Chiudi scheda"><svg width="14" height="14" viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 3l10 10M13 3 3 13"/></svg></button>
+            </div>
+            <div class="mv-fasi">
+              <h4>Ciclo a 4 tempi · 720° di manovella</h4>
+              <ol>
+                <li data-f="asp"><span class="sw" style="background:#8FBFDE"></span>Aspirazione<span class="r">0–180°</span></li>
+                <li data-f="com"><span class="sw" style="background:#3E5C76"></span>Compressione<span class="r">180–350°</span></li>
+                <li data-f="sco"><span class="sw" style="background:#E0521C"></span>Iniezione e scoppio<span class="r">350–390°</span></li>
+                <li data-f="esp"><span class="sw" style="background:#B8704A"></span>Espansione<span class="r">390–540°</span></li>
+                <li data-f="sca"><span class="sw" style="background:#8C8577"></span>Scarico<span class="r">540–720°</span></li>
+              </ol>
+            </div>
+            <dl class="mv-specs">
+              <div><dt>Alesaggio × corsa</dt><dd>100 × 115&#8201;mm</dd></div>
+              <div><dt>Cilindrata</dt><dd>903&#8201;cm³</dd></div>
+              <div><dt>Rapporto di compressione</dt><dd>17 : 1</dd></div>
+              <div><dt>Camme / albero</dt><dd>1 : 2</dd></div>
+            </dl>
+          </aside>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="teoria" aria-labelledby="t-teoria">
+    <div class="container">
+      <div class="sec-head reveal">
+        <div>
+          <p class="sec-eyebrow">04 · Teoria</p>
+          <h2 class="section-title" id="t-teoria">Indice della teoria richiamata in scena</h2>
+        </div>
+        <p class="sec-sub">Le formule delle dispense, nell'ordine in cui compaiono durante il giro di lavoro.</p>
+      </div>
+      <div class="theory-grid">
+        <div class="theory-item"><h3>Potenza di trazione</h3><p>La potenza utile è il prodotto tra forza utile di trazione e velocità di avanzamento; richiamata nella fase di avvicinamento e salita.</p><div class="ff"><math display="block"><msub><mi>W</mi><mtext>u,tr</mtext></msub><mo>=</mo><msub><mi>F</mi><mi mathvariant="normal">u</mi></msub><mo>·</mo><mi>v</mi></math></div></div>
+        <div class="theory-item"><h3>Rendimento e potenza nominale</h3><p>La potenza erogata dal motore è maggiore di quella utile per il rendimento di trazione, e la nominale è ulteriormente maggiorata per il regime continuativo del 75%.</p><div class="ff"><math display="block"><msub><mi>W</mi><mtext>u,m</mtext></msub><mo>=</mo><mfrac><msub><mi>W</mi><mtext>u,tr</mtext></msub><msub><mi>η</mi><mtext>tr</mtext></msub></mfrac></math><span class="or">e</span><math display="block"><msub><mi>W</mi><mi mathvariant="normal">N</mi></msub><mo>=</mo><mfrac><msub><mi>W</mi><mtext>u,m</mtext></msub><mn>0,75</mn></mfrac></math></div></div>
+        <div class="theory-item"><h3>Potenza rotatoria alla p.d.p.</h3><p>Coppia per velocità angolare: richiamata quando il trattore aziona un attrezzo tramite la presa di potenza.</p><div class="ff"><math display="block"><mi>W</mi><mo>=</mo><mi>M</mi><mo>·</mo><mi>ω</mi></math></div></div>
+        <div class="theory-item"><h3>Forza di aderenza</h3><p>Il prodotto tra peso aderente e coefficiente di aderenza, che cambia con terreno e organo di contatto (ruote/cingoli). Il peso in daN vale P in kg × 0,981; su un pendio conta solo la sua parte perpendicolare al terreno, P · cos α.</p><div class="ff"><math display="block"><msub><mi>F</mi><mi mathvariant="normal">a</mi></msub><mo>=</mo><mi>P</mi><mo>·</mo><mi class="fn">cos</mi><mo>&#x2061;</mo><mi>α</mi><mo>·</mo><msub><mi>C</mi><mi mathvariant="normal">a</mi></msub></math></div></div>
+        <div class="theory-item"><h3>Resistenza all'avanzamento e pendenza</h3><p>Le forze che si oppongono al moto: il rotolamento, con Cra che dipende da terreno e organo di contatto, e la pendenza da superare in salita. Il rotolamento dipende dal peso perpendicolare al terreno, P · cos α; la componente del peso lungo il pendio vale P · sin α, con α = arctan i. Solo per pendenze piccole cos α ≈ 1 e sin α ≈ i.</p><div class="ff long"><math display="block"><msub><mi>F</mi><mtext>ra</mtext></msub><mo>=</mo><mi>P</mi><mo>·</mo><mrow><mo>(</mo><msub><mi>C</mi><mtext>ra</mtext></msub><mo>·</mo><mi class="fn">cos</mi><mo>&#x2061;</mo><mi>α</mi><mo>±</mo><mi class="fn">sin</mi><mo>&#x2061;</mo><mi>α</mi><mo>)</mo></mrow></math></div></div>
+        <div class="theory-item"><h3>Forza utile di trazione</h3><p>Ciò che resta della forza di aderenza dopo le resistenze: se scende a zero il trattore non avanza più, indipendentemente dalla potenza del motore.</p><div class="ff long"><math display="block"><msub><mi>F</mi><mi mathvariant="normal">u</mi></msub><mo>≤</mo><mi>P</mi><mo>·</mo><mrow><mo>[</mo><mrow><mo>(</mo><msub><mi>C</mi><mi mathvariant="normal">a</mi></msub><mo>−</mo><msub><mi>C</mi><mtext>ra</mtext></msub><mo>)</mo></mrow><mo>·</mo><mi class="fn">cos</mi><mo>&#x2061;</mo><mi>α</mi><mo>−</mo><mi class="fn">sin</mi><mo>&#x2061;</mo><mi>α</mi><mo>]</mo></mrow></math></div></div>
+        <div class="theory-item"><h3>Stabilità trasversale</h3><p>Il ribaltamento laterale dipende dalla geometria (carreggiata e baricentro) e, in curva, dalla velocità rispetto al raggio percorso. Il trattore è stabile se valgono entrambe le condizioni.</p><div class="ff"><math display="block"><mi>i</mi><mo>&lt;</mo><mfrac><mi>s</mi><mrow><mn>2</mn><mi>h</mi></mrow></mfrac></math><span class="or">e</span><math display="block"><msup><mi>v</mi><mn>2</mn></msup><mo>&lt;</mo><mfrac><mrow><mi>r</mi><mo>·</mo><mi>g</mi><mo>·</mo><mi>s</mi></mrow><mrow><mn>2</mn><mi>h</mi></mrow></mfrac></math></div></div>
+        <div class="theory-item"><h3>Stabilità longitudinale</h3><p>Sotto sforzo, la coppia alle ruote motrici (al massimo Fa × raggio ruota) tende a sollevare l'avantreno. Deve restare inferiore al momento del peso, che in salita si riduce, più quello della zavorra anteriore.</p><div class="ff long"><math display="block"><msub><mi>F</mi><mi mathvariant="normal">a</mi></msub><mo>·</mo><msub><mi>r</mi><mi mathvariant="normal">p</mi></msub><mo>&lt;</mo><mi>G</mi><mo>·</mo><mrow><mo>(</mo><mi>d</mi><mo>·</mo><mi class="fn">cos</mi><mo>&#x2061;</mo><mi>α</mi><mo>−</mo><mi>h</mi><mo>·</mo><mi class="fn">sin</mi><mo>&#x2061;</mo><mi>α</mi><mo>)</mo></mrow><mo>+</mo><msub><mi>T</mi><mi mathvariant="normal">a</mi></msub></math></div></div>
+      </div>
+      <div class="symbols reveal" id="simboli" aria-labelledby="t-simboli">
+        <h3 id="t-simboli">Legenda dei simboli</h3>
+        <p class="sec-sub">Tutte le lettere usate nella simulazione, nelle card e nelle formule, con unità di misura e valori del trattore modellato.</p>
+        <div class="sym-grid">
+<div class="sym-group"><h4>Aderenza e resistenze</h4><dl><div class="sym"><dt><math><mi>P</mi></math></dt><dd><span class="n">Peso del trattore con zavorra</span><span class="uv">kg</span></dd></div><div class="sym"><dt><math><mi>G</mi></math></dt><dd><span class="n">Peso in daN: G = P · 0,981</span><span class="uv">daN</span></dd></div><div class="sym"><dt><math><msub><mi>F</mi><mi mathvariant="normal">a</mi></msub></math></dt><dd><span class="n">Forza di aderenza</span><span class="uv">daN</span></dd></div><div class="sym"><dt><math><msub><mi>F</mi><mtext>ra</mtext></msub></math></dt><dd><span class="n">Resistenze all'avanzamento (rotolamento e pendenza)</span><span class="uv">daN</span></dd></div><div class="sym"><dt><math><msub><mi>F</mi><mi mathvariant="normal">u</mi></msub></math></dt><dd><span class="n">Forza utile di trazione</span><span class="uv">daN</span></dd></div><div class="sym"><dt><math><msub><mi>C</mi><mi mathvariant="normal">a</mi></msub></math></dt><dd><span class="n">Coefficiente di aderenza</span><span class="uv">adimensionale</span></dd></div><div class="sym"><dt><math><msub><mi>C</mi><mtext>ra</mtext></msub></math></dt><dd><span class="n">Coefficiente di resistenza al rotolamento</span><span class="uv">adimensionale</span></dd></div><div class="sym"><dt><math><mi>i</mi></math></dt><dd><span class="n">Pendenza del campo, i = tan α</span><span class="uv">%</span></dd></div><div class="sym"><dt><math><mi>α</mi></math></dt><dd><span class="n">Angolo del pendio, α = arctan i; P · cos α è il peso perpendicolare al terreno, P · sin α quello lungo il pendio</span><span class="uv">°</span></dd></div></dl></div>
+<div class="sym-group"><h4>Potenze</h4><dl><div class="sym"><dt><math><mi>v</mi></math></dt><dd><span class="n">Velocità di avanzamento</span><span class="uv">km/h</span></dd></div><div class="sym"><dt><math><msub><mi>W</mi><mtext>u,tr</mtext></msub></math></dt><dd><span class="n">Potenza utile di trazione</span><span class="uv">kW</span></dd></div><div class="sym"><dt><math><msub><mi>η</mi><mtext>tr</mtext></msub></math></dt><dd><span class="n">Rendimento di trazione</span><span class="uv">adimensionale</span></dd></div><div class="sym"><dt><math><msub><mi>W</mi><mtext>u,m</mtext></msub></math></dt><dd><span class="n">Potenza erogata dal motore</span><span class="uv">kW</span></dd></div><div class="sym"><dt><math><msub><mi>W</mi><mi mathvariant="normal">N</mi></msub></math></dt><dd><span class="n">Potenza nominale (regime continuativo al 75%)</span><span class="uv">kW</span></dd></div><div class="sym"><dt><math><mi>M</mi></math></dt><dd><span class="n">Coppia alla presa di potenza</span><span class="uv">N·m</span></dd></div><div class="sym"><dt><math><mi>ω</mi></math></dt><dd><span class="n">Velocità angolare della p.d.p.: 540 giri/min</span><span class="uv">56,5 rad/s</span></dd></div><div class="sym"><dt><math><mi>W</mi></math></dt><dd><span class="n">Potenza alla presa di potenza</span><span class="uv">kW</span></dd></div></dl></div>
+<div class="sym-group"><h4>Stabilità</h4><dl><div class="sym"><dt><math><mi>s</mi></math></dt><dd><span class="n">Carreggiata</span><span class="uv">1,5 m</span></dd></div><div class="sym"><dt><math><mi>h</mi></math></dt><dd><span class="n">Altezza del baricentro</span><span class="uv">0,95 m</span></dd></div><div class="sym"><dt><math><msub><mi>i</mi><mtext>max</mtext></msub></math></dt><dd><span class="n">Pendenza trasversale massima</span><span class="uv">%</span></dd></div><div class="sym"><dt><math><mi>r</mi></math></dt><dd><span class="n">Raggio di curva</span><span class="uv">m</span></dd></div><div class="sym"><dt><math><mi>g</mi></math></dt><dd><span class="n">Accelerazione di gravità</span><span class="uv">9,81 m/s²</span></dd></div><div class="sym"><dt><math><msub><mi>v</mi><mtext>crit</mtext></msub></math></dt><dd><span class="n">Velocità critica in curva</span><span class="uv">km/h</span></dd></div><div class="sym"><dt><math><msub><mi>r</mi><mi mathvariant="normal">p</mi></msub></math></dt><dd><span class="n">Raggio sotto carico delle ruote posteriori</span><span class="uv">0,725 m</span></dd></div><div class="sym"><dt><math><mi>d</mi></math></dt><dd><span class="n">Distanza fra baricentro e asse posteriore</span><span class="uv">0,84 m</span></dd></div><div class="sym"><dt><math><msup><mi>d</mi><mo>′</mo></msup></math></dt><dd><span class="n">Braccio del peso in salita: d′ = d · cos α − h · sin α</span><span class="uv">m</span></dd></div><div class="sym"><dt><math><msub><mi>M</mi><mi mathvariant="normal">p</mi></msub></math></dt><dd><span class="n">Momento di impennamento: M<sub>p</sub> = F<sub>a</sub> · r<sub>p</sub></span><span class="uv">daN·m</span></dd></div><div class="sym"><dt><math><msub><mi>T</mi><mi mathvariant="normal">a</mi></msub></math></dt><dd><span class="n">Momento della zavorra anteriore (150 kg a 2,65 m)</span><span class="uv">390 daN·m</span></dd></div></dl></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<dl class="summary-bar" id="summaryBar" aria-hidden="true">
+  <div><dt>Forza utile</dt><dd id="sum-Fu">—</dd></div>
+  <div><dt>Potenza nominale</dt><dd id="sum-WN">—</dd></div>
+  <div><dt>Stabilità long.</dt><dd id="sum-stab">—</dd></div>
+</dl>
+
+<footer>
+  <div class="container">
+    <div>
+      <p class="f-brand"><svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#233A2C"/><circle cx="16" cy="16" r="9" fill="none" stroke="#F3EEE2" stroke-width="2.5"/><circle cx="16" cy="16" r="3" fill="#C0692A"/></svg>Il trattore in campo</p>
+      <p class="f-text">Il trattore in campo — simulazione 3D integrata · sintesi dei moduli 02.02 e 02.03, materiale di studio derivato, uso personale</p>
+    </div>
+    <a class="to-top" href="#top"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg>Torna su</a>
+  </div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+const NS = "http://www.w3.org/2000/svg";
+const C = { green:"#33513F", greenLight:"#4A7059", greenDark:"#1D3B29", rust:"#A9581F", rustLight:"#C97B3E", rustDark:"#7A3F13",
+            red:"#9B3B2E", steel:"#3E5C76", steelLight:"#5C7C99", gold:"#C08A2E", dark:"#171512", grey:"#8C8577" };
+const fmt=(n,d=1)=> (isFinite(n)?n:0).toLocaleString('it-IT',{minimumFractionDigits:d,maximumFractionDigits:d});
+const G_ACC = 9.81;
+
+/* Ca = coefficiente di aderenza, Cra = coefficiente di resistenza al rotolamento (intervalli tipici) */
+const terrains = [
+  {name:"Terra battuta",    ruote:[0.50,0.60], cingoli:[0.85,0.95], craRuote:[0.04,0.06], craCingoli:[0.03,0.05]},
+  {name:"Cotica erbosa",    ruote:[0.45,0.55], cingoli:[0.70,0.80], craRuote:[0.06,0.08], craCingoli:[0.05,0.07]},
+  {name:"Stoppie di grano", ruote:[0.35,0.45], cingoli:[0.80,0.90], craRuote:[0.07,0.10], craCingoli:[0.06,0.08]},
+  {name:"Letto di semina",  ruote:[0.30,0.40], cingoli:[0.55,0.65], craRuote:[0.12,0.18], craCingoli:[0.08,0.10]},
+  {name:"Terreno bagnato",  ruote:[0.15,0.25], cingoli:[0.25,0.35], craRuote:[0.14,0.20], craCingoli:[0.09,0.12]},
+];
+
+/* ============ PROJECTOR ============ */
+const VB_W=1800, VB_H=1000;
+let az = -35, el = 34; // orbit angles (degrees)
+const SCALE = 1.05;
+const CENTER_X = VB_W/2, CENTER_Y = VB_H/2+40;
+
+function rotateProject(x,y,z){
+  const a = az*Math.PI/180, e = el*Math.PI/180;
+  const x1 = x*Math.cos(a) - z*Math.sin(a);
+  const z1 = x*Math.sin(a) + z*Math.cos(a);
+  const y1 = y;
+  const y2 = y1*Math.cos(e) - z1*Math.sin(e);
+  const z2 = y1*Math.sin(e) + z1*Math.cos(e);
+  return { sx: CENTER_X + x1*SCALE, sy: CENTER_Y - y2*SCALE, depth: z2 };
+}
+function proj2(x,y,z){ const p=rotateProject(x,y,z); return [p.sx,p.sy]; }
+
+function signedArea(pts){
+  let a=0;
+  for(let i=0;i<pts.length;i++){
+    const [x1,y1]=pts[i], [x2,y2]=pts[(i+1)%pts.length];
+    a += x1*y2 - x2*y1;
+  }
+  return a/2;
+}
+
+/* Build a box's 6 faces in LOCAL space (base at y=0, extends to y=h, centered x/z) */
+function boxFacesLocal(w,h,d){
+  const hw=w/2, hd=d/2;
+  const p = {
+    ftl:[-hw,h,hd], ftr:[hw,h,hd], fbl:[-hw,0,hd], fbr:[hw,0,hd],
+    btl:[-hw,h,-hd], btr:[hw,h,-hd], bbl:[-hw,0,-hd], bbr:[hw,0,-hd]
+  };
+  return {
+    top:    [p.ftl,p.ftr,p.btr,p.btl],
+    bottom: [p.fbl,p.fbr,p.bbr,p.bbl],
+    front:  [p.fbl,p.fbr,p.ftr,p.ftl],
+    back:   [p.bbr,p.bbl,p.btl,p.btr],
+    right:  [p.fbr,p.bbr,p.btr,p.ftr],
+    left:   [p.bbl,p.fbl,p.ftl,p.btl],
+  };
+}
+
+/* Transform a local point by heading (deg, rotate around Y) then translate to world (ox,oy,oz) */
+function toWorld(pt, ox,oy,oz, headingDeg){
+  const h = headingDeg*Math.PI/180;
+  const x = pt[0]*Math.cos(h) + pt[2]*Math.sin(h);
+  const z = -pt[0]*Math.sin(h) + pt[2]*Math.cos(h);
+  return [x+ox, pt[1]+oy, z+oz];
+}
+
+/* Add a box's visible faces (culled by signed area) to the primitive list */
+function addBox(prims, ox,oy,oz, w,h,d, headingDeg, palette){
+  const faces = boxFacesLocal(w,h,d);
+  const colorFor = { top:palette.top, bottom:palette.bottom, front:palette.front, back:palette.front, right:palette.side, left:palette.side };
+  Object.keys(faces).forEach(key=>{
+    const local = faces[key];
+    const world = local.map(pt=>toWorld(pt, ox,oy,oz, headingDeg));
+    const projected = world.map(pt=>rotateProject(pt[0],pt[1],pt[2]));
+    const pts2D = projected.map(p=>[p.sx,p.sy]);
+    const area = signedArea(pts2D);
+    if (area <= 0) return; // backface cull (facing away from viewer)
+    const depth = projected.reduce((s,p)=>s+p.depth,0)/projected.length;
+    prims.push({type:"poly", pts:pts2D, fill:colorFor[key], depth, stroke:"rgba(0,0,0,0.18)"});
+  });
+}
+
+function addWheel(prims, ox,oy,oz, r, headingDeg, rimR){
+  const N=16;
+  function disc(radius, color, depthBias){
+    const pts3D=[];
+    for(let i=0;i<N;i++){
+      const t = i/N*Math.PI*2;
+      pts3D.push(toWorld([0, r + radius*Math.sin(t), radius*Math.cos(t)], ox,oy,oz, headingDeg));
+    }
+    const projected = pts3D.map(p=>rotateProject(p[0],p[1],p[2]));
+    const pts2D = projected.map(p=>[p.sx,p.sy]);
+    const depth = projected.reduce((s,p)=>s+p.depth,0)/projected.length;
+    prims.push({type:"poly", pts:pts2D, fill:color, depth:depth+depthBias, stroke:"none"});
+  }
+  disc(r, "#171512", -0.02);
+  disc(rimR||r*0.5, "#6B6558", -0.01);
+  disc((rimR||r*0.5)*0.35, "#3A362E", 0);
+}
+
+function addQuad(prims, corners3D, fill, strokeCol){
+  const projected = corners3D.map(p=>rotateProject(p[0],p[1],p[2]));
+  const pts2D = projected.map(p=>[p.sx,p.sy]);
+  const depth = projected.reduce((s,p)=>s+p.depth,0)/projected.length;
+  prims.push({type:"poly", pts:pts2D, fill, depth, stroke:strokeCol||"none"});
+}
+function addLine(prims, a3, b3, stroke, width, depthBias){
+  const pa=rotateProject(a3[0],a3[1],a3[2]), pb=rotateProject(b3[0],b3[1],b3[2]);
+  prims.push({type:"line", a:[pa.sx,pa.sy], b:[pb.sx,pb.sy], stroke, width, depth:(pa.depth+pb.depth)/2 + (depthBias||0)});
+}
+function addArrow(prims, base3, dir3, len, color, depthBias){
+  const norm = Math.hypot(...dir3)||1;
+  const ux=dir3[0]/norm, uy=dir3[1]/norm, uz=dir3[2]/norm;
+  const tip3 = [base3[0]+ux*len, base3[1]+uy*len, base3[2]+uz*len];
+  addLine(prims, base3, tip3, color, 5, depthBias);
+  const pb=rotateProject(base3[0],base3[1],base3[2]), pt=rotateProject(tip3[0],tip3[1],tip3[2]);
+  const dx=pt.sx-pb.sx, dy=pt.sy-pb.sy; const L=Math.hypot(dx,dy)||1;
+  const nx=dx/L, ny=dy/L;
+  const perpx=-ny, perpy=nx;
+  const head = [
+    [pt.sx,pt.sy],
+    [pt.sx-nx*14+perpx*6, pt.sy-ny*14+perpy*6],
+    [pt.sx-nx*14-perpx*6, pt.sy-ny*14-perpy*6],
+  ];
+  prims.push({type:"poly", pts:head, fill:color, depth:pt.depth+ (depthBias||0)+0.001, stroke:"none"});
+  return {tip2D:[pt.sx,pt.sy], depth:pt.depth+(depthBias||0)+0.002};
+}
+function addLabel(prims, pos2D, text, color, depth){
+  prims.push({type:"text", x:pos2D[0], y:pos2D[1], text, color, depth:depth+0.003});
+}
+
+/* ============ TERRAIN GEOMETRY ============ */
+const FLAT_LEN = 420, SLOPE_LEN=380, FIELD_W=320;
+
+function addRidgeRow(prims, xOff, base, dir, d0, d1, halfW, height, colorTop, colorSide){
+  const p = (d)=> [xOff, base[1]+dir[1]*d, base[2]+dir[2]*d];
+  const a0=p(d0), a1=p(d1);
+  const topA=[a0[0]-halfW,a0[1]+height,a0[2]], topB=[a0[0]+halfW,a0[1]+height,a0[2]];
+  const topC=[a1[0]+halfW,a1[1]+height,a1[2]], topD=[a1[0]-halfW,a1[1]+height,a1[2]];
+  addQuad(prims,[topA,topB,topC,topD], colorTop, "rgba(0,0,0,0.12)");
+  const sideA=[a0[0]+halfW,a0[1],a0[2]], sideB=[a1[0]+halfW,a1[1],a1[2]];
+  addQuad(prims,[sideA,sideB,topC,topB], colorSide, "rgba(0,0,0,0.12)");
+}
+
+function addCypress(prims, xOff, baseWorld, h){
+  const trunkPal = {top:"#2E4B2A", bottom:"#16281A", front:"#24401F", side:"#182E1B"};
+  const o = [baseWorld[0]+xOff, baseWorld[1], baseWorld[2]];
+  addBox(prims, o[0],o[1],o[2], 9,h*0.55,9, 0, trunkPal);
+  const o2 = [o[0], o[1]+h*0.5, o[2]];
+  addBox(prims, o2[0],o2[1],o2[2], 6,h*0.5,6, 0, trunkPal);
+}
+
+function terrainPrims(iPercent){
+  const prims = [];
+  const angle = Math.atan(iPercent/100);
+  const F0 = FLAT_LEN*0.85;            // pathAt() comincia a salire a 0,85 · FLAT_LEN
+  const flatCorners = [
+    [-FIELD_W/2, 0, 0], [FIELD_W/2, 0, 0], [FIELD_W/2, 0, -F0], [-FIELD_W/2, 0, -F0]
+  ];
+  addQuad(prims, flatCorners, "#9FC07E", "rgba(0,0,0,0.06)");
+  const ROWS=12;
+  for(let i=0;i<ROWS;i++){
+    const xOff = -FIELD_W/2 + (i+0.5)*(FIELD_W/ROWS);
+    addRidgeRow(prims, xOff, [0,0,0], [0,0,-1], 20, F0-20, 4, 9, "#4F7A46", "#365434");
+  }
+  const dirY=Math.sin(angle), dirZ=-Math.cos(angle);
+  const slopeCorners = [
+    [-FIELD_W/2,0,-F0], [FIELD_W/2,0,-F0],
+    [FIELD_W/2, SLOPE_LEN*dirY, -F0+SLOPE_LEN*dirZ], [-FIELD_W/2, SLOPE_LEN*dirY, -F0+SLOPE_LEN*dirZ]
+  ];
+  addQuad(prims, slopeCorners, "#C9A374", "rgba(0,0,0,0.08)");
+  for(let i=0;i<ROWS;i++){
+    const xOff = -FIELD_W/2 + (i+0.5)*(FIELD_W/ROWS);
+    addRidgeRow(prims, xOff, [0,0,-F0], [0,dirY,dirZ], 14, SLOPE_LEN-20, 4, 9, "#6B8A56", "#4A6740");
+  }
+
+  // cypress avenue along both edges of the flat field
+  for(let i=0;i<6;i++){
+    const zz = -30 - i*60;
+    addCypress(prims, -FIELD_W/2-22, [0,0,zz], 55+((i*13)%17));
+    addCypress(prims, FIELD_W/2+22, [0,0,zz], 55+((i*17)%13));
+  }
+
+  // a small farmhouse / villa silhouette at the top of the hill
+  const topBase = [0, SLOPE_LEN*dirY+2, -FLAT_LEN*0.85+SLOPE_LEN*dirZ-40];
+  const housePal = {top:"#D8C9A3", bottom:"#8A7550", front:"#E8DCC0", side:"#C2AE86"};
+  const roofPal  = {top:"#8B3F2B", bottom:"#5C2818", front:"#7A3524", side:"#5C2818"};
+  addBox(prims, topBase[0]-40, topBase[1], topBase[2], 60,42,50, 20, housePal);
+  addBox(prims, topBase[0]+40, topBase[1], topBase[2]-6, 42,34,40, -10, housePal);
+  addBox(prims, topBase[0]-40, topBase[1]+42, topBase[2], 72,16,58, 20, roofPal);
+  addBox(prims, topBase[0]+40, topBase[1]+34, topBase[2]-6, 50,14,46, -10, roofPal);
+  addCypress(prims, topBase[0]-90, [0,topBase[1],topBase[2]+10], 70);
+  addCypress(prims, topBase[0]+95, [0,topBase[1],topBase[2]+14], 78);
+
+  return {prims, angle};
+}
+
+/* ============ SKY DECOR (static) ============ */
+function buildSky(){
+  const sky = document.getElementById("sky");
+  sky.innerHTML = `
+    <path d="M0,560 Q260,470 520,545 T1050,530 T1600,560 L1800,600 L1800,1000 L0,1000 Z" fill="#AFCBD6" opacity="0.55"/>
+    <path d="M0,610 Q320,540 640,600 T1280,590 T1800,620 L1800,1000 L0,1000 Z" fill="#9FC2C9" opacity="0.5"/>
+    <circle cx="1560" cy="130" r="70" fill="#FFF3D6" opacity="0.9"/>
+    <circle cx="1560" cy="130" r="100" fill="#FFF3D6" opacity="0.22"/>
+    <ellipse cx="230" cy="160" rx="110" ry="32" fill="#ffffff" opacity="0.55"/>
+    <ellipse cx="330" cy="180" rx="76" ry="24" fill="#ffffff" opacity="0.5"/>
+    <ellipse cx="1120" cy="100" rx="90" ry="26" fill="#ffffff" opacity="0.45"/>
+    <ellipse cx="760" cy="150" rx="60" ry="18" fill="#ffffff" opacity="0.4"/>
+  `;
+}
+
+/* ============ TRACTOR ============ */
+const bodyPal = {top:C.greenLight, bottom:C.greenDark, front:C.green, side:C.greenDark};
+const cabPal  = {top:"#E8EEF3", bottom:"#93A6B8", front:"#B7C6D6", side:"#93A6B8"};
+const glassPal= {top:"#9FC2D9", bottom:"#5C7C99", front:"#7FA6C2", side:"#5C7C99"};
+const hoodPal = {top:C.steelLight, bottom:C.steel, front:C.steel, side:"#2E4457"};
+const plowPal = {top:C.rustLight, bottom:C.rustDark, front:C.rust, side:C.rustDark};
+const darkPal = {top:"#2A2621", bottom:"#0E0C0A", front:"#171512", side:"#0E0C0A"};
+const lightPal= {top:"#FFE9A8", bottom:"#C9A93E", front:"#FFD866", side:"#C9A93E"};
+const mudPal  = {top:"#1D3B29", bottom:"#0E1F16", front:"#233A2C", side:"#0E1F16"};
+
+function tractorPrims(x,y,z, headingDeg){
+  const prims = [];
+  const put=(local)=>toWorld(local, x,y,z, headingDeg);
+
+  // main chassis / body
+  addBox(prims, x,y,z, 52,30,78, headingDeg, bodyPal);
+  // cab frame
+  let o = put([0,30,-16]); addBox(prims, o[0],o[1],o[2], 36,34,30, headingDeg, cabPal);
+  // cab windows (inset front + side glass, slightly forward in depth so they render over the cab front face)
+  o = put([0,34,-1]); addBox(prims, o[0],o[1],o[2], 30,22,2, headingDeg, glassPal);
+  // engine hood
+  o = put([0,4,29]); addBox(prims, o[0],o[1],o[2], 30,18,28, headingDeg, hoodPal);
+  // exhaust stack
+  o = put([-14,50,-8]); addBox(prims, o[0],o[1],o[2], 4,20,4, headingDeg, darkPal);
+  // headlights
+  o = put([-13,10,43]); addBox(prims, o[0],o[1],o[2], 5,5,2, headingDeg, lightPal);
+  o = put([13,10,43]); addBox(prims, o[0],o[1],o[2], 5,5,2, headingDeg, lightPal);
+  // rear linkage arms toward implement
+  o = put([-11,4,-40]); addBox(prims, o[0],o[1],o[2], 3,3,14, headingDeg, darkPal);
+  o = put([11,4,-40]); addBox(prims, o[0],o[1],o[2], 3,3,14, headingDeg, darkPal);
+  // fresatrice portata, azionata dalla p.d.p. tramite albero cardanico
+  o = put([0,4,-50]); addBox(prims, o[0],o[1],o[2], 3,3,12, headingDeg, darkPal);          // cardano
+  o = put([0,-2,-62]); addBox(prims, o[0],o[1],o[2], 46,16,14, headingDeg, plowPal);        // cofano del rotore
+  o = put([0,14,-58]); addBox(prims, o[0],o[1],o[2], 10,8,8, headingDeg, plowPal);          // scatola ingranaggi
+  o = put([24,-2,-62]); addBox(prims, o[0],o[1],o[2], 4,16,14, headingDeg, {top:C.rustDark,bottom:C.rustDark,front:C.rustDark,side:"#5C2E0D"}); // carter laterale
+  // rear mudguards
+  o = put([-26,30,-16]); addBox(prims, o[0],o[1],o[2], 6,4,26, headingDeg, mudPal);
+  o = put([26,30,-16]); addBox(prims, o[0],o[1],o[2], 6,4,26, headingDeg, mudPal);
+
+  // wheels: rear big drive wheels (near implement side), front smaller steer wheels (near hood)
+  const wheelDefs = [
+    {loc:[-28,0,-18], r:22, front:false}, {loc:[28,0,-18], r:22, front:false},
+    {loc:[-25,0,30], r:13, front:true}, {loc:[25,0,30], r:13, front:true},
+  ];
+  wheelDefs.forEach(w=>{
+    const wp = put(w.loc);
+    addWheel(prims, wp[0],wp[1],wp[2], w.r, headingDeg, w.r*0.55);
+  });
+  return prims;
+}
+
+/* ============ RENDER LOOP DATA ============ */
+const svg = document.getElementById("scene");
+const dynLayer = document.getElementById("dyn");
+svg.setAttribute("viewBox", `0 0 ${VB_W} ${VB_H}`);
+
+function renderFrame(allPrims){
+  allPrims.sort((a,b)=>a.depth-b.depth);
+  const parts = [];
+  allPrims.forEach(p=>{
+    if (p.type==="poly"){
+      const d = p.pts.map((pt,i)=> (i===0?"M":"L")+pt[0].toFixed(1)+","+pt[1].toFixed(1)).join(" ")+" Z";
+      parts.push(`<path d="${d}" fill="${p.fill}" stroke="${p.stroke||'none'}" stroke-width="1"/>`);
+    } else if (p.type==="line"){
+      parts.push(`<line x1="${p.a[0].toFixed(1)}" y1="${p.a[1].toFixed(1)}" x2="${p.b[0].toFixed(1)}" y2="${p.b[1].toFixed(1)}" stroke="${p.stroke}" stroke-width="${p.width}" stroke-linecap="round"/>`);
+    } else if (p.type==="text"){
+      parts.push(`<text x="${p.x.toFixed(1)}" y="${p.y.toFixed(1)}" fill="${p.color}" font-family="SFMono-Regular,Consolas,monospace" font-size="15" font-weight="700" text-anchor="middle" stroke="#F7F3E9" stroke-width="3.5" paint-order="stroke">${p.text}</text>`);
+    }
+  });
+  dynLayer.innerHTML = parts.join("");
+}
+
+/* ============ SCENARIO STATE ============ */
+const S = {};
+function readScenario(){
+  S.i = parseFloat(document.getElementById("s-i").value);
+  S.v = parseFloat(document.getElementById("s-v").value);
+  S.terrainIdx = parseInt(document.getElementById("s-terrain").value);
+  S.type = document.querySelector("#s-type button.active").dataset.v;
+  S.P = parseFloat(document.getElementById("s-P").value);
+  S.eta = parseFloat(document.getElementById("s-eta").value);
+  S.M = parseFloat(document.getElementById("s-M").value);
+  S.r = parseFloat(document.getElementById("s-r").value);
+  document.getElementById("v-i").textContent = S.i+"%";
+  document.getElementById("v-v").textContent = fmt(S.v,1)+" km/h";
+  document.getElementById("v-terrain").textContent = terrains[S.terrainIdx].name;
+  document.getElementById("v-P").textContent = fmt(S.P,0)+" kg";
+  document.getElementById("v-eta").textContent = fmt(S.eta,2);
+  document.getElementById("v-M").textContent = S.M+" N·m";
+  document.getElementById("v-r").textContent = S.r+" m";
+  document.getElementById("hudSpeed").textContent = "v = "+fmt(S.v,1)+" km/h";
+}
+document.querySelectorAll("#s-type button").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("#s-type button").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");
+  document.querySelectorAll("#s-type button").forEach(x=>x.setAttribute("aria-pressed", x===b));
+  recompute();
+}));
+["s-i","s-v","s-terrain","s-P","s-eta","s-M","s-r"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", recompute);
+});
+
+/* Presentazione: numero e unità separati da uno spazio sottile (solo grafica) */
+function setVal(id, num, unit){
+  document.getElementById(id).innerHTML = num+'<span class="u">'+unit+'</span>';
+}
+
+/* Geometria del trattore (la stessa del modello 3D) */
+const s_track=1.5, h_cg=0.95;          // carreggiata e altezza del baricentro [m]
+const r_post=0.725;                     // raggio sotto carico delle ruote motrici posteriori [m]
+const d_cg=0.84;                        // distanza orizzontale baricentro - asse posteriore [m]
+const Ta=150*0.981*2.65;                // momento della zavorra anteriore: 150 kg a 2,65 m dall'asse post. [daN·m]
+let CACHE = {};
+function recompute(){
+  readScenario();
+  const t = terrains[S.terrainIdx];
+  const Ca = (t[S.type][0]+t[S.type][1])/2;
+  const craR = S.type==="ruote" ? t.craRuote : t.craCingoli;
+  const Cra = (craR[0]+craR[1])/2;
+  const i = S.i/100;
+  const G = S.P*G_ACC/10;                 // peso in daN (1 kg = 0,981 daN)
+  const alphaP = Math.atan(i);            // angolo del pendio, α = arctan i
+  const Gn = G*Math.cos(alphaP);          // peso perpendicolare al terreno: aderenza e rotolamento
+  const Fa = Gn*Ca, Fra=Gn*Cra, Fri=G*Math.sin(alphaP);   // Fri = P·sin α, componente lungo il pendio
+  const Fu = Fa-Fra-Fri;
+  const vms = S.v/3.6;
+  const Wutr = Fu>0 ? (Fu*vms/100) : 0;
+  const Wum = S.eta>0 ? Wutr/S.eta : 0;
+  const WN = Wum/0.75;
+  const omega_pdp = 540*2*Math.PI/60;
+  const Wpdp = (S.M*omega_pdp)/1000;
+  const imax = s_track/(2*h_cg);
+  const vcrit_ms = Math.sqrt(S.r*G_ACC*s_track/(2*h_cg));
+  const vcrit_kmh = vcrit_ms*3.6;
+  /* Stabilità longitudinale: la coppia alle ruote motrici (al limite di aderenza Fa·r)
+     tende a far impennare il trattore; si oppongono il peso (braccio ridotto in salita) e la zavorra */
+  const alpha = Math.atan(i);
+  const Mp = Fa*r_post;
+  const stabL = G*(d_cg*Math.cos(alpha) - h_cg*Math.sin(alpha)) + Ta;
+  CACHE = {Ca,Cra,G,Fa,Fra,Fri,Fu,Wutr,Wum,WN,Wpdp,imax,vcrit_kmh,Mp,stabL,i};
+
+  setVal("h-Fa", fmt(Fa,0), "daN");
+  const fuEl=document.getElementById("h-Fu"); setVal("h-Fu", fmt(Fu,0), "daN"); fuEl.classList.toggle("bad",Fu<=0);
+  setVal("h-Wutr", fmt(Wutr,1), "kW");
+  setVal("h-Wum", fmt(Wum,1), "kW");
+  setVal("h-WN", fmt(WN,1), "kW");
+  setVal("h-Wpdp", fmt(Wpdp,1), "kW");
+  setVal("h-imax", fmt(imax*100,1), "%");
+  setVal("h-vcrit", fmt(vcrit_kmh,1), "km/h");
+  const stabEl=document.getElementById("h-stabL");
+  const stabOk = Mp<stabL;
+  stabEl.textContent = stabOk?"stabile":"a rischio";
+  stabEl.classList.toggle("bad", !stabOk);
+
+  updatePopupTexts();
+  updateSummary();
+}
+
+/* ============ PATH ============ */
+function pathAt(p){
+  const angleRad = Math.atan(S.i/100);
+  let x=0,y=0,z=0,heading=180,phase="Avvicinamento in piano";
+  if (p < 0.28){
+    const t=p/0.28;
+    z = -t*(FLAT_LEN*0.85);
+    heading=180; phase="Avvicinamento in piano";
+  } else if (p < 0.62){
+    const t=(p-0.28)/0.34;
+    const dist=t*(SLOPE_LEN*0.75);
+    z = -(FLAT_LEN*0.85) - dist*Math.cos(angleRad);
+    y = dist*Math.sin(angleRad);
+    const curveT = Math.max(0,Math.min(1,(t-0.4)/0.5));
+    x = Math.sin(curveT*Math.PI)*45;
+    heading = 180 - Math.sin(curveT*Math.PI)*35;
+    phase = t<0.5 ? "Salita, aderenza sotto sforzo" : "Curva in pendenza";
+  } else if (p < 0.85){
+    const t=(p-0.62)/0.23;
+    const dist=(SLOPE_LEN*0.75)+t*(SLOPE_LEN*0.2);
+    z = -(FLAT_LEN*0.85) - dist*Math.cos(angleRad);
+    y = dist*Math.sin(angleRad);
+    heading=180; phase="Lavorazione con presa di potenza";
+  } else {
+    const t=(p-0.85)/0.15;
+    const dist=(SLOPE_LEN*0.95)*(1-t);
+    z = -(FLAT_LEN*0.85) - dist*Math.cos(angleRad);
+    y = dist*Math.sin(angleRad);
+    heading=0; phase="Rientro in discesa";
+  }
+  return {x,y,z,heading,phase};
+}
+
+/* ============ POPUPS (pannello delle formule) ============ */
+const popupLayer = document.getElementById("popupLayer");
+function makePopup(){ const p=document.createElement("div"); p.className="popup"; popupLayer.appendChild(p); return p; }
+const popups = [];
+function definePopup(atProgress, duration){ const p=makePopup(); popups.push({el:p, at:atProgress, dur:duration, shown:false, hideAt:null}); return p; }
+definePopup(0.04, 3.2); definePopup(0.20, 3.4); definePopup(0.40, 3.6);
+definePopup(0.50, 3.4); definePopup(0.65, 3.6); definePopup(0.80, 3.4); definePopup(0.92, 3.4);
+
+/* Mattoni MathML per le formule del pannello (solo presentazione) */
+const MI=(s)=>`<mi>${s}</mi>`, MO=(s)=>`<mo>${s}</mo>`, MN=(s)=>`<mn>${s}</mn>`;
+const SUB=(b,s,up)=>`<msub><mi>${b}</mi>${up?`<mi mathvariant="normal">${s}</mi>`:`<mtext>${s}</mtext>`}</msub>`;
+const FR=(n,d)=>`<mfrac><mrow>${n}</mrow><mrow>${d}</mrow></mfrac>`;
+const PAR=(s)=>`<mrow>${MO("(")}${s}${MO(")")}</mrow>`;
+const MATH=(s,block)=>`<math${block?' display="block"':''}>${s}</math>`;
+const VAL=(num,unit)=>`<span class="fp-v">${num}<span class="u">${unit}</span></span>`;
+function card(kicker, title, formula, resultSym, value, caption){
+  return `<p class="fp-k">${kicker}</p><p class="fp-t">${title}</p><div class="fp-f">${MATH(formula,true)}</div>`+
+         `<div class="fp-r">${resultSym?MATH(resultSym+MO("=")):""}${value}</div>`+(caption?`<p class="fp-c">${caption}</p>`:"");
+}
+
+function updatePopupTexts(){
+  if (!popups.length) return;
+  const Fa=SUB("F","a",1), Fu=SUB("F","u",1), Fra=SUB("F","ra"), Ca=SUB("C","a",1), Cra=SUB("C","ra");
+  const Wutr=SUB("W","u,tr"), Wum=SUB("W","u,m"), etatr=SUB("η","tr"), Ta_=SUB("T","a",1);
+  const SINA=`<mi class="fn">sin</mi><mo>&#x2061;</mo>${MI("α")}`, COSA=`<mi class="fn">cos</mi><mo>&#x2061;</mo>${MI("α")}`;
+  popups[0].el.innerHTML = card("Piano", "Potenza utile di trazione",
+    Wutr+MO("=")+Fu+MO("·")+MI("v"), Wutr, VAL(fmt(CACHE.Wutr,1),"kW"), `a ${fmt(S.v,1)} km/h in piano`);
+  popups[1].el.innerHTML = card("Salita", "Resistenza all'avanzamento",
+    Fra+MO("=")+MI("P")+MO("·")+PAR(Cra+MO("·")+COSA+MO("±")+SINA), Fra, VAL(fmt(CACHE.Fra+CACHE.Fri,0),"daN"), "di resistenza in salita");
+  popups[2].el.innerHTML = card("Salita", "Forza utile di trazione",
+    Fu+MO("≤")+MI("P")+MO("·")+`<mrow>${MO("[")}${PAR(Ca+MO("−")+Cra)}${MO("·")}${COSA}${MO("−")}${SINA}${MO("]")}</mrow>`, Fu, VAL(fmt(CACHE.Fu,0),"daN"), "");
+  popups[3].el.innerHTML = card("Salita", "Potenza richiesta al motore",
+    Wum+MO("=")+FR(Wutr,etatr), Wum, VAL(fmt(CACHE.Wum,1),"kW"), "richiesti al motore");
+  popups[4].el.innerHTML = card("Curva", "Velocità critica in curva",
+    `<msubsup>${MI("v")}<mtext>crit</mtext>${MN("2")}</msubsup>`+MO("=")+FR(MI("r")+MO("·")+MI("g")+MO("·")+MI("s"), MN("2")+MI("h")),
+    SUB("v","crit"), VAL(fmt(CACHE.vcrit_kmh,1),"km/h"), "oltre questa velocità il trattore si ribalta in curva");
+  popups[5].el.innerHTML = card("Presa di potenza", "Potenza alla presa di potenza",
+    MI("W")+MO("=")+MI("M")+MO("·")+MI("ω"), MI("W"), VAL(fmt(CACHE.Wpdp,1),"kW"), "alla presa di potenza");
+  const ok = CACHE.Mp<CACHE.stabL;
+  popups[6].el.innerHTML = `<p class="fp-k">Rientro</p><p class="fp-t">Stabilità longitudinale</p>`+
+    `<div class="fp-f">${MATH(SUB("M","p",1)+MO("=")+Fa+MO("·")+SUB("r","p",1)+MO("&lt;")+MI("G")+MO("·")+`<msup>${MI("d")}${MO("′")}</msup>`+MO("+")+Ta_,true)}</div>`+
+    `<div class="fp-r">${VAL(fmt(CACHE.Mp,0),"daN·m")}<span class="fp-c" style="margin:0">&lt;</span>${VAL(fmt(CACHE.stabL,0),"daN·m")}</div>`+
+    `<p class="fp-c" style="display:block"><span class="badge${ok?"":" bad"}">${ok?"stabile":"a rischio"}</span></p>`;
+}
+
+/* ============ ORBIT CONTROLS ============ */
+const stageWrap = document.getElementById("stageWrap");
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+let dragging=false, lastX=0, lastY=0, idleTimer=0, autoRotate=!reduceMotion;
+const orbitHint = document.getElementById("orbitHint");
+stageWrap.addEventListener("pointerdown", e=>{ dragging=true; stageWrap.classList.add("dragging"); lastX=e.clientX; lastY=e.clientY; autoRotate=false; idleTimer=0; orbitHint.classList.add("gone"); });
+/* il suggerimento sparisce da solo qualche secondo dopo che la scena è entrata in vista */
+if ("IntersectionObserver" in window){
+  new IntersectionObserver((es, io)=>{ if (es[0].isIntersecting){ io.disconnect(); setTimeout(()=>orbitHint.classList.add("gone"), 6000); } }, {threshold:.5}).observe(stageWrap);
+}
+const endDrag=()=>{ dragging=false; stageWrap.classList.remove("dragging"); };
+window.addEventListener("pointerup", endDrag);
+window.addEventListener("pointercancel", endDrag);
+window.addEventListener("pointermove", e=>{
+  if(!dragging) return;
+  const dx=e.clientX-lastX, dy=e.clientY-lastY;
+  lastX=e.clientX; lastY=e.clientY;
+  az += dx*0.35;
+  el = Math.max(12, Math.min(80, el + dy*0.25));
+});
+document.getElementById("btnReset").addEventListener("click",()=>{ az=-35; el=34; autoRotate=!reduceMotion; });
+
+/* Su schermi stretti la scena riempie l'altezza (slice) invece di rimpicciolirsi */
+const mqNarrow = window.matchMedia("(max-width:760px)");
+function fitScene(){ svg.setAttribute("preserveAspectRatio", mqNarrow.matches ? "xMidYMid slice" : "xMidYMid meet"); }
+mqNarrow.addEventListener("change", fitScene); fitScene();
+
+/* Traccia colorata dei cursori */
+function paintRange(r){ const p=(r.value-r.min)/(r.max-r.min)*100; r.style.setProperty("--p", p+"%"); }
+document.querySelectorAll('input[type=range]').forEach(r=>{ paintRange(r); r.addEventListener("input",()=>paintRange(r)); });
+
+/* ============ TIMELINE ============ */
+let progress=0, playing=false, lastT=performance.now(), simSpeed=1;
+const DURATION=34;
+const scrubber=document.getElementById("scrubber");
+const btnPlay=document.getElementById("btnPlay");
+const phaseLabel=document.getElementById("phaseLabel");
+const hudPhaseEl=document.getElementById("hudPhase");
+const simTime=document.getElementById("simTime");
+const railItems=[...document.querySelectorAll("#phaseRail li")];
+const PHASE_IDX={"Avvicinamento in piano":0,"Salita, aderenza sotto sforzo":1,"Curva in pendenza":2,"Lavorazione con presa di potenza":3,"Rientro in discesa":4};
+
+const ICON_PLAY='<span class="ico"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3v10l8.5-5z" fill="currentColor"/></svg></span>';
+const ICON_PAUSE='<span class="ico"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="3" width="2.6" height="10" rx="1" fill="currentColor"/><rect x="9.4" y="3" width="2.6" height="10" rx="1" fill="currentColor"/></svg></span>';
+function setPlaying(v){ playing=v; btnPlay.innerHTML = v ? ICON_PAUSE+"Pausa" : ICON_PLAY+"Play"; btnPlay.setAttribute("aria-pressed", v); }
+setPlaying(false);
+btnPlay.addEventListener("click",()=>setPlaying(!playing));
+scrubber.addEventListener("input",()=>{ progress=scrubber.value/1000; setPlaying(false); });
+/* velocità di riproduzione: 0,25× · 0,5× · 1× (1× = giro completo in 34 s) */
+document.querySelectorAll("#simSpeed button").forEach(b=>b.addEventListener("click",()=>{
+  simSpeed = +b.dataset.v;
+  document.querySelectorAll("#simSpeed button").forEach(x=>{ const on = x===b; x.classList.toggle("active", on); x.setAttribute("aria-pressed", on); });
+}));
+
+function updatePopupsVisibility(now, pos){
+  popups.forEach(pop=>{
+    if (progress > pop.at-0.012 && progress < pop.at+0.012 && !pop.shown){
+      pop.shown=true; pop.hideAt=now+pop.dur*1000/simSpeed; pop.el.classList.add("show");   // stessa durata relativa a ogni velocità
+    }
+    if (pop.shown && pop.hideAt && now>pop.hideAt){ pop.el.classList.remove("show"); pop.shown=false; }
+    if (progress < pop.at-0.02){ pop.shown=false; pop.el.classList.remove("show"); }
+  });
+}
+
+/* Linea sottile dal punto della scena alla scheda della formula visibile (solo grafica) */
+const leader=document.getElementById("leader"), leaderPath=leader.querySelector("path"),
+      leaderA=leader.querySelector("circle.a"), leaderB=leader.querySelector("circle.b");
+function drawLeader(anchor){
+  const vis = popups.find(p=>p.el.classList.contains("show"));
+  if (!vis || !anchor){ leader.classList.remove("on"); return; }
+  const s=stageWrap.getBoundingClientRect(), r=vis.el.getBoundingClientRect();
+  const ax=anchor.x, ay=anchor.y;
+  let bx, by;
+  if (mqNarrow.matches){ bx = Math.max(r.left-s.left+24, Math.min(r.right-s.left-24, ax)); by = r.top-s.top; }
+  else { bx = r.left-s.left; by = Math.max(r.top-s.top+24, Math.min(r.bottom-s.top-24, ay)); }
+  const mx = mqNarrow.matches ? ax : (ax+bx)/2;
+  leaderPath.setAttribute("d", mqNarrow.matches ? `M${ax},${ay} L${bx},${by}` : `M${ax},${ay} L${mx},${ay} L${mx},${by} L${bx},${by}`);
+  leaderA.setAttribute("cx", ax); leaderA.setAttribute("cy", ay);
+  leaderB.setAttribute("cx", bx); leaderB.setAttribute("cy", by);
+  leader.classList.add("on");
+}
+
+/* Spazio occupato dal pannello: la scena 3D sposta l'inquadratura per lasciare libero il trattore */
+function updateViewShift(){
+  const w=stageWrap.clientWidth, h=stageWrap.clientHeight;
+  SIM.viewShift = mqNarrow.matches ? {x:0, y:Math.min(90, h*0.16)} : {x:Math.min(190, (Math.min(330, w*0.34)+14)/2), y:0};
+}
+
+function loop(now){
+  const dt=Math.min((now-lastT)/1000,0.05); lastT=now;
+  if (playing){ progress += dt*simSpeed/DURATION; if (progress>1) progress=0; scrubber.value=Math.round(progress*1000); paintRange(scrubber); }
+  if (!dragging){ idleTimer+=dt; if (autoRotate || idleTimer>4){ az += dt*3.2; } }
+
+  const pos = pathAt(progress);
+  if (phaseLabel.textContent !== pos.phase){
+    phaseLabel.textContent = pos.phase; hudPhaseEl.textContent = pos.phase;
+    const k = PHASE_IDX[pos.phase];
+    railItems.forEach((li,j)=>li.classList.toggle("on", j===k));
+  }
+  simTime.textContent = fmt(progress*DURATION,1)+" / "+DURATION+" s";
+
+  /* Scena three.js (vendor/trattore-scene.min.js) quando è pronta; altrimenti la versione SVG */
+  const scene3d = SIM.scene3d;
+  let anchor = null;
+  if (scene3d && scene3d.ready){
+    anchor = scene3d.render(pos, dt, playing);
+  } else {
+  const {prims:terrainP} = terrainPrims(S.i);
+  const allPrims = terrainP.concat(tractorPrims(pos.x,pos.y,pos.z,pos.heading));
+
+  /* Frecce nel riferimento del trattore: fw = avanti, rt = destra (seguono la direzione in curva) */
+  const hd = pos.heading*Math.PI/180;
+  const fw=[Math.sin(hd),0,Math.cos(hd)], rt=[Math.cos(hd),0,-Math.sin(hd)];
+  const at=(dx,dy,dz)=>[pos.x+rt[0]*dx+fw[0]*dz, pos.y+66+dy, pos.z+rt[2]*dx+fw[2]*dz];
+  const neg=(v)=>[-v[0],-v[1],-v[2]];
+  if (pos.phase.indexOf("Salita")>=0 || pos.phase.indexOf("Curva")>=0){
+    const scale=0.02;
+    let r;
+    r = addArrow(allPrims, at(-24,0,0), fw, Math.max(CACHE.Fa*scale,14), "#2E8B4F", 0.08);
+    addLabel(allPrims, r.tip2D, "Fa", "#2E8B4F", r.depth);
+    r = addArrow(allPrims, at(0,34,0), neg(fw), Math.max((CACHE.Fra+CACHE.Fri)*scale,8), "#5B5548", 0.08);
+    addLabel(allPrims, r.tip2D, "Fra", "#5B5548", r.depth);
+    r = addArrow(allPrims, at(24,68,0), fw, Math.max(Math.abs(CACHE.Fu)*scale,8), "#E0521C", 0.08);
+    addLabel(allPrims, r.tip2D, "Fu", "#E0521C", r.depth);
+  } else if (pos.phase.indexOf("presa di potenza")>=0){
+    /* coppia M sull'albero della p.d.p.: vettore lungo l'asse, verso l'attrezzo */
+    const r = addArrow(allPrims, at(0,-40,-44), neg(fw), 40, "#3E5C76", 0.08);
+    addLabel(allPrims, r.tip2D, "M", "#3E5C76", r.depth);
+  }
+
+  renderFrame(allPrims);
+
+  /* Punto di ancoraggio in pixel reali, valido sia con "meet" sia con "slice" */
+  const pp = rotateProject(pos.x, pos.y+95, pos.z);
+  const ctm = svg.getScreenCTM();
+  if (ctm){
+    const pt = svg.createSVGPoint(); pt.x=pp.sx; pt.y=pp.sy;
+    const sp = pt.matrixTransform(ctm), rect = stageWrap.getBoundingClientRect();
+    anchor = {x: sp.x-rect.left, y: sp.y-rect.top};
+  }
+  }
+  updatePopupsVisibility(now, pos);
+  drawLeader(anchor);
+
+  requestAnimationFrame(loop);
+}
+
+/* Riepilogo fisso su mobile: rispecchia le card (solo grafica) */
+const sumFu=document.getElementById("sum-Fu"), sumWN=document.getElementById("sum-WN"), sumStab=document.getElementById("sum-stab");
+function updateSummary(){
+  sumFu.innerHTML = document.getElementById("h-Fu").innerHTML;
+  sumFu.classList.toggle("bad", document.getElementById("h-Fu").classList.contains("bad"));
+  sumWN.innerHTML = document.getElementById("h-WN").innerHTML;
+  const st=document.getElementById("h-stabL");
+  sumStab.textContent = st.textContent; sumStab.classList.toggle("bad", st.classList.contains("bad"));
+}
+
+/* Punto di aggancio per la scena three.js: legge lo stato, non lo modifica */
+const SIM = window.__sim = {
+  get S(){ return S; }, get CACHE(){ return CACHE; }, pathAt, terrains,
+  FLAT_LEN, SLOPE_LEN, FIELD_W, view: ()=>({az, el}),
+  get progress(){ return progress; }, get playing(){ return playing; }, get speed(){ return simSpeed; }, scene3d: null,
+  viewShift: {x:0, y:0}
+};
+updateViewShift();
+new ResizeObserver(updateViewShift).observe(stageWrap);
+
+recompute();
+buildSky();
+requestAnimationFrame(loop);
+
+})();
+</script>
+<script>
+/* Interfaccia della pagina: voce attiva nel menu, entrata delle sezioni, riepilogo su mobile */
+(function(){
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var links = [].slice.call(document.querySelectorAll(".nav a"));
+  var io = "IntersectionObserver" in window;
+  if (io){
+    var spy = new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if (!e.isIntersecting) return;
+        links.forEach(function(a){
+          var on = a.getAttribute("href") === "#" + e.target.id;
+          if (on) {
+            a.setAttribute("aria-current", "true");
+            /* porta la voce attiva in vista scorrendo solo il menu (non la pagina) */
+            var nav = a.parentNode, l = a.offsetLeft - nav.offsetLeft, r = l + a.offsetWidth;
+            if (l < nav.scrollLeft || r > nav.scrollLeft + nav.clientWidth) nav.scrollTo({left: Math.max(0, l - 16)});
+          }
+          else a.removeAttribute("aria-current");
+        });
+      });
+    }, {rootMargin: "-45% 0px -50% 0px"});
+    ["simulazione","scenario","motore","teoria"].forEach(function(id){ var s = document.getElementById(id); if (s) spy.observe(s); });
+  }
+  var rev = [].slice.call(document.querySelectorAll(".reveal"));
+  if (!io || reduce){ rev.forEach(function(r){ r.classList.add("in"); }); }
+  else {
+    var ro = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add("in"); ro.unobserve(e.target); } }); }, {rootMargin: "0px 0px -8% 0px"});
+    rev.forEach(function(r){ ro.observe(r); });
+  }
+  var bar = document.getElementById("summaryBar"), panel = document.querySelector("#scenario .panel");
+  if (io && bar && panel){
+    new IntersectionObserver(function(es){ bar.classList.toggle("on", es[0].isIntersecting); }, {rootMargin: "-20% 0px -30% 0px"}).observe(panel);
+  }
+})();
+</script>
+<script>
+/* Scene 3D (three.js in locale): si scaricano solo quando la sezione si avvicina.
+   three-runtime.min.js è condiviso e viene caricato una volta sola. */
+(function(){
+  var cache = {};
+  function load(src){
+    return cache[src] || (cache[src] = new Promise(function(res, rej){
+      var s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = rej; document.body.appendChild(s);
+    }));
+  }
+  function when(id, scripts){
+    var el = document.getElementById(id), done = false;
+    function go(){ if (done) return; done = true; scripts.reduce(function(p, src){ return p.then(function(){ return load(src); }); }, Promise.resolve()).catch(function(e){ console.error(e); }); }
+    if (!el) return;
+    if (!("IntersectionObserver" in window)) return go();
+    new IntersectionObserver(function(es, io){ if (es.some(function(e){ return e.isIntersecting; })) { io.disconnect(); go(); } }, { rootMargin: "600px" }).observe(el);
+  }
+  when("simulazione", ["vendor/three-runtime.min.js", "vendor/trattore-scene.min.js"]);
+  when("motore", ["vendor/three-runtime.min.js", "vendor/motore-viewer.min.js"]);
+})();
+</script>
+<script>
+/* App installabile e offline: registra il service worker (solo da http/https, non da file://).
+   Quando viene pubblicata una versione nuova del service worker, la pagina si ricarica una volta. */
+(function(){
+  if (!("serviceWorker" in navigator) || location.protocol === "file:") return;
+  var aggiornamento = !!navigator.serviceWorker.controller, ricaricata = false;
+  navigator.serviceWorker.addEventListener("controllerchange", function(){
+    if (!aggiornamento || ricaricata) { aggiornamento = true; return; }
+    ricaricata = true; location.reload();
+  });
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("sw.js").then(function(reg){
+      /* controlla se c'è una versione nuova ogni volta che l'app torna in primo piano */
+      document.addEventListener("visibilitychange", function(){ if (document.visibilityState === "visible") reg.update(); });
+    }).catch(function(e){ console.warn("Service worker non registrato:", e); });
+  });
+})();
+</script>
+</body>
+</html>

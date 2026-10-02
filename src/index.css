@@ -1,0 +1,117 @@
+@import "tailwindcss";
+@import "@fontsource-variable/bodoni-moda/opsz.css";
+@import "@fontsource-variable/bodoni-moda/opsz-italic.css";
+@import "@fontsource-variable/instrument-sans/wdth.css";
+@import "./stili/token.css";
+@import "./stili/palco.css";
+@import "./stili/calendario.css";
+@import "./stili/vite.css";
+@import "./stili/nodo.css";
+@import "./stili/collana.css";
+@import "./stili/film.css";
+
+@theme inline {
+  --color-background: var(--nero);
+  --color-foreground: var(--avorio);
+  --color-primary: var(--oro);
+  --color-muted-foreground: var(--avorio-60);
+  --color-border: var(--avorio-20);
+  --color-ring: var(--oro);
+  --color-nero: var(--nero);
+  --color-terra: var(--terra);
+  --color-avorio: var(--avorio);
+  --color-oro: var(--oro);
+  --color-vinaccia: var(--vinaccia);
+  --color-verde: var(--verde);
+  --color-ambra: var(--ambra);
+  --font-sans: var(--f-testo);
+  --font-heading: var(--f-display);
+  --radius: 0;
+}
+
+@layer base {
+  html {
+    background: var(--nero);
+    color: var(--avorio-85);
+    font-family: var(--f-testo);
+    font-size: 17px;
+    line-height: 1.6;
+    font-variant-numeric: oldstyle-nums;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+  html.banco-aperto {
+    overflow: hidden;
+  }
+  body {
+    margin: 0;
+    background: var(--nero);
+    overscroll-behavior-y: none;
+  }
+  :focus-visible {
+    outline: 1px solid var(--oro);
+    outline-offset: 4px;
+  }
+  kbd {
+    font-family: var(--f-testo);
+    font-size: 1em;
+    font-weight: 500;
+    padding: 0 var(--s-1);
+    border: var(--filetto);
+    color: var(--avorio-85);
+  }
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.salta {
+  position: fixed;
+  left: var(--s-5);
+  top: -60px;
+  z-index: 100;
+  padding: var(--s-3) var(--s-4);
+  background: var(--terra);
+  color: var(--avorio);
+}
+.salta:focus {
+  top: var(--s-5);
+}
+
+/* bottoni testuali: nessun box arrotondato; il primario è sottolineato in oro */
+.bottone {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  padding: 0 var(--s-4);
+  border: var(--filetto);
+  background: transparent;
+  color: var(--avorio);
+  font: 500 13px/1 var(--f-testo);
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform var(--d-micro) var(--ease-out), border-color var(--d-micro) var(--ease-out);
+}
+.bottone:hover {
+  border-color: var(--avorio-60);
+}
+.bottone:active {
+  transform: scale(0.98);
+}
+.bottone.primario {
+  border-color: var(--oro);
+}
+.bottone.primario:hover {
+  border-color: var(--avorio);
+}

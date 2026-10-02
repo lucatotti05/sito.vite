@@ -1,0 +1,420 @@
+/* ── oggetti della collana: campione d'erbario e schermo ─────────────── */
+.ogg {
+  position: relative;
+  width: 100%;
+}
+.ogg img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top left;
+}
+.ogg-campione {
+  padding: 9% 8% 6%;
+  background: var(--ogg-carta);
+  box-shadow: var(--ombra-carta);
+  border-radius: 2px; /* carta: unica eccezione al raggio 0 */
+}
+.ogg-montaggio {
+  position: relative;
+  aspect-ratio: 16 / 10;
+}
+.ogg-linguetta {
+  position: absolute;
+  width: 18%;
+  height: 9%;
+  background: var(--ogg-linguetta);
+}
+.ogg-linguetta.l1 { left: -5%; top: 8%; transform: rotate(-38deg); }
+.ogg-linguetta.l2 { right: -5%; top: 6%; transform: rotate(36deg); }
+.ogg-linguetta.l3 { left: 40%; bottom: -5%; transform: rotate(-3deg); }
+.ogg-cartellino {
+  margin: 9% 0 0 auto;
+  width: 64%;
+  padding: 6px 8px 7px;
+  border: 1px solid var(--ogg-filetto);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--ogg-cartellino);
+  color: var(--ogg-inchiostro);
+}
+/* il cartellino è tipografia stampata sull'oggetto: stessi stili del sito, inchiostro scuro */
+.ogg-cart-n {
+  font: 500 13px/1.4 var(--f-testo);
+  letter-spacing: 0.02em;
+  color: var(--ogg-accento);
+}
+.ogg-cart-t {
+  font-family: var(--f-display);
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 1.3;
+}
+.ogg-cart-g {
+  font: 500 13px/1.4 var(--f-testo);
+  letter-spacing: 0.02em;
+  color: var(--ogg-inchiostro-2);
+}
+/* lo schermo: una lastra scura e sottile, angoli vivi, nessun riflesso decorativo */
+.ogg-schermo {
+  padding: 3.2%;
+  background: var(--terra);
+  outline: var(--filetto);
+}
+.ogg-vetro {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: var(--nero);
+}
+.ogg-riflesso {
+  display: none;
+}
+
+.ogg {
+  /* la carta d'erbario: avorio come carta, inchiostro nero e vinaccia */
+  --ogg-carta: var(--avorio);
+  --ogg-linguetta: var(--avorio-85);
+  --ogg-cartellino: var(--avorio);
+  --ogg-filetto: color-mix(in oklab, var(--vinaccia) 40%, transparent);
+  --ogg-inchiostro: var(--nero);
+  --ogg-inchiostro-2: color-mix(in oklab, var(--nero) 70%, var(--avorio));
+  --ogg-accento: var(--vinaccia);
+}
+/* ── registro di ciò che arriverà nella collana ─────────────────────── */
+.registro {
+  position: absolute;
+  z-index: 6;
+  right: var(--margine-x);
+  top: calc(var(--cal-h) + var(--s-8) + var(--slot-w) / 0.82 + var(--s-7));
+  width: var(--slot-w);
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(8px);
+  transition:
+    opacity var(--d-ui) var(--ease-in),
+    transform var(--d-ui) var(--ease-in),
+    visibility 0s linear var(--d-ui);
+}
+.registro.su {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity var(--d-entrata) var(--ease-out) var(--d-micro),
+    transform var(--d-entrata) var(--ease-out) var(--d-micro),
+    visibility 0s;
+}
+[data-movimento="ridotto"] .registro {
+  transform: none;
+}
+.registro.solo {
+  top: calc(var(--cal-h) + var(--s-8));
+}
+.registro-testa {
+  margin: 0 0 var(--s-3);
+}
+.registro ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s-3);
+}
+.registro li {
+  display: grid;
+  gap: var(--s-1);
+  padding-left: var(--s-3);
+  border-left: var(--filetto);
+}
+@media (max-width: 759px) {
+  .registro {
+    display: none;
+  }
+  /* in miniatura il cartellino non si leggerebbe: resta l'oggetto, il nome è nell'etichetta accessibile */
+  .carta .ogg-campione { padding: 8% 7%; }
+  .carta .ogg-cartellino { display: none; }
+}
+
+/* ── la carta nella scena ───────────────────────────────────────────── */
+.carta {
+  position: absolute;
+  z-index: 4;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  visibility: hidden;
+  will-change: transform, opacity;
+  transform-origin: 50% 50%;
+}
+.carta.sul-banco {
+  visibility: hidden !important;
+}
+/* nella scena l'anteprima è virata in vinaccia e oro, come sotto la luce della cantina:
+   torna a colori solo sul banco di lavoro */
+.carta .ogg img {
+  filter: grayscale(1) sepia(0.55) hue-rotate(-18deg) saturate(1.35) brightness(0.62) contrast(1.08);
+}
+.carta .ogg-montaggio::after,
+.carta .ogg-vetro::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(160deg, color-mix(in oklab, var(--vinaccia) 32%, transparent), color-mix(in oklab, var(--oro) 12%, transparent));
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+.carta .ogg-campione {
+  background: color-mix(in oklab, var(--ogg-carta) 72%, var(--nero));
+}
+.carta .ogg-cartellino {
+  background: color-mix(in oklab, var(--ogg-cartellino) 80%, var(--nero));
+}
+.carta:hover .ogg img,
+.carta:focus-visible .ogg img {
+  filter: grayscale(0.4) sepia(0.3) brightness(0.8);
+  transition: filter var(--d-entrata) var(--ease-out);
+}
+.carta::before {
+  /* ombra di contatto sul terreno */
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: -14px;
+  height: 22px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--nero-60), transparent);
+  opacity: var(--contatto, 1);
+}
+.carta .ogg {
+  transition: transform var(--d-entrata) var(--ease-out);
+}
+.carta:hover .ogg,
+.carta:focus-visible .ogg {
+  transform: translateY(-6px) rotate(-0.6deg);
+}
+.carta-invito {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(-1 * var(--s-7));
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--s-2);
+  font: 500 13px/1.4 var(--f-testo);
+  letter-spacing: 0.02em;
+  color: var(--avorio-85);
+  opacity: 0;
+  transition: opacity var(--d-micro) var(--ease-out);
+}
+.carta:hover .carta-invito,
+.carta:focus-visible .carta-invito {
+  opacity: 1;
+}
+.carta:focus-visible {
+  outline-offset: 8px;
+}
+
+/* ── banco di lavoro ────────────────────────────────────────────────── */
+.banco {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--avorio);
+  overflow: hidden;
+}
+.banco::backdrop {
+  background: transparent;
+}
+.banco-buio {
+  position: absolute;
+  inset: 0;
+  background: var(--nero);
+  opacity: 0;
+}
+.banco-fondo {
+  position: absolute;
+  inset: 0;
+  background: var(--banco-piano);
+}
+.banco-griglia {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr);
+  gap: var(--s-8);
+  align-items: center;
+  padding: var(--margine-top) var(--margine-x);
+  overflow: auto;
+}
+.banco-piano {
+  display: flex;
+  justify-content: center;
+}
+.banco-oggetto {
+  position: relative;
+  width: min(100%, 980px, calc((100dvh - 140px) * 1.45));
+  transform-origin: 50% 50%;
+  will-change: transform;
+  /* in volo l'oggetto si stacca dal piano: l'ombra si allarga (box-shadow: costa solo pittura) */
+  box-shadow: var(--ombra-carta);
+}
+.banco-riflesso-taglio {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+}
+.banco-riflesso {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 38%, var(--avorio-20) 50%, transparent 62%);
+  mix-blend-mode: screen;
+  transform: translateX(-130%);
+}
+
+.banco-vivo {
+  position: absolute;
+  inset: 0;
+  width: 1280px;
+  height: 800px;
+  border: 0;
+  transform-origin: 0 0;
+  transform: scale(var(--k, 0.5));
+  pointer-events: none;
+  background: var(--avorio);
+  animation: dissolvi var(--d-entrata) var(--ease-out) both;
+}
+.banco-note {
+  max-width: var(--col-4);
+}
+.banco-titolo {
+  margin: 0 0 var(--s-3);
+}
+.banco-meta {
+  margin: 0 0 var(--s-5);
+}
+.banco-sintesi {
+  margin: 0 0 var(--s-5);
+}
+.banco-sottotitolo {
+  margin: 0;
+}
+.banco-punti {
+  list-style: none;
+  margin: var(--s-2) 0 var(--s-5);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.banco-punti li {
+  padding-left: var(--s-4);
+  position: relative;
+}
+.banco-punti li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.8em;
+  width: var(--s-2);
+  border-top: var(--filetto);
+}
+.banco-fase {
+  margin: 0 0 var(--s-6);
+}
+.banco-fase strong {
+  color: var(--avorio);
+  font-weight: 500;
+}
+.banco-azioni {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+}
+.banco-chiudi {
+  position: absolute;
+  z-index: 2;
+  top: var(--s-5);
+  right: var(--margine-x);
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--avorio-85);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--avorio-20);
+  text-underline-offset: 6px;
+}
+
+/* il piano del banco: il buio della cantina, con la grana del sito */
+.banco {
+  --banco-piano: var(--nero);
+}
+@media (max-width: 900px) {
+  .banco-griglia {
+    grid-template-columns: 1fr;
+    align-content: start;
+    padding: var(--s-9) var(--margine-x) var(--s-6);
+    gap: var(--s-6);
+  }
+  .banco-oggetto {
+    width: 100%;
+  }
+}
+
+/* ── indicatori dell'elemento richiuso (un solo elemento interattivo aperto) ── */
+.indicatore {
+  position: absolute;
+  z-index: 7;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--avorio-20);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 6px;
+  animation: dissolvi var(--d-entrata) var(--ease-out) both;
+  transition: color var(--d-micro) var(--ease-out), text-decoration-color var(--d-micro) var(--ease-out);
+}
+.indicatore:hover {
+  color: var(--avorio);
+  text-decoration-color: var(--avorio-60);
+}
+.indicatore-collana {
+  right: var(--margine-x);
+  top: calc(var(--s-5) + var(--cal-h) + var(--s-6));
+}
+.indicatore-nodo {
+  left: var(--margine-x);
+  bottom: calc(var(--striscia-h) + var(--s-5));
+}
+@media (max-width: 759px) {
+  /* sul telefono il titolo sta sotto il calendario: "Collana" va a sinistra del calendario */
+  .indicatore-collana {
+    top: var(--s-5);
+    right: calc(var(--margine-x) + var(--cal-w) + var(--s-4));
+  }
+}

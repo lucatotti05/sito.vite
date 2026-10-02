@@ -1,0 +1,559 @@
+/* ── palco: fermo mentre l'anno scorre ───────────────────────────────── */
+.corsa {
+  position: relative;
+}
+.palco {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+  isolation: isolate;
+  transform-origin: 50% 55%;
+  background: var(--nero);
+}
+
+/* ── scena ──────────────────────────────────────────────────────────── */
+.scena {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.sc-cielo {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, var(--sc-cielo-a) 0%, var(--sc-cielo-b) 66%, var(--sc-cielo-b) 100%);
+}
+.sc-luce {
+  position: absolute;
+  inset: 0;
+}
+.strato {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 100%;
+  width: 600svh;
+  will-change: transform;
+}
+.tessere {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+.sc-nebbia {
+  width: 100%;
+  overflow: hidden;
+  opacity: calc(var(--peso-inverno, 0) * 0.95);
+}
+.sc-nebbia-banda {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 200%;
+  height: 100%;
+  background:
+    radial-gradient(28% 9% at 20% 64%, color-mix(in oklab, var(--sc-cielo-b) 80%, #b9c4cf) 0%, transparent 100%),
+    radial-gradient(34% 8% at 62% 70%, color-mix(in oklab, var(--sc-cielo-b) 75%, #b9c4cf) 0%, transparent 100%),
+    radial-gradient(26% 10% at 88% 66%, color-mix(in oklab, var(--sc-cielo-b) 80%, #b9c4cf) 0%, transparent 100%),
+    linear-gradient(180deg, transparent 56%, color-mix(in oklab, var(--sc-cielo-b) 70%, transparent) 67%, transparent 80%);
+  opacity: 0.75;
+  will-change: transform;
+  animation: nebbia 70s linear infinite;
+}
+@keyframes nebbia {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+/* calura d'estate e luce ambra di vendemmia: una velatura calda sull'orizzonte */
+.sc-calura {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, transparent 38%, color-mix(in oklab, var(--luce) 26%, transparent) 62%, transparent 82%),
+    radial-gradient(70% 40% at 15% 70%, color-mix(in oklab, var(--ambra) 30%, transparent), transparent 70%);
+  opacity: calc(var(--peso-estate, 0) * 0.55 + var(--peso-vendemmia, 0) * 0.5);
+}
+[data-movimento="ridotto"] .sc-nebbia-banda {
+  animation: none;
+}
+.particelle {
+  position: absolute;
+  inset: 0;
+  z-index: 2; /* dietro la vite: l'atmosfera non vela il soggetto */
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.sc-scuro {
+  fill: color-mix(in oklab, var(--sc-medio) 62%, var(--nero));
+}
+.sc-righe {
+  fill: none;
+  stroke: color-mix(in oklab, var(--sc-medio) 72%, var(--nero));
+  stroke-width: 2;
+  opacity: 0.55;
+}
+.sc-fili {
+  fill: none;
+  stroke: color-mix(in oklab, var(--sc-filare) 70%, var(--luce));
+  stroke-width: 1.2;
+  opacity: 0.6;
+}
+.sc-ceppi {
+  fill: none;
+  stroke: var(--sc-filare);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+.sc-chioma {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  transform: scaleY(var(--chioma, 0));
+  transition: none;
+}
+.sc-ciuffi {
+  fill: none;
+  /* d'inverno l'erba si copre di brina */
+  stroke: color-mix(in oklab, color-mix(in oklab, var(--sc-terra) 55%, var(--sc-chioma)) calc(100% - var(--peso-inverno, 0) * 45%), #c9d6de);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+.prop {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+}
+.prop-svg {
+  display: block;
+  height: 100%;
+  width: auto;
+  overflow: visible;
+}
+.prop-alone {
+  opacity: calc(0.55 + var(--luce-forza) * 0.45);
+  mix-blend-mode: screen;
+}
+.prop-porta,
+.prop-finestra {
+  fill: color-mix(in oklab, var(--luce) 85%, var(--avorio));
+}
+.prop-finestra {
+  opacity: 0.7;
+}
+.prop-sarmenti {
+  fill: none;
+  stroke: color-mix(in oklab, var(--sc-terra) 50%, #3a2414);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+.prop-legaccio {
+  fill: none;
+  stroke: var(--luce);
+  stroke-width: 2;
+}
+.prop-polvere {
+  fill: none;
+  stroke: var(--luce);
+  stroke-width: 6;
+  stroke-linecap: round;
+  opacity: 0.35;
+}
+.prop-stelo {
+  fill: none;
+  stroke: color-mix(in oklab, var(--sc-chioma) 80%, var(--nero));
+  stroke-width: 1.5;
+}
+.prop-papavero {
+  fill: #b8321f;
+}
+
+/* luce radente della cantina: entra bassa da sinistra; colore e forza cambiano con le stagioni,
+   le ombre a destra prendono la tinta della stagione (fredda d'inverno, vinaccia in vendemmia) */
+.sc-luce {
+  background:
+    radial-gradient(110% 68% at -12% calc(84% - var(--luce-alt, 0.3) * 50%), color-mix(in oklab, var(--luce) calc(var(--luce-forza) * var(--accensione, 1) * 24%), transparent) 0%, transparent 58%),
+    linear-gradient(90deg, transparent 45%, color-mix(in oklab, var(--ombra) 60%, transparent) 100%),
+    radial-gradient(60% 50% at 50% 115%, var(--nero-60), transparent 70%);
+}
+.sc-fili {
+  opacity: 0.3;
+}
+
+/* velo della scena: più la camera stringe sulla vite, più la scena va fuori fuoco (si scurisce) */
+.velo {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(70% 80% at 58% 52%, transparent 0%, rgb(from var(--nero) r g b / 0.35) 100%),
+    rgb(from var(--nero) r g b / calc(0.25 + var(--fuoco, 0) * 0.55));
+}
+/* velo dell'interfaccia: sopra la vite, solo dove ci sono testi (colonna sinistra, striscia) */
+.velo-ui {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  /* non decorativo: tiene il contrasto AA dei testi sopra la scena (colonna dei testi, striscia) */
+  background:
+    linear-gradient(90deg, var(--nero-90) 0%, var(--nero-60) 24%, var(--nero-0) 46%),
+    linear-gradient(0deg, var(--nero-90) 0%, var(--nero-0) 14%);
+}
+.grana {
+  /* grana fine e costante (DESIGN.md): una texture di rumore già trasparente, in fusione normale.
+     Niente mix-blend-mode a tutto schermo: costringerebbe a ricomporre tutto ciò che sta sotto */
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  opacity: var(--grana-opacita);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .93  0 0 0 0 .89  0 0 0 0 .83  0 0 0 1.6 -0.55'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* ── titoli: colonne 1-7 della griglia, dal margine superiore ───────────── */
+.titoli {
+  position: absolute;
+  z-index: 6;
+  left: var(--margine-x);
+  top: var(--margine-top);
+  width: var(--col-7);
+  height: 0;
+  pointer-events: none;
+}
+/* mentre si legge una pratica, la colonna sinistra è sua: il titolo si ritira */
+.titoli {
+  transition: opacity var(--d-ui) var(--ease-in);
+}
+html.pratica-aperta .titoli {
+  opacity: 0;
+}
+.titolo {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  visibility: hidden;
+  transition: visibility 0s linear var(--d-ui);
+}
+.titolo.attivo {
+  visibility: visible;
+  transition: visibility 0s;
+}
+.titolo-h {
+  margin: 0 0 var(--s-5);
+  text-wrap: balance;
+}
+/* rivelazione a maschera, riga per riga (DESIGN.md, "Titolo di fase"): ogni parola sale dalla
+   sua maschera; le parole della stessa riga hanno lo stesso ritardo (--riga, 60ms per riga).
+   Il titolo uscente esce del tutto (--d-ui, --ease-in) prima che entri il nuovo. */
+.parola {
+  display: inline-block;
+  overflow: clip;
+  /* spazio per le discendenti del corsivo e del tondo con interlinea 0.92 */
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+  vertical-align: top;
+}
+.parola > span {
+  display: inline-block;
+  transform: translate3d(0, 110%, 0);
+  transition: transform var(--d-ui) var(--ease-in);
+}
+.titolo.attivo .parola > span {
+  transform: none;
+  transition: transform var(--d-entrata) var(--ease-out) calc(var(--d-ui) + var(--riga, 0) * 60ms);
+}
+.titolo .titolo-corpo {
+  opacity: 0;
+  transition: opacity var(--d-ui) var(--ease-in);
+}
+.titolo.attivo .titolo-corpo {
+  opacity: 1;
+  transition: opacity var(--d-entrata) var(--ease-out) calc(var(--d-ui) + 120ms);
+}
+[data-movimento="ridotto"] .parola > span {
+  transform: none;
+}
+[data-movimento="ridotto"] .titolo {
+  opacity: 0;
+  transition: opacity var(--d-ui) var(--ease-in), visibility 0s linear var(--d-ui);
+}
+[data-movimento="ridotto"] .titolo.attivo {
+  opacity: 1;
+  transition: opacity var(--d-entrata) var(--ease-out) var(--d-ui), visibility 0s;
+}
+.titolo-guida,
+.titolo-nota {
+  margin: var(--s-4) 0 0;
+  max-width: 52ch;
+}
+.solo-tocco {
+  display: none;
+}
+@media (pointer: coarse) {
+  .solo-tocco { display: inline; }
+  .solo-puntatore { display: none; }
+}
+
+/* ── la vite: occupa tutto il palco, la camera decide cosa inquadrare ── */
+.vite-posto {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  pointer-events: none;
+}
+.vite-posto > .vite-strati,
+.vite-posto > .vite-tela {
+  position: absolute;
+  inset: 0;
+}
+
+/* ── posti di nodo e carte ──────────────────────────────────────────── */
+.nodo-posto {
+  position: absolute;
+  z-index: 7;
+  left: var(--margine-x);
+  bottom: calc(var(--striscia-h) + var(--s-3));
+  width: var(--col-4);
+  transform-origin: 30% 60%;
+  /* chiuso / aperto: a tempo, interrompibile. Aperto senza trasformazione: su telefono la scheda
+     è fixed e non deve avere un contenitore trasformato */
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.94);
+  transition:
+    opacity var(--d-ui) var(--ease-in),
+    transform var(--d-ui) var(--ease-in),
+    visibility 0s linear var(--d-ui);
+}
+.nodo-posto.aperto {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition:
+    opacity var(--d-entrata) var(--ease-out),
+    transform var(--d-entrata) var(--ease-out),
+    visibility 0s;
+}
+[data-movimento="ridotto"] .nodo-posto {
+  transform: none;
+}
+.slot-carta,
+.slot-carta-dock {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+}
+:root {
+  --slot-w: min(var(--col-2), calc((100svh - var(--cal-h) - 300px) * 0.82));
+}
+.slot-carta,
+.slot-carta-dock {
+  right: var(--margine-x);
+  top: calc(var(--cal-h) + var(--s-8));
+  width: var(--slot-w);
+  aspect-ratio: 0.82;
+}
+
+/* ── striscia delle fasi: una riga sottile, numeri in stile etichetta ─────── */
+.striscia {
+  position: absolute;
+  z-index: 9;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--striscia-h);
+  padding: 0 var(--margine-x);
+}
+.striscia-corpo {
+  position: relative;
+  height: 100%;
+  container-type: inline-size;
+}
+.striscia-fasi {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  height: 30px;
+  gap: var(--s-1);
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--s-5);
+}
+.striscia-fasi li {
+  flex-basis: 0;
+  min-width: 0;
+}
+.striscia-fasi button {
+  width: 100%;
+  height: 100%;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  border-top: var(--filetto);
+  background: transparent;
+  color: var(--avorio-60);
+  font: 500 13px/1 var(--f-testo);
+  letter-spacing: 0.02em;
+  font-variant-numeric: lining-nums tabular-nums;
+  cursor: pointer;
+  text-align: left;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: color var(--d-micro) var(--ease-out);
+}
+.striscia-fasi button:hover,
+.striscia-fasi button[aria-current] {
+  color: var(--avorio);
+}
+/* solo i numeri: il nome della fase è nel titolo; niente nomi troncati */
+.striscia-nome {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+.striscia-mesi {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: 31fr 28fr 31fr 30fr 31fr 30fr 31fr 31fr 30fr 31fr 30fr 31fr;
+  font: 500 13px/1.4 var(--f-testo);
+  letter-spacing: 0.02em;
+  color: var(--avorio-60);
+}
+/* indicatore di posizione: una linea di 1px in oro (l'unico oro della schermata) */
+.striscia-ago {
+  position: absolute;
+  left: 0;
+  bottom: calc(var(--s-5) + 8px);
+  width: 1px;
+  height: 22px;
+  background: var(--oro);
+  will-change: transform;
+}
+
+/* ── apertura: il buio si apre attorno alla vite ─────────────────────── */
+.apertura {
+  position: absolute;
+  inset: 0;
+  z-index: 35;
+  pointer-events: none;
+  --foro: 0;
+  background: radial-gradient(
+    circle at 50% 44%,
+    var(--nero-0) calc(var(--foro) * 85vmax),
+    var(--nero-90) calc(var(--foro) * 85vmax + 18vmax),
+    var(--nero) calc(var(--foro) * 85vmax + 40vmax)
+  );
+}
+
+/* ── finale: composto sulla scena, nessun pannello ─────────────────── */
+.finale {
+  position: absolute;
+  z-index: 12;
+  left: var(--margine-x);
+  bottom: calc(var(--striscia-h) + var(--s-8));
+  width: var(--col-5);
+  visibility: hidden;
+}
+.finale-titolo {
+  margin: 0 0 var(--s-5);
+  text-wrap: balance;
+}
+.finale-testo {
+  margin: 0 0 var(--s-6);
+}
+.finale-ricomincia {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--avorio);
+  font: 400 17px/1 var(--f-testo);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--avorio-60);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 8px;
+  transition: text-underline-offset var(--d-micro) var(--ease-out), text-decoration-color var(--d-micro) var(--ease-out);
+}
+.finale-ricomincia:hover {
+  text-decoration-color: var(--avorio);
+  text-underline-offset: 5px;
+}
+
+/* ── telefono ───────────────────────────────────────────────────────── */
+@media (max-width: 759px) {
+  :root {
+    --striscia-h: 58px;
+  }
+  /* il titolo sta sotto il calendario, su tutta la larghezza: a 44px nella colonna accanto non entrerebbe */
+  .titoli {
+    top: calc(var(--s-4) + var(--cal-h) + var(--s-5));
+    width: calc(100vw - 2 * var(--margine-x));
+  }
+  .titolo-h {
+    margin-bottom: var(--s-3);
+  }
+  .titolo-guida,
+  .titolo-nota {
+    display: none;
+  }
+  .velo {
+    background:
+      linear-gradient(180deg, rgb(from var(--nero) r g b / 0.75) 0%, var(--nero-0) 22%, var(--nero-0) 52%, var(--nero-60) 70%),
+      rgb(from var(--nero) r g b / calc(0.2 + var(--fuoco, 0) * 0.5));
+  }
+  .velo-ui {
+    background:
+      linear-gradient(180deg, var(--nero-90) 0%, var(--nero-60) 30%, var(--nero-0) 44%),
+      linear-gradient(0deg, var(--nero-90) 0%, var(--nero-60) 30%, var(--nero-0) 42%);
+  }
+  .nodo-posto {
+    left: var(--margine-x);
+    width: calc(100vw - 2 * var(--margine-x));
+    bottom: calc(var(--striscia-h) + var(--s-1));
+    transform-origin: 50% 80%;
+  }
+  /* con la collana aperta il nodo è richiuso: la carta prende il suo posto, in basso a destra */
+  .slot-carta,
+  .slot-carta-dock {
+    right: var(--margine-x);
+    top: auto;
+    bottom: calc(var(--striscia-h) + var(--s-6));
+    width: 34vw;
+  }
+  .striscia-fasi {
+    height: 40px;
+    bottom: var(--s-4);
+  }
+  .striscia-fasi li {
+    flex-grow: 1 !important; /* sul telefono tutte uguali: bersagli larghi abbastanza */
+  }
+  .striscia-fasi button {
+    justify-content: center;
+  }
+  .striscia-mesi {
+    display: none;
+  }
+  .finale {
+    left: var(--margine-x);
+    right: var(--margine-x);
+    width: auto;
+    bottom: calc(var(--striscia-h) + var(--s-6));
+  }
+}

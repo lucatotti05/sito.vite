@@ -1,0 +1,124 @@
+/* ── momento film ─────────────────────────────────────────────────────
+   Sopra la vite (z 3, dopo nel DOM), sotto velo dell'interfaccia, testi, calendario, barra e
+   grana: quegli strati non cambiano durante il passaggio. */
+/* il contenitore non crea un contesto di sovrapposizione: la clip sta a livello 3 (sopra la vite),
+   note e sottotitoli a livello 6, sopra il velo dell'interfaccia (5) come i titoli */
+.film {
+  display: contents;
+}
+.film-tela {
+  position: absolute;
+  z-index: 3;
+  pointer-events: none;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  visibility: hidden;
+  opacity: 0;
+}
+.film-note {
+  position: absolute;
+  pointer-events: none;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  z-index: 6;
+}
+/* annotazioni (DESIGN.md): stile annotazione, punto di 3px e linea di 1px in oro al 60% */
+.film-nota {
+  opacity: 0;
+  transition: opacity var(--d-ui) var(--ease-in);
+}
+.film-nota.on {
+  opacity: 1;
+  transition: opacity var(--d-entrata) var(--ease-out);
+}
+.film-nota circle {
+  fill: var(--oro-60);
+}
+.film-nota path {
+  fill: none;
+  stroke: var(--oro-60);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.film-nota text {
+  font-family: var(--f-display);
+  font-optical-sizing: auto;
+  font-style: italic;
+  font-size: 16px;
+  fill: var(--avorio);
+  paint-order: stroke;
+  stroke: var(--nero-60);
+  stroke-width: 3px;
+}
+/* sottotitoli: stile introduzione, nella colonna dei testi (desktop) o in basso (telefono) */
+.film-sottotitolo {
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+  left: var(--margine-x);
+  right: var(--margine-x);
+  bottom: calc(var(--striscia-h) + var(--s-6));
+  margin: 0;
+  text-wrap: balance;
+  opacity: 0;
+  transition: opacity var(--d-ui) var(--ease-in);
+}
+.film-sottotitolo.on {
+  opacity: 1;
+  animation: film-sott var(--d-entrata) var(--ease-out);
+}
+@keyframes film-sott {
+  from {
+    opacity: 0;
+    transform: translateY(var(--s-2));
+  }
+}
+@media (min-width: 760px) {
+  .film-sottotitolo {
+    right: auto;
+    width: var(--col-4);
+  }
+}
+
+/* a clip piena l'interfaccia di fase fa spazio: nodo, carte e registro si ritirano.
+   Titolo, calendario e barra restano: sono gli strati costanti del passaggio. */
+.nodo-posto > * {
+  transition: opacity var(--d-entrata) var(--ease-out);
+}
+.film-pieno .nodo-posto > *,
+.film-pieno .carta,
+.film-pieno .registro,
+.film-pieno .indicatore {
+  opacity: 0 !important; /* le carte scrivono l'opacità in linea a ogni fotogramma */
+  pointer-events: none;
+  transition: opacity var(--d-ui) var(--ease-in);
+}
+[data-movimento="ridotto"] .film-sottotitolo.on {
+  animation: none;
+}
+
+/* ── indicatore FPS (tasto F, solo sviluppo) ── */
+.contafotogrammi {
+  position: fixed;
+  z-index: 100;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 6px 10px;
+  font: 500 11px/1.35 ui-monospace, monospace;
+  color: var(--avorio);
+  background: var(--nero-90);
+  border: var(--filetto);
+  pointer-events: none;
+}
+.contafotogrammi[data-stato="medio"] {
+  color: var(--ambra);
+}
+.contafotogrammi[data-stato="basso"] {
+  color: var(--vinaccia);
+}

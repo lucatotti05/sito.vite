@@ -1,0 +1,318 @@
+{
+  "riposo": [
+    {
+      "id": "potatura", "titolo": "Potatura secca", "breve": "Potatura",
+      "cosa": "Si scelgono i tralci da tenere e si accorciano: nel Guyot un capo a frutto e uno sperone di rinnovo, nel cordone speronato una serie di speroni corti.",
+      "perche": "Il numero di gemme lasciate decide quanti germogli e quanti grappoli avrà la pianta, e quindi l'equilibrio tra produzione e vigore.",
+      "quando": "A legno fermo, nelle giornate senza gelo; i tagli fatti presto e quelli fatti tardi hanno effetti diversi sul germogliamento.",
+      "errore": "Lasciare troppe gemme per paura di perdere produzione, o tagliare senza pensare a dove nascerà il legno dell'anno prossimo.",
+      "correlate": ["legatura", "sarmenti"], "da_verificare": true
+    },
+    {
+      "id": "legatura", "titolo": "Legatura del capo a frutto", "breve": "Legatura",
+      "cosa": "Il capo a frutto si piega e si fissa al filo di banchina, ad archetto o in orizzontale.",
+      "perche": "La curva attenua l'acrotonia: le gemme lungo il capo partono in modo più uniforme, non solo quelle in punta.",
+      "quando": "Dopo la potatura, quando il legno è meno fragile; va finita prima che le gemme si gonfino.",
+      "errore": "Piegare il tralcio con il freddo e spezzarlo, oppure stringere la legatura fino a strozzarlo.",
+      "correlate": ["potatura", "pali"], "da_verificare": true
+    },
+    {
+      "id": "pali", "titolo": "Sostituzione dei pali", "breve": "Pali",
+      "cosa": "Si controllano pali di testata e intermedi, fili e tiranti; si sostituisce ciò che è rotto o marcio e si ritendono i fili.",
+      "perche": "La spalliera deve reggere il peso della vegetazione e dell'uva per tutta la stagione.",
+      "quando": "In inverno, con il vigneto spoglio e prima della legatura.",
+      "errore": "Rimandare: a vegetazione avviata il lavoro è più lento e si rischia di danneggiare i germogli.",
+      "correlate": ["legatura"], "da_verificare": true
+    },
+    {
+      "id": "sarmenti", "titolo": "Gestione dei sarmenti", "breve": "Sarmenti",
+      "cosa": "I tralci tagliati si tolgono dal filare e si trinciano nell'interfila, oppure si allontanano.",
+      "perche": "Trinciati restituiscono sostanza organica al suolo; allontanati riducono le fonti di malattie del legno.",
+      "quando": "Subito dopo la potatura, prima delle lavorazioni del suolo.",
+      "errore": "Trinciare anche il legno di piante malate, lasciando nel vigneto l'inoculo.",
+      "correlate": ["potatura", "suolo"], "da_verificare": true
+    },
+    {
+      "id": "suolo", "titolo": "Lavorazioni del suolo", "breve": "Suolo",
+      "cosa": "Lavorazioni leggere o gestione dell'inerbimento; si interrano sarmenti trinciati e ammendanti.",
+      "perche": "Il suolo deve accogliere le piogge invernali e restare vivo e strutturato.",
+      "quando": "Nei periodi in cui il terreno è in tempera, né bagnato né secco.",
+      "errore": "Entrare con le macchine su terreno bagnato e compattarlo.",
+      "correlate": ["sarmenti"], "da_verificare": true
+    }
+  ],
+  "pianto": [
+    {
+      "id": "fine-legatura", "titolo": "Fine della legatura", "breve": "Legatura",
+      "cosa": "Si completano le legature rimaste e si controllano quelle già fatte.",
+      "perche": "Con la linfa in movimento il legno è più flessibile, ma le gemme gonfie si staccano facilmente.",
+      "quando": "All'inizio del pianto, prima che le gemme diventino cotonose.",
+      "errore": "Lavorare tardi sul capo e far cadere le gemme migliori.",
+      "correlate": ["revisione"], "da_verificare": true
+    },
+    {
+      "id": "concimazione", "titolo": "Concimazione", "breve": "Concime",
+      "cosa": "Si distribuiscono gli apporti di fondo decisi in base alle analisi del suolo e al vigore dell'anno prima.",
+      "perche": "Le radici riprendono ad assorbire mentre la pianta si prepara alla ripresa vegetativa.",
+      "quando": "Al risveglio, quando il terreno è praticabile.",
+      "errore": "Concimare per abitudine, senza analisi: il vigore in eccesso si paga poi in malattie e qualità.",
+      "correlate": ["interfila"], "da_verificare": true
+    },
+    {
+      "id": "interfila", "titolo": "Lavorazione dell'interfila", "breve": "Interfila",
+      "cosa": "Trinciatura dell'erba o lavorazione superficiale, secondo la gestione scelta per il suolo.",
+      "perche": "Si regola la competizione dell'erba per acqua e azoto proprio quando la vite riparte.",
+      "quando": "Tra il pianto e il germogliamento.",
+      "errore": "Lavorare a fondo e spesso, impoverendo la struttura del suolo.",
+      "correlate": ["concimazione", "revisione"], "da_verificare": true
+    },
+    {
+      "id": "revisione", "titolo": "Revisione delle macchine", "breve": "Macchine",
+      "cosa": "Si controllano trattore e irroratrice e si tara la distribuzione.",
+      "perche": "Una macchina tarata distribuisce la dose giusta dove serve, senza sprechi né derive.",
+      "quando": "Prima dei primi trattamenti.",
+      "errore": "Accorgersi di un ugello consumato quando la stagione è già cominciata.",
+      "correlate": ["fine-legatura", "interfila"], "da_verificare": true
+    }
+  ],
+  "germogliamento": [
+    {
+      "id": "gelate", "titolo": "Difesa dalle gelate", "breve": "Gelate",
+      "cosa": "Si seguono le previsioni e, dove il vigneto è attrezzato, si attivano i sistemi di protezione.",
+      "perche": "Le punte verdi appena uscite sono la parte della pianta più sensibile al freddo.",
+      "quando": "Nelle notti serene e senza vento, quando il rischio di gelata tardiva è più alto.",
+      "errore": "Fidarsi delle temperature di giorno: la gelata arriva all'alba, al livello del suolo.",
+      "correlate": ["monitoraggio"], "da_verificare": true
+    },
+    {
+      "id": "monitoraggio", "titolo": "Controllo delle gemme", "breve": "Gemme",
+      "cosa": "Si osserva quante gemme partono, con quale uniformità lungo il capo e se ci sono danni.",
+      "perche": "Il germogliamento racconta come è andata la potatura e indica dove servirà la scacchiatura.",
+      "quando": "Mentre le gemme si aprono, ripassando più volte.",
+      "errore": "Guardare solo le prime viti del filare e generalizzare.",
+      "correlate": ["gelate", "primi-trattamenti"], "da_verificare": true
+    },
+    {
+      "id": "primi-trattamenti", "titolo": "Primi trattamenti", "breve": "Trattamenti",
+      "cosa": "Si proteggono i germogli giovani dove la zona e l'annata lo richiedono.",
+      "perche": "Alcune malattie trovano nei tessuti teneri e nelle piogge di primavera le condizioni per partire.",
+      "quando": "Dal germogliamento, in base al rischio e alla fase raggiunta.",
+      "errore": "Trattare a calendario invece che sul rischio reale.",
+      "correlate": ["monitoraggio"], "da_verificare": true
+    }
+  ],
+  "germogli": [
+    {
+      "id": "scacchiatura", "titolo": "Scacchiatura", "breve": "Scacchiatura",
+      "cosa": "Si tolgono i germogli doppi, quelli sterili e quelli mal posizionati.",
+      "perche": "Si regola la densità della chioma e si concentra la pianta sui germogli utili.",
+      "quando": "Con germogli ancora teneri, che si staccano senza ferite grandi.",
+      "errore": "Aspettare troppo: i germogli lignificano alla base e il lavoro diventa lento e dannoso.",
+      "correlate": ["spollonatura", "palizzatura-1"], "da_verificare": true
+    },
+    {
+      "id": "spollonatura", "titolo": "Spollonatura", "breve": "Polloni",
+      "cosa": "Si eliminano i polloni nati sul tronco e alla base della pianta.",
+      "perche": "Sottraggono risorse e creano un ponte per le malattie dal suolo alla chioma.",
+      "quando": "Insieme alla scacchiatura, a germogli giovani.",
+      "errore": "Togliere anche il pollone che serviva a rinnovare un ceppo vecchio.",
+      "correlate": ["scacchiatura"], "da_verificare": true
+    },
+    {
+      "id": "palizzatura-1", "titolo": "Prima palizzatura", "breve": "Palizzatura",
+      "cosa": "I germogli si portano tra i fili di contenimento.",
+      "perche": "Una chioma ordinata prende meglio la luce e asciuga prima dopo la pioggia.",
+      "quando": "Quando i germogli arrivano all'altezza dei fili.",
+      "errore": "Rimandare finché il vento o il peso piegano e spezzano i germogli.",
+      "correlate": ["scacchiatura", "peronospora-1"], "da_verificare": true
+    },
+    {
+      "id": "peronospora-1", "titolo": "Difesa dalla peronospora", "breve": "Peronospora",
+      "cosa": "Si valuta il rischio di infezione e si interviene di conseguenza.",
+      "perche": "Piogge e temperature miti di primavera favoriscono le prime infezioni sulle foglie.",
+      "quando": "Dopo le piogge infettanti, secondo i modelli e i bollettini della zona.",
+      "errore": "Coprire male la chioma: una vegetazione fitta e non palizzata ripara la malattia.",
+      "correlate": ["palizzatura-1"], "da_verificare": true
+    }
+  ],
+  "fioritura": [
+    {
+      "id": "scacchiatura-r", "titolo": "Scacchiatura di rifinitura", "breve": "Scacchiatura",
+      "cosa": "Si tolgono gli ultimi germogli doppi, quelli sul legno vecchio e i succhioni rimasti.",
+      "perche": "Libera la zona dei grappoli e completa il lavoro fatto prima.",
+      "quando": "In fioritura è solo una rifinitura: il grosso si fa prima.",
+      "errore": "Fare in fioritura una scacchiatura pesante, con ferite ampie e grappoli toccati.",
+      "correlate": ["palizzatura"], "da_verificare": true
+    },
+    {
+      "id": "palizzatura", "titolo": "Palizzatura", "breve": "Palizzatura",
+      "cosa": "I germogli si sistemano in verticale tra i fili di contenimento.",
+      "perche": "La chioma resta ordinata e l'aria circola attorno ai grappoli.",
+      "quando": "Più passaggi, man mano che i germogli superano i fili.",
+      "errore": "Lasciare germogli fuori dai fili, che fanno ombra e trattengono umidità.",
+      "correlate": ["scacchiatura-r", "sfogliatura", "difesa"], "da_verificare": true
+    },
+    {
+      "id": "difesa", "titolo": "Difesa da peronospora e oidio", "breve": "Difesa",
+      "cosa": "Si protegge il grappolo nel momento in cui è più sensibile.",
+      "perche": "In fioritura un'infezione colpisce direttamente i fiori e quindi il raccolto.",
+      "quando": "Prima e durante la fioritura, calibrando gli interventi su piogge, bagnatura e temperature.",
+      "errore": "Allungare gli intervalli proprio in fioritura, quando la copertura conta di più.",
+      "correlate": ["palizzatura", "sfogliatura"], "da_verificare": true
+    },
+    {
+      "id": "sfogliatura", "titolo": "Sfogliatura precoce", "breve": "Sfogliatura",
+      "cosa": "Si tolgono le foglie basali attorno ai grappoli.",
+      "perche": "Riduce l'allegagione e dà grappoli più spargoli: sul Sangiovese, compatto e sensibile alla botrite, è una pratica studiata.",
+      "quando": "Poco prima o durante la fioritura.",
+      "errore": "Sfogliare il lato più esposto al sole nelle zone calde, con il rischio di scottature.",
+      "correlate": ["allegagione", "difesa", "palizzatura"], "da_verificare": true
+    },
+    {
+      "id": "allegagione", "titolo": "Valutazione dell'allegagione", "breve": "Allegagione",
+      "cosa": "Si osserva quanti fiori sono diventati acini e come si presenta il grappolo.",
+      "perche": "Colatura e acinellatura cambiano la resa e la forma del grappolo, e orientano le scelte successive.",
+      "quando": "A fine fioritura, quando le caliptre sono cadute.",
+      "errore": "Confondere i fiori non fecondati che cadono con un danno da malattia.",
+      "correlate": ["sfogliatura"], "da_verificare": true
+    }
+  ],
+  "allegagione": [
+    {
+      "id": "cimatura", "titolo": "Cimatura", "breve": "Cimatura",
+      "cosa": "Si accorciano i germogli che superano l'ultimo filo.",
+      "perche": "Contiene la chioma e ferma per un po' la crescita in punta, a favore dei grappoli.",
+      "quando": "Quando i germogli ricadono oltre la spalliera.",
+      "errore": "Cimare troppo basso, togliendo foglie che servono alla maturazione.",
+      "correlate": ["sfogliatura-g"], "da_verificare": true
+    },
+    {
+      "id": "sfogliatura-g", "titolo": "Sfogliatura della zona grappoli", "breve": "Sfogliatura",
+      "cosa": "Si alleggerisce la chioma attorno ai grappoli.",
+      "perche": "Più aria e più luce: i grappoli asciugano prima e i trattamenti arrivano meglio.",
+      "quando": "Dall'allegagione alla chiusura del grappolo.",
+      "errore": "Esporre di colpo i grappoli al sole forte.",
+      "correlate": ["cimatura", "difesa-2"], "da_verificare": true
+    },
+    {
+      "id": "difesa-2", "titolo": "Difesa", "breve": "Difesa",
+      "cosa": "Si continua a proteggere il grappolo da peronospora e oidio.",
+      "perche": "Gli acini giovani restano sensibili finché il grappolo non si chiude.",
+      "quando": "Fino alla chiusura del grappolo, secondo il rischio.",
+      "errore": "Considerare finita la difesa con la fine della fioritura.",
+      "correlate": ["sfogliatura-g"], "da_verificare": true
+    },
+    {
+      "id": "acqua", "titolo": "Gestione dell'acqua", "breve": "Acqua",
+      "cosa": "Si controlla lo stato idrico della pianta e, dove è possibile, si interviene.",
+      "perche": "In questa fase gli acini si moltiplicano e crescono: la disponibilità d'acqua ne decide la dimensione.",
+      "quando": "Con i primi caldi, soprattutto sui suoli sottili.",
+      "errore": "Guardare solo il terreno e non la pianta.",
+      "correlate": [], "da_verificare": true
+    }
+  ],
+  "invaiatura": [
+    {
+      "id": "diradamento", "titolo": "Diradamento dei grappoli", "breve": "Diradamento",
+      "cosa": "Si tolgono i grappoli in eccesso o rimasti indietro.",
+      "perche": "Si equilibra il carico e si rende più uniforme la maturazione.",
+      "quando": "All'invaiatura, quando si vede quali grappoli sono in ritardo.",
+      "errore": "Diradare per abitudine anche quando la pianta è già in equilibrio.",
+      "correlate": ["stress"], "da_verificare": true
+    },
+    {
+      "id": "tignoletta", "titolo": "Difesa dalla tignoletta", "breve": "Tignoletta",
+      "cosa": "Si seguono i voli con le trappole e si interviene solo se necessario.",
+      "perche": "Le larve rovinano gli acini e aprono la strada alla botrite.",
+      "quando": "In corrispondenza dei voli della generazione estiva.",
+      "errore": "Intervenire senza guardare le trappole.",
+      "correlate": [], "da_verificare": true
+    },
+    {
+      "id": "stress", "titolo": "Stress idrico", "breve": "Stress idrico",
+      "cosa": "Si osserva la pianta per capire quanto è sotto stress.",
+      "perche": "Uno stress moderato può giovare alla qualità; uno forte rallenta o blocca la maturazione.",
+      "quando": "Per tutta l'estate, con più attenzione nelle settimane calde.",
+      "errore": "Aspettare che le foglie basali ingialliscano per accorgersene.",
+      "correlate": ["diradamento"], "da_verificare": true
+    }
+  ],
+  "maturazione": [
+    {
+      "id": "botrite", "titolo": "Difesa dalla botrite", "breve": "Buccia: botrite",
+      "cosa": "Si protegge la buccia e si tengono i grappoli arieggiati.",
+      "perche": "Con la maturazione la buccia si assottiglia e le ferite diventano porte d'ingresso.",
+      "quando": "Dall'invaiatura alla raccolta, con più attenzione dopo le piogge.",
+      "errore": "Trascurare le ferite da tignoletta o da grandine, da cui la botrite parte.",
+      "correlate": ["campionamento"], "da_verificare": true
+    },
+    {
+      "id": "campionamento", "titolo": "Campionamento degli acini", "breve": "Polpa: campioni",
+      "cosa": "Si raccolgono acini da più piante e da più punti del grappolo e si analizzano zuccheri e acidità.",
+      "perche": "La polpa racconta l'andamento della maturazione tecnologica, settimana per settimana.",
+      "quando": "A intervalli regolari dall'invaiatura alla raccolta.",
+      "errore": "Prendere acini solo dai grappoli più esposti, che maturano prima.",
+      "correlate": ["programma", "botrite"], "da_verificare": true
+    },
+    {
+      "id": "programma", "titolo": "Programma della vendemmia", "breve": "Vinaccioli: data",
+      "cosa": "Si decide quando raccogliere, guardando anche il colore e il sapore di bucce e vinaccioli.",
+      "perche": "La maturità dei vinaccioli e delle bucce conta quanto gli zuccheri per il vino che si vuole fare.",
+      "quando": "Nelle ultime settimane prima della raccolta.",
+      "errore": "Fissare la data guardando solo gli zuccheri.",
+      "correlate": ["campionamento"], "da_verificare": true
+    }
+  ],
+  "vendemmia": [
+    {
+      "id": "raccolta", "titolo": "Raccolta", "breve": "Raccolta",
+      "cosa": "Si stacca il grappolo dal tralcio, a mano con le forbici o a macchina.",
+      "perche": "Il modo di raccogliere decide l'integrità dell'uva che arriva in cantina.",
+      "quando": "Nella data scelta, nelle ore più fresche quando è possibile.",
+      "errore": "Riempire troppo le cassette e schiacciare l'uva.",
+      "correlate": ["trasporto"], "da_verificare": true
+    },
+    {
+      "id": "trasporto", "titolo": "Trasporto in cantina", "breve": "Trasporto",
+      "cosa": "Le cassette o i carri arrivano in cantina senza attese.",
+      "perche": "L'uva ferma al sole si scalda e comincia a fermentare per conto suo.",
+      "quando": "Subito dopo la raccolta, a carichi frequenti.",
+      "errore": "Lasciare le cassette piene a fine filare per ore.",
+      "correlate": ["raccolta", "pulizia"], "da_verificare": true
+    },
+    {
+      "id": "pulizia", "titolo": "Pulizia delle attrezzature", "breve": "Pulizia",
+      "cosa": "Cassette, carri e macchine si lavano a ogni fine giornata.",
+      "perche": "I residui d'uva attirano insetti e muffe e contaminano la raccolta successiva.",
+      "quando": "Ogni sera della vendemmia.",
+      "errore": "Rimandare la pulizia alla fine della vendemmia.",
+      "correlate": ["trasporto"], "da_verificare": true
+    }
+  ],
+  "caduta": [
+    {
+      "id": "concimazione-a", "titolo": "Concimazione autunnale", "breve": "Concime",
+      "cosa": "Si restituisce al suolo parte di ciò che la vendemmia ha portato via.",
+      "perche": "Le foglie ancora attive aiutano la pianta a costruire le riserve per la ripresa.",
+      "quando": "Dopo la vendemmia, prima che le foglie cadano.",
+      "errore": "Usare concimi che spingono la vegetazione in autunno.",
+      "correlate": ["sovescio"], "da_verificare": true
+    },
+    {
+      "id": "sovescio", "titolo": "Semina del sovescio", "breve": "Sovescio",
+      "cosa": "Si semina un miscuglio di essenze nell'interfila.",
+      "perche": "Protegge il suolo dalle piogge invernali, ne migliora la struttura e lo nutre quando viene interrato.",
+      "quando": "In autunno, con il terreno ancora tiepido e le prime piogge.",
+      "errore": "Seminare tardi, quando il freddo non lascia crescere il miscuglio.",
+      "correlate": ["concimazione-a"], "da_verificare": true
+    },
+    {
+      "id": "segnatura", "titolo": "Segnatura delle piante", "breve": "Segnatura",
+      "cosa": "Si segnano le viti da sostituire, da curare o da potare in modo particolare.",
+      "perche": "Con le foglie ancora sulla pianta si riconoscono sintomi che d'inverno non si vedono.",
+      "quando": "Prima della caduta delle foglie.",
+      "errore": "Affidarsi alla memoria: a potatura le piante sembrano tutte uguali.",
+      "correlate": [], "da_verificare": true
+    }
+  ]
+}

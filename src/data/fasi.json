@@ -1,0 +1,122 @@
+[
+  {
+    "id": "riposo",
+    "numero": 1,
+    "titolo": "Riposo e potatura",
+    "mesi": ["gennaio", "febbraio"],
+    "bbch": "00",
+    "stadio": "gemme d'inverno chiuse dalle perule",
+    "sintesi": "La vite è in riposo vegetativo. Si pota a legno fermo: il taglio decide quante gemme partiranno in primavera e dove.",
+    "inizio": 0,
+    "fine": 0.162,
+    "da_verificare": true
+  },
+  {
+    "id": "pianto",
+    "numero": 2,
+    "titolo": "Pianto e risveglio",
+    "mesi": ["marzo", "aprile"],
+    "bbch": "01–05",
+    "stadio": "rigonfiamento, gemma cotonosa",
+    "sintesi": "Con il suolo che si scalda la linfa risale e goccia dai tagli. Le gemme si gonfiano e si coprono di peluria.",
+    "inizio": 0.162,
+    "fine": 0.26,
+    "da_verificare": true
+  },
+  {
+    "id": "germogliamento",
+    "numero": 3,
+    "titolo": "Germogliamento",
+    "mesi": ["aprile"],
+    "bbch": "07–11",
+    "stadio": "punte verdi, prima foglia distesa",
+    "sintesi": "Dalle gemme escono le punte verdi e si distendono le prime foglie. È il momento più esposto alle gelate tardive.",
+    "inizio": 0.26,
+    "fine": 0.323,
+    "da_verificare": true
+  },
+  {
+    "id": "germogli",
+    "numero": 4,
+    "titolo": "Sviluppo dei germogli",
+    "mesi": ["aprile", "maggio"],
+    "bbch": "12–57",
+    "stadio": "foglie distese, infiorescenze separate",
+    "sintesi": "I germogli si allungano in fretta; le infiorescenze diventano visibili e i bottoni fiorali si separano.",
+    "inizio": 0.323,
+    "fine": 0.397,
+    "da_verificare": true
+  },
+  {
+    "id": "fioritura",
+    "numero": 5,
+    "titolo": "Fioritura",
+    "mesi": ["maggio", "giugno"],
+    "bbch": "60–69",
+    "stadio": "caduta delle caliptre, stami liberi",
+    "sintesi": "Le caliptre si staccano dal basso e liberano gli stami. Dura pochi giorni e decide l'allegagione: quanti fiori diventeranno acini.",
+    "inizio": 0.397,
+    "fine": 0.46,
+    "da_verificare": true
+  },
+  {
+    "id": "allegagione",
+    "numero": 6,
+    "titolo": "Allegagione e chiusura del grappolo",
+    "mesi": ["giugno", "luglio"],
+    "bbch": "71–79",
+    "stadio": "acini formati, grappolo che si chiude",
+    "sintesi": "Gli acini si formano e crescono finché si toccano. La chioma va contenuta e tenuta ariosa.",
+    "inizio": 0.46,
+    "fine": 0.57,
+    "da_verificare": true
+  },
+  {
+    "id": "invaiatura",
+    "numero": 7,
+    "titolo": "Invaiatura",
+    "mesi": ["luglio", "agosto"],
+    "bbch": "81–83",
+    "stadio": "acini che cambiano colore",
+    "sintesi": "Gli acini virano dal verde al rosso violaceo e si ammorbidiscono: comincia l'accumulo di zuccheri e antociani.",
+    "inizio": 0.57,
+    "fine": 0.625,
+    "da_verificare": true
+  },
+  {
+    "id": "maturazione",
+    "numero": 8,
+    "titolo": "Maturazione",
+    "mesi": ["agosto", "settembre"],
+    "bbch": "85–89",
+    "stadio": "rammollimento, acini maturi",
+    "sintesi": "Gli zuccheri salgono e gli acidi scendono. Si campionano gli acini per scegliere il momento della raccolta.",
+    "inizio": 0.625,
+    "fine": 0.718,
+    "da_verificare": true
+  },
+  {
+    "id": "vendemmia",
+    "numero": 9,
+    "titolo": "Vendemmia",
+    "mesi": ["settembre", "ottobre"],
+    "bbch": "89",
+    "stadio": "acini maturi per la raccolta",
+    "sintesi": "Si raccoglie quando l'uva ha l'equilibrio cercato per il vino che si vuole fare.",
+    "inizio": 0.718,
+    "fine": 0.8,
+    "da_verificare": true
+  },
+  {
+    "id": "caduta",
+    "numero": 10,
+    "titolo": "Caduta delle foglie",
+    "mesi": ["ottobre", "novembre", "dicembre"],
+    "bbch": "91–97",
+    "stadio": "lignificazione, caduta delle foglie",
+    "sintesi": "I tralci finiscono di lignificare, le foglie ingialliscono e cadono. La pianta mette da parte le riserve per l'inverno.",
+    "inizio": 0.8,
+    "fine": 1,
+    "da_verificare": true
+  }
+]

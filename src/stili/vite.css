@@ -1,0 +1,266 @@
+/* ── la vite: tavola botanica a strati ──────────────────────────────── */
+.vite-strati {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.vite-svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.vite-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+/* brezza: ogni strato della chioma si inclina appena, ancorato al filo di banchina.
+   È una trasformazione del livello già disegnato: la fa il compositore, non si ridisegna l'SVG. */
+.vite-chioma {
+  /* la brezza è ancorata al filo di banchina, ovunque la camera lo porti */
+  transform-origin: 50% 57%; /* la camera la riscrive, ancorata al filo di banchina */
+  will-change: transform;
+  animation: brezza 7.4s ease-in-out infinite alternate;
+}
+.brezza-1 { animation-duration: 9.1s; animation-delay: -3.2s; }
+.brezza-2 { animation-duration: 6.3s; animation-delay: -1.4s; }
+@keyframes brezza {
+  0% { transform: skewX(0.9deg); }
+  45% { transform: skewX(-0.5deg) translateX(0.6px); }
+  100% { transform: skewX(-1.1deg); }
+}
+/* la brezza si ferma sul banco e mentre si legge una pratica; con movimento ridotto non c'è */
+html.banco-aperto .vite-chioma,
+html.pratica-aperta .vite-chioma {
+  animation-play-state: paused;
+}
+[data-movimento="ridotto"] .vite-chioma {
+  animation: none;
+}
+
+/* ── tavola incisa (DESIGN.md, "Vite: tavola incisa") ──────────────────
+   Linee avorio a spessore fisso sullo schermo (0,75-1,5px) a ogni ingrandimento; le forme sono
+   riempite del nero del fondo (coprono ciò che sta dietro, come in un'incisione); il colore è solo
+   un accento botanico nel segno (color) e in una velatura trasparente (--velo). */
+.vite-posto {
+  color: var(--avorio);
+}
+.v-suolo,
+.v-palo,
+.v-filo {
+  fill: none;
+  stroke: var(--avorio-20);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.v-legno {
+  fill: var(--nero);
+  stroke: currentColor;
+  stroke-width: 1.25;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+/* foglia: la lamina (contorno e velatura), poi in un solo tracciato picciolo, nervature e tratteggio */
+.v-lamina {
+  fill: color-mix(in oklab, currentColor calc(var(--velo, 0) * 100%), var(--nero));
+  stroke: currentColor;
+  stroke-width: 1;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.v-incisione {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 0.75;
+  stroke-linecap: round;
+  stroke-opacity: 0.72;
+  vector-effect: non-scaling-stroke;
+}
+.v-fessure {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 0.75;
+  stroke-opacity: 0.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.v-nodo {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.v-cotone {
+  fill: none;
+  stroke: var(--avorio);
+  stroke-width: 0.75;
+  vector-effect: non-scaling-stroke;
+}
+.v-punta {
+  fill: color-mix(in oklab, var(--verde) 25%, var(--nero));
+  stroke: var(--verde);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.v-legaccio {
+  fill: none;
+  stroke: var(--avorio-60);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+.v-pianto path,
+.v-pianto circle {
+  fill: var(--nero);
+  stroke: var(--avorio-60);
+  stroke-width: 0.75;
+  vector-effect: non-scaling-stroke;
+}
+.v-raspo {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.v-acino {
+  /* la velatura degli acini è vinaccia pura sul nero, non il colore del segno */
+  fill: color-mix(in oklab, var(--vinaccia) calc(var(--velo, 0) * 100%), var(--nero));
+  stroke: currentColor;
+  stroke-width: 0.75;
+  vector-effect: non-scaling-stroke;
+}
+.v-caliptra {
+  fill: var(--nero);
+  stroke: var(--avorio-60);
+  stroke-width: 0.75;
+  vector-effect: non-scaling-stroke;
+}
+.v-viticcio {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 0.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* note della tavola e luogo della pratica: a misura di schermo, qualunque sia lo zoom */
+.v-nota {
+  transform: scale(var(--unita, 1));
+}
+/* le note della tavola sono annotazioni (DESIGN.md): Bodoni corsivo 16px, punto di 3px e linea di
+   1px in oro al 60% */
+.v-etichetta {
+  font-family: var(--f-display);
+  font-optical-sizing: auto;
+  font-style: italic;
+  font-size: 16px;
+  fill: var(--avorio);
+  paint-order: stroke;
+  stroke: var(--nero-60);
+  stroke-width: 3px;
+}
+.v-guida { fill: none; stroke: var(--oro-60); stroke-width: 1; }
+.v-guida-punto { fill: var(--oro-60); }
+.v-etichette { animation: dissolvi var(--d-entrata) var(--ease-out) both; }
+.v-luogo { animation: dissolvi var(--d-entrata) var(--ease-out) both; }
+.v-luogo-anello {
+  fill: none;
+  stroke: var(--oro-60);
+  stroke-width: 1;
+  transform-origin: 0 0;
+  /* un solo impulso, poi l'anello resta: un'animazione infinita ridipingerebbe la tavola a ogni fotogramma */
+  animation: anello var(--d-scena) var(--ease-out) both;
+}
+.v-luogo-centro { fill: var(--oro-60); }
+.v-luogo-titolo {
+  font-family: var(--f-display);
+  font-optical-sizing: auto;
+  font-style: italic;
+  font-size: 16px;
+  fill: var(--avorio);
+  paint-order: stroke;
+  stroke: var(--nero-60);
+  stroke-width: 3px;
+}
+.v-luogo-dove {
+  font-family: var(--f-testo);
+  font-weight: 500;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  fill: var(--avorio-60);
+  paint-order: stroke;
+  stroke: var(--nero-60);
+  stroke-width: 3px;
+}
+@keyframes anello {
+  from { transform: scale(2.4); opacity: 0; }
+}
+[data-movimento="ridotto"] .v-luogo-anello { animation: none; }
+/* movimento ridotto: i tralci tagliati svaniscono senza cadere */
+[data-movimento="ridotto"] .vite-svg g[style] { transform: none !important; }
+
+
+/* il raccordo film ruota la vite: ciò che sta fuori dal viewBox resta disegnato negli angoli */
+.vite-svg {
+  overflow: visible;
+}
+/* nel primo piano del momento film resta a fuoco solo la gemma del raccordo: le altre si ritirano */
+.v-gemma-altra {
+  transition: opacity var(--d-ui) var(--ease-out);
+}
+.vite-posto.vicino .v-gemma-altra {
+  opacity: 0.06;
+}
+/* con una pratica aperta l'annotazione è il luogo della pratica: le note della tavola si ritirano
+   (al massimo due annotazioni visibili insieme) */
+.v-etichette > g {
+  transition: opacity var(--d-ui) var(--ease-in);
+}
+html.pratica-aperta .v-etichette > g {
+  opacity: 0;
+}
+/* sul telefono le note della tavola, scritte a misura di schermo, uscirebbero dal bordo:
+   restano le annotazioni del film e il luogo della pratica (da riprendere con la tavola incisa) */
+@media (max-width: 759px) {
+  .v-etichette {
+    display: none;
+  }
+}
+
+/* messa a fuoco del raccordo film: l'istantanea sfocata (1/6 dello schermo, ingrandita) e il velo
+   che scurisce. Solo transform e opacity, nessun filtro */
+.vite-fuoco {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.vite-buio {
+  position: absolute;
+  inset: 0;
+  background: var(--nero);
+  opacity: 0;
+  pointer-events: none;
+}
+/* la tavola nitida si dissolve con l'istantanea sfocata: un livello proprio, così l'opacità la fa il compositore */
+.vite-strati {
+  will-change: transform, opacity;
+  transform-origin: 0 0;
+}
+/* durante la rotazione del raccordo film pali e fili si ritirano: nessuna linea in diagonale */
+.v-fissi {
+  transition: opacity var(--d-ui) var(--ease-out);
+}
+.vite-posto.rollio .v-fissi {
+  opacity: 0;
+}

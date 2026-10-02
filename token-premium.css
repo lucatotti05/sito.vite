@@ -1,0 +1,131 @@
+/* L'anno della vite — token del design system (vedi DESIGN.md) */
+
+:root {
+  /* Colore */
+  --nero: #120d0a;
+  --terra: #1e1611;
+  --avorio: #ede4d3;
+  --avorio-85: rgb(237 228 211 / 0.85);
+  --avorio-60: rgb(237 228 211 / 0.6);
+  --avorio-20: rgb(237 228 211 / 0.2);
+  --oro: #c9a45c;
+  --oro-60: rgb(201 164 92 / 0.6);
+  --vinaccia: #6e1f2b;
+  --verde: #9cbf5a;
+  --ambra: #c98a3c;
+  --lanterna: #e8c58a;
+
+  /* Famiglie */
+  --f-display: "Bodoni Moda Variable", "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
+  --f-testo: "Instrument Sans Variable", "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+
+  /* Spazio */
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;  --s-5: 24px;  --s-6: 32px;
+  --s-7: 48px; --s-8: 64px; --s-9: 96px; --s-10: 128px; --s-11: 192px;
+  --margine-x: max(24px, 6vw);
+  --margine-top: 8vh;
+  --gutter: 24px;
+
+  /* Superfici */
+  --ombra-carta: 0 30px 60px -30px rgb(0 0 0 / 0.8);
+  --filetto: 1px solid var(--avorio-20);
+  --grana-opacita: 0.06;
+
+  /* Movimento */
+  --d-micro: 160ms;
+  --d-ui: 280ms;
+  --d-entrata: 450ms;
+  --d-scena: 700ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+}
+
+html { background: var(--nero); color: var(--avorio-85); }
+
+body {
+  font-family: var(--f-testo);
+  font-size: 17px;
+  line-height: 1.6;
+  font-variant-numeric: oldstyle-nums;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Stili tipografici */
+.t-titolo-fase {
+  font-family: var(--f-display);
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-size: clamp(64px, 7.5vw, 132px);
+  line-height: 0.92;
+  letter-spacing: -0.02em;
+  color: var(--avorio);
+}
+.t-titolo-sezione {
+  font-family: var(--f-display);
+  font-optical-sizing: auto;
+  font-weight: 400;
+  font-size: clamp(36px, 3.6vw, 60px);
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--avorio);
+}
+.t-introduzione {
+  font-family: var(--f-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(20px, 1.6vw, 26px);
+  line-height: 1.35;
+  max-width: 42ch;
+  color: var(--avorio-85);
+}
+.t-testo {
+  font-family: var(--f-testo);
+  font-size: 17px;
+  line-height: 1.6;
+  max-width: 62ch;
+  color: var(--avorio-85);
+}
+.t-etichetta {
+  font-family: var(--f-testo);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  color: var(--avorio-60);
+}
+.t-annotazione {
+  font-family: var(--f-display);
+  font-style: italic;
+  font-size: 16px;
+  line-height: 1.3;
+  color: var(--avorio);
+}
+.t-mese {
+  font-family: var(--f-display);
+  font-style: italic;
+  font-size: 56px;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: var(--avorio);
+}
+
+/* Transizioni standard */
+.tr-ui { transition: opacity var(--d-ui) var(--ease-out), transform var(--d-ui) var(--ease-out); }
+.tr-entrata { transition: opacity var(--d-entrata) var(--ease-out), transform var(--d-entrata) var(--ease-out); }
+
+:focus-visible { outline: 1px solid var(--oro); outline-offset: 4px; }
+
+@media (max-width: 720px) {
+  .t-titolo-fase { font-size: clamp(44px, 12vw, 64px); }
+  .t-mese { font-size: 30px; }
+  body, .t-testo { font-size: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+  }
+}

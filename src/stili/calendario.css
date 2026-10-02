@@ -1,0 +1,202 @@
+/* ── calendario: pagina d'almanacco (DESIGN.md, "Componenti") ────────────
+   Carta scura (--terra) con grana leggera, angoli appena smussati (2px), l'unica ombra degli
+   oggetti di carta. Appesa a un chiodo che passa nell'asola. Solo tipografia. */
+/* DESIGN.md chiede circa 220×300 (120×164 sul telefono) e il mese in stile `mese` (56px, 30px):
+   "novembre" in quello stile è largo 229px (122px). La pagina si allarga quanto basta perché
+   il mese più lungo ci stia; l'altezza resta quella del documento. */
+:root {
+  --cal-w: 264px;
+  --cal-h: 300px;
+}
+@media (max-width: 759px) {
+  :root {
+    --cal-w: 140px;
+    --cal-h: 164px;
+  }
+}
+
+.calendario {
+  position: absolute;
+  z-index: 8;
+  top: var(--s-5);
+  right: var(--margine-x);
+  width: var(--cal-w);
+  margin: 0;
+  pointer-events: none;
+  /* la carta: terra con una grana fine e fissa (nessun costo durante lo sfoglio) */
+  --cal-carta:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 .95  0 0 0 0 .86  0 0 0 .07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
+    var(--terra);
+  --cal-retro: color-mix(in oklab, var(--terra) 70%, var(--nero));
+}
+
+/* il blocco delle pagine, con lo spessore dei fogli sotto */
+.cal-blocco {
+  position: relative;
+  width: 100%;
+  height: var(--cal-h);
+  perspective: calc(var(--cal-w) * 4);
+  perspective-origin: 50% 0;
+  border-radius: 2px;
+  box-shadow: var(--ombra-carta);
+}
+.cal-blocco::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: -3px;
+  height: 3px;
+  border-bottom: var(--filetto);
+  border-radius: 0 0 2px 2px;
+  background: var(--cal-retro);
+  z-index: -1;
+}
+
+/* l'asola nella carta e il chiodo che la attraversa */
+.cal-asola {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  top: var(--s-3);
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: var(--nero);
+  border: var(--filetto);
+}
+.cal-chiodo {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: calc(var(--s-3) + 1px);
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: var(--avorio-60);
+}
+
+.cal-sotto,
+.cal-girevole,
+.cal-statica {
+  position: absolute;
+  inset: 0;
+  border-radius: 2px;
+}
+.cal-sotto {
+  overflow: hidden;
+  background: var(--cal-carta);
+}
+.cal-statica {
+  background: var(--cal-carta);
+  animation: dissolvi var(--d-ui) var(--ease-out) both;
+}
+.cal-girevole {
+  transform-style: preserve-3d;
+}
+
+/* la pagina che gira: strisce annidate, ognuna ruota rispetto alla precedente */
+.cal-seg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: calc(var(--cal-h) / var(--strisce));
+  transform-origin: 50% 0;
+  transform-style: preserve-3d;
+}
+.cal-seg .cal-seg {
+  top: 100%;
+}
+.cal-faccia {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  backface-visibility: hidden;
+  background: var(--cal-carta);
+}
+.cal-scorcio {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: var(--cal-h);
+  top: calc(var(--cal-h) / var(--strisce) * var(--k) * -1);
+}
+/* la piega: la striscia si scurisce quando si inclina verso chi guarda */
+.cal-piega {
+  position: absolute;
+  inset: 0;
+  background: var(--nero);
+  opacity: var(--piega, 0);
+  pointer-events: none;
+}
+.cal-retro {
+  position: absolute;
+  inset: -0.5px 0;
+  backface-visibility: hidden;
+  transform: rotateX(180deg);
+  background: var(--cal-retro);
+}
+/* l'ombra della pagina che si alza scorre sul foglio sotto */
+.cal-ombra {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 100%;
+  opacity: 0;
+  background: linear-gradient(180deg, var(--nero-60), var(--nero-0) 40%);
+  transform-origin: 50% 0;
+  will-change: transform, opacity;
+}
+
+/* la pagina: solo tipografia */
+.cal-pagina {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: var(--s-7) var(--s-4) var(--s-5);
+}
+.cal-romano {
+  font-variant-numeric: normal;
+}
+.cal-mese {
+  margin-top: var(--s-3);
+  text-wrap: nowrap;
+}
+.cal-filetto {
+  display: block;
+  margin: auto 0 var(--s-3);
+  border-top: var(--filetto);
+}
+.cal-fase {
+  display: flex;
+  flex-direction: column;
+}
+.cal-fase-nome {
+  color: var(--avorio-85);
+}
+
+@media (max-width: 759px) {
+  .calendario {
+    top: var(--s-4);
+  }
+  .cal-asola {
+    top: var(--s-2);
+  }
+  .cal-chiodo {
+    top: calc(var(--s-2) + 1px);
+  }
+  .cal-pagina {
+    padding: var(--s-5) var(--s-2) var(--s-3);
+  }
+  .cal-mese {
+    margin-top: var(--s-1);
+  }
+  .cal-filetto {
+    margin-bottom: var(--s-2);
+  }
+}

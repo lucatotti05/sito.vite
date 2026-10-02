@@ -1,0 +1,327 @@
+/* ── nodo orbitale delle pratiche ───────────────────────────────────── */
+.nodo {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  --n-tratto: var(--avorio-60);
+}
+.nodo-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  margin: 0 0 var(--s-2);
+}
+.nodo-dissolvi {
+  animation: dissolvi var(--d-entrata) var(--ease-out) both;
+}
+.forma-tratto,
+.forma-riempi {
+  stroke: none;
+  transition: opacity var(--d-ui) var(--ease-out);
+}
+/* la forma si avvicina alla pratica scelta */
+.nodo-fuoco-forma {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+  transition: transform var(--d-scena) var(--ease-out);
+}
+/* mentre una pratica è aperta, il resto della forma fa un passo indietro */
+.nodo.fermo :is(.forma-tratto, .forma-riempi) {
+  opacity: 0.55;
+}
+.nodo.fermo .forma-decoro > * {
+  opacity: 0.45;
+  transition: opacity var(--d-ui) var(--ease-out);
+}
+
+/* etichette, collegamenti, guide */
+.nodo-etichetta {
+  font-family: var(--f-testo);
+  /* stile etichetta; l'SVG del nodo è ridotto: --nodo-k riporta il testo a 13px veri sullo schermo */
+  font-size: calc(13px * var(--nodo-k, 1.5));
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  opacity: var(--vis, 1);
+  fill: var(--avorio-60);
+  paint-order: stroke;
+  stroke: var(--nero);
+  stroke-width: calc(4px * var(--nodo-k, 1.5));
+  stroke-linejoin: round;
+  transition: fill var(--d-micro) var(--ease-out), opacity var(--d-ui) var(--ease-out);
+  pointer-events: none;
+}
+.nodo.fermo .nodo-etichetta:not(.attiva):not(.vicina) {
+  opacity: calc(var(--vis, 1) * 0.35);
+}
+.nodo-etichetta.attiva { fill: var(--avorio); }
+.nodo-etichetta.vicina { fill: var(--avorio-85); }
+.nodo-guida { fill: none; stroke: var(--avorio-20); stroke-width: calc(1px * var(--nodo-k, 1.5)); stroke-dasharray: 2 3; }
+/* collegamenti: pathLength = 1, quindi i tratteggi sono frazioni della linea */
+.nodo-legame {
+  fill: none;
+  stroke: var(--avorio-60);
+  stroke-width: calc(1px * var(--nodo-k, 1.5));
+  stroke-dasharray: 0.006 0.016;
+  opacity: calc(var(--vis, 1) * 0.8);
+  transition: opacity var(--d-ui) var(--ease-out);
+}
+.nodo.fermo .nodo-legame:not(.acceso) {
+  opacity: calc(var(--vis, 1) * 0.25);
+}
+/* quello che parte dalla pratica scelta si disegna lungo il suo percorso */
+.nodo-legame.acceso {
+  stroke: var(--avorio);
+  stroke-width: calc(1px * var(--nodo-k, 1.5));
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: var(--vis, 1);
+  animation: traccia var(--d-scena) var(--ease-out) var(--d-micro) forwards;
+}
+@keyframes traccia {
+  to { stroke-dashoffset: 0; }
+}
+
+/* i nodi cliccabili */
+.nodo-bottone {
+  cursor: pointer;
+  outline: none;
+  opacity: var(--vis, 1);
+  transition: opacity var(--d-ui) var(--ease-out);
+}
+.nodo.fermo .nodo-bottone:not(.attiva):not(.vicina) {
+  opacity: calc(var(--vis, 1) * 0.35);
+}
+/* bersaglio da 44px veri sullo schermo, qualunque sia il disegno */
+.nodo-bersaglio { fill: transparent; r: calc(22px * var(--nodo-k, 1.5)); }
+.nodo-fuoco {
+  fill: none;
+  stroke: var(--oro);
+  stroke-width: calc(1px * var(--nodo-k, 1.5));
+  r: calc(20px * var(--nodo-k, 1.5));
+  opacity: 0;
+}
+.nodo-bottone:focus-visible .nodo-fuoco { opacity: 1; }
+/* la pressione: il marcatore si comprime, rimbalza e resta in primo piano */
+.m-corpo {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.nodo-bottone.attiva .m-corpo {
+  animation: pressione var(--d-entrata) var(--ease-out) forwards;
+}
+@keyframes pressione {
+  0% { transform: scale(1); }
+  18% { transform: scale(0.84); }
+  58% { transform: scale(1.3); }
+  100% { transform: scale(1.18); }
+}
+/* l'onda d'oro che parte dal marcatore scelto */
+.m-onda {
+  fill: none;
+  stroke: var(--avorio-60);
+  stroke-width: 1;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: onda var(--d-scena) var(--ease-out) forwards;
+  pointer-events: none;
+}
+@keyframes onda {
+  from { transform: scale(0.9); opacity: 0.95; }
+  to { transform: scale(3.4); opacity: 0; }
+}
+[data-movimento="ridotto"] :is(.m-corpo, .m-onda, .nodo-legame.acceso) {
+  animation: none !important;
+}
+[data-movimento="ridotto"] .nodo-legame.acceso {
+  stroke-dashoffset: 0;
+}
+[data-movimento="ridotto"] .m-onda {
+  display: none;
+}
+
+/* marcatori: colore proprio, oro quando attivi, oro tenue se collegati */
+.m-gemma { fill: #7a3e22; stroke: var(--n-tratto); stroke-width: 0.8; transition: fill var(--d-micro) var(--ease-out); }
+.m-perule { fill: none; stroke: var(--avorio-60); stroke-width: 0.9; }
+.m-goccia { fill: color-mix(in oklab, #b9d0d0 70%, transparent); stroke: var(--avorio); stroke-width: 0.8; transition: fill var(--d-micro) var(--ease-out); }
+.m-riflesso { fill: none; stroke: var(--avorio); stroke-width: 1.2; stroke-linecap: round; opacity: 0.8; }
+.m-punta { fill: var(--verde); stroke: var(--n-tratto); stroke-width: 0.6; transform-box: fill-box; transform-origin: 50% 100%; transform: scale(var(--apre, 1)); }
+.m-foglioline { fill: color-mix(in oklab, var(--verde) 80%, var(--nero)); opacity: calc((var(--apre, 1) - 0.55) * 2.2); }
+.m-punta-lobo { fill: var(--verde); stroke: var(--nero); stroke-width: 1.4; transition: fill var(--d-micro) var(--ease-out); }
+.m-antera { fill: var(--ambra); stroke: var(--n-tratto); stroke-width: 0.9; transition: fill var(--d-micro) var(--ease-out); }
+.m-solco { fill: none; stroke: var(--n-tratto); stroke-width: 0.7; }
+.m-acino { fill: var(--acino, var(--verde)); stroke: var(--avorio-60); stroke-width: 1.2; transition: stroke var(--d-micro) var(--ease-out); }
+.m-acino-luce { fill: var(--avorio-20); }
+.m-stazione { fill: var(--nero); stroke: var(--avorio-60); stroke-width: 1.5; transition: fill var(--d-micro) var(--ease-out); }
+.m-stazione-cuore { fill: var(--avorio); }
+.m-foglia-secca { stroke: var(--nero-60); stroke-width: 0.8; transition: fill var(--d-micro) var(--ease-out); }
+.m-0 .m-foglia-secca, .d-foglia-0 .m-foglia-secca { fill: color-mix(in oklab, var(--ambra) 70%, var(--oro)); }
+.m-1 .m-foglia-secca, .d-foglia-1 .m-foglia-secca { fill: color-mix(in oklab, var(--ambra) 60%, var(--vinaccia)); }
+.m-2 .m-foglia-secca, .d-foglia-2 .m-foglia-secca { fill: var(--ambra); }
+
+.nodo-bottone:hover :is(.m-gemma, .m-goccia, .m-punta-lobo, .m-antera, .m-foglia-secca) { filter: brightness(1.25); }
+/* la pratica scelta e le collegate si accendono in avorio: l'oro della schermata è uno solo */
+.nodo-bottone.vicina :is(.m-gemma, .m-punta-lobo, .m-antera, .m-stazione) { fill: color-mix(in oklab, var(--avorio) 35%, var(--terra)); }
+.nodo-bottone.attiva :is(.m-gemma, .m-goccia, .m-punta-lobo, .m-antera, .m-stazione, .m-foglia-secca) { fill: var(--avorio); }
+.nodo-bottone.attiva .m-acino { stroke: var(--avorio); stroke-width: 3; }
+.nodo-bottone.vicina .m-acino { stroke: var(--avorio-85); stroke-width: 2; }
+
+/* decori */
+.d-legno-vecchio { fill: none; stroke: #4a3a2e; stroke-width: 7; opacity: 0.9; }
+.d-crepe { fill: none; stroke: var(--n-tratto); stroke-width: 0.7; }
+.d-taglio { fill: var(--avorio); stroke: var(--n-tratto); stroke-width: 0.8; }
+.d-corteccia { fill: #4a3a2e; stroke: var(--n-tratto); stroke-width: 0.8; }
+.d-legno { fill: #c9a36a; }
+.d-raggi { stroke: var(--n-tratto); stroke-width: 0.6; opacity: 0.7; fill: none; }
+.d-midollo { fill: var(--avorio); stroke: var(--n-tratto); stroke-width: 0.6; }
+.d-bagnato { fill: var(--avorio-20); }
+.d-terra { fill: none; stroke: #5a3818; stroke-width: 3; stroke-linecap: round; }
+.d-vene { fill: none; stroke: var(--verde); stroke-width: 1.1; opacity: 0.85; }
+.d-picciolo { fill: none; stroke: var(--verde); stroke-width: 4; stroke-linecap: round; opacity: 0.9; }
+.d-ricordo { fill: none; stroke: var(--avorio-60); stroke-width: 0.9; stroke-dasharray: 2 6; }
+.d-filamento { fill: none; stroke: var(--avorio-85); stroke-width: 2.2; stroke-linecap: round; }
+.d-pedicello { fill: none; stroke-width: 5; stroke-linecap: round; }
+.d-pedicello-stop { stop-color: color-mix(in oklab, var(--verde) 70%, var(--nero)); }
+.d-ricettacolo { fill: color-mix(in oklab, var(--verde) 70%, var(--nero)); stroke: var(--n-tratto); stroke-width: 0.8; }
+.d-nettario { fill: var(--ambra); stroke: var(--n-tratto); stroke-width: 0.5; }
+.d-ovario { fill: var(--verde); stroke: var(--n-tratto); stroke-width: 0.9; }
+.d-stilo { fill: none; stroke: var(--n-tratto); stroke-width: 1.4; }
+.d-stimma { fill: var(--avorio-85); stroke: var(--n-tratto); stroke-width: 0.6; }
+.d-raspo { fill: none; stroke: color-mix(in oklab, var(--verde) 60%, var(--nero)); stroke-width: 2; stroke-linecap: round; }
+.d-acino { stroke: var(--avorio-20); stroke-width: 0.8; }
+.d-acino-maturo { fill: color-mix(in oklab, var(--vinaccia) 60%, var(--nero)); }
+.d-pedicello-acino { fill: none; stroke: #7d6a3c; stroke-width: 5; stroke-linecap: round; }
+.d-pennello { fill: none; stroke: var(--avorio-60); stroke-width: 2; }
+.d-vasi { fill: none; stroke: var(--avorio-20); stroke-width: 1; }
+.d-seme { fill: #7a5230; stroke: var(--n-tratto); stroke-width: 0.8; }
+.d-seme-luce { fill: none; stroke: var(--avorio-60); stroke-width: 1.2; stroke-linecap: round; }
+.d-pruina { fill: none; stroke: var(--avorio-60); stroke-width: 3; stroke-dasharray: 1 4; stroke-linecap: round; }
+.d-tralcio { fill: none; stroke: #8e5a32; stroke-width: 5; stroke-linecap: round; }
+.d-cassetta path:first-child { fill: #5a3a22; stroke: var(--n-tratto); stroke-width: 1; }
+.d-doghe { fill: none; stroke: var(--nero-60); stroke-width: 1.4; }
+.d-zolle { fill: none; stroke: #3a2614; stroke-width: 2; stroke-linecap: round; }
+
+/* con la scheda aperta il nodo si riduce verso il basso: la colonna sopra è della scheda */
+.nodo-svg {
+  transform-origin: 0 100%;
+  transition: transform var(--d-entrata) var(--ease-out);
+}
+html.pratica-aperta .nodo-svg {
+  transform: scale(0.7);
+}
+html.pratica-aperta .nodo-invito {
+  display: none;
+}
+/* invito e scheda della pratica */
+.nodo-invito {
+  margin: 0;
+  max-width: 42ch;
+}
+/* desktop: la scheda prende la colonna sinistra sopra il nodo (il titolo si ritira) e lascia libera
+   la vite. Pannello senza bordo, con il filetto verticale in vinaccia (DESIGN.md, "Nodo orbitale") */
+.scheda {
+  /* dal margine superiore fino sopra il nodo, che si riduce mentre la scheda è aperta */
+  position: fixed;
+  z-index: 3;
+  left: var(--margine-x);
+  top: var(--margine-top);
+  bottom: calc(var(--striscia-h) + var(--s-3) + var(--col-4) * 0.712 * 0.7 + var(--s-7));
+  width: var(--col-4);
+  overflow: auto;
+  padding: var(--s-5) var(--s-5) var(--s-5) var(--s-6);
+  background: var(--nero-90);
+  border-left: 1px solid var(--vinaccia);
+}
+[data-movimento="ridotto"] .scheda {
+  animation: dissolvi var(--d-ui) var(--ease-out) both;
+}
+.scheda-testa {
+  position: relative;
+  padding-right: var(--s-9);
+  margin-bottom: var(--s-5);
+}
+.scheda-titolo {
+  margin: 0 0 var(--s-2);
+  text-wrap: balance;
+}
+.scheda-meta {
+  margin: 0;
+}
+.scheda-chiudi {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--avorio-20);
+  text-underline-offset: 6px;
+  transition: color var(--d-micro) var(--ease-out), text-decoration-color var(--d-micro) var(--ease-out);
+}
+.scheda-chiudi:hover {
+  color: var(--avorio);
+  text-decoration-color: var(--avorio-60);
+}
+.scheda-campi {
+  margin: 0;
+  display: grid;
+  gap: var(--s-4);
+}
+.scheda-campi div {
+  display: grid;
+  gap: var(--s-1);
+}
+.scheda-campi dd {
+  margin: 0;
+}
+/* l'errore tipico si distingue per il fondo vinaccia, non per una barra laterale */
+.scheda-errore {
+  padding: var(--s-3) var(--s-4);
+  background: color-mix(in oklab, var(--vinaccia) 34%, var(--nero));
+}
+.scheda-errore dt { color: var(--avorio-85); }
+.scheda-errore dd { color: var(--avorio); }
+.scheda-legami { margin-top: var(--s-5); display: flex; flex-direction: column; gap: var(--s-2); }
+.nodo-chip { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.nodo-chip button {
+  min-height: 44px;
+  padding: 0 var(--s-4);
+  border: var(--filetto);
+  background: transparent;
+  color: var(--avorio-85);
+  font: 500 13px/1 var(--f-testo);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: border-color var(--d-micro) var(--ease-out), color var(--d-micro) var(--ease-out);
+}
+.nodo-chip button:hover { border-color: var(--avorio-60); color: var(--avorio); }
+
+@media (max-width: 759px) {
+  .nodo-svg {
+    margin: 0 auto;
+    height: 25svh;
+    width: auto;
+    max-width: 100%;
+    transition: transform var(--d-entrata) var(--ease-out);
+    transform-origin: 50% 0;
+  }
+  .nodo-invito { text-align: center; margin: var(--s-1) auto 0; }
+  /* con la scheda aperta il nodo sale e si riduce: il grafo resta visibile sopra il foglio */
+  html.pratica-aperta .nodo-svg {
+    transform: translateY(-31svh) scale(0.7);
+  }
+  .scheda {
+    position: fixed;
+    left: var(--margine-x);
+    right: var(--margine-x);
+    top: auto;
+    bottom: calc(var(--striscia-h) + var(--s-2));
+    width: auto;
+    max-height: 48svh;
+    padding: var(--s-4) var(--s-4) var(--s-5) var(--s-5);
+  }
+}

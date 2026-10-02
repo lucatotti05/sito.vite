@@ -1,0 +1,37 @@
+{
+  "id": "03-germogliamento",
+  "fase": 3,
+  "titolo": "La gemma si apre",
+  "descrizione": "Timelapse in macro: la gemma cotonosa si apre e compare il germoglio con le prime foglioline.",
+  "fotogrammi": {
+    "percorso": "fotogrammi/{n}.webp",
+    "cifre": 3,
+    "numero": 124,
+    "larghezza": 1280,
+    "altezza": 720
+  },
+  "inquadratura": {
+    "fuoco": [0.58, 0.4]
+  },
+  "soggetto": {
+    "inizio": { "base": [0.602, 0.542], "punta": [0.5625, 0.208], "centro": [0.582, 0.382], "raggio": 0.18 },
+    "fine": { "base": [0.609, 0.542], "punta": [0.547, 0.083], "centro": [0.59, 0.3], "raggio": 0.25 }
+  },
+  "tavola": {
+    "inizio": "gemma-sperone-0",
+    "fine": "germoglio-sperone-0"
+  },
+  "anno": { "quota": 0.5 },
+  "luce": "#d6a265",
+  "note": [
+    { "testo": "perule", "x": 0.505, "y": 0.47, "da": 0.0, "a": 0.55, "lx": -150, "ly": 40 },
+    { "testo": "lanugine della gemma cotonosa", "x": 0.57, "y": 0.3, "da": 0.05, "a": 0.4, "lx": -230, "ly": -70 },
+    { "testo": "nodo del tralcio", "x": 0.66, "y": 0.62, "da": 0.12, "a": 0.55, "lx": 120, "ly": 90 },
+    { "testo": "punta verde", "x": 0.545, "y": 0.13, "da": 0.58, "a": 1.0, "lx": -170, "ly": -10 }
+  ],
+  "sottotitoli": [
+    { "da": 0.04, "a": 0.4, "testo": "Fine marzo. Le perule si schiudono e lasciano vedere la lanugine: è la gemma cotonosa." },
+    { "da": 0.4, "a": 0.74, "testo": "La gemma si gonfia e sotto il feltro comincia a comparire il verde." },
+    { "da": 0.74, "a": 1.0, "testo": "Aprile. Escono le punte verdi e le prime foglioline, ancora ripiegate." }
+  ]
+}

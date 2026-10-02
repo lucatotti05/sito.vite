@@ -1,0 +1,51 @@
+[
+  {
+    "id": "potatore",
+    "titolo": "Il Potatore",
+    "tipo": "gioco",
+    "fasi": [1],
+    "stato": "disponibile",
+    "oggetto": "campione",
+    "anteprima": "anteprime/potatore.jpg",
+    "link": "esempi/potatore/index.html",
+    "sintesi": "Si pota una vite generata a caso, a Guyot o a cordone speronato, e poi la si guarda germogliare in primavera.",
+    "punti": [
+      "capo a frutto, sperone di rinnovo e taglio di ritorno",
+      "carico di gemme in base alla forma e al vigore",
+      "l'effetto dei tagli sulla crescita: l'acrotonia"
+    ]
+  },
+  {
+    "id": "trattore",
+    "titolo": "Il trattore in campo",
+    "tipo": "simulazione",
+    "fasi": [2, 9],
+    "stato": "disponibile",
+    "oggetto": "schermo",
+    "anteprima": "anteprime/trattore.jpg",
+    "link": "esempi/trattore/index.html",
+    "sintesi": "Il trattore che lavora l'interfila, prepara i trattamenti e porta l'uva in cantina: aderenza, resistenze, potenze, stabilità in pendenza e il motore diesel a quattro tempi.",
+    "punti": [
+      "aderenza e resistenze in salita e in curva",
+      "potenze e presa di potenza",
+      "il ciclo del motore diesel, pezzo per pezzo"
+    ]
+  },
+  { "id": "forme-allevamento", "titolo": "Atlante delle forme di allevamento", "tipo": "atlante", "fasi": [1], "stato": "in arrivo", "anteprima": null, "link": null },
+  { "id": "malattie-legno", "titolo": "Le malattie del legno", "tipo": "scheda", "fasi": [1, 10], "stato": "in arrivo", "anteprima": null, "link": null },
+  { "id": "pianto", "titolo": "Il pianto della vite", "tipo": "scheda", "fasi": [2], "stato": "in arrivo", "anteprima": null, "link": null },
+  { "id": "gelate", "titolo": "Gelate tardive: leggere il rischio", "tipo": "simulazione", "fasi": [3], "stato": "in arrivo", "anteprima": null, "link": null },
+  { "id": "gemma", "titolo": "Dentro una gemma", "tipo": "modello 3D", "fasi": [3], "stato": "in arrivo", "anteprima": null, "link": null },
+  { "id": "scacchiatura", "titolo": "Quali germogli togliere", "tipo": "gioco", "fasi": [4], "stato": "in arrivo", "anteprima": null, "link": null },
+  { "id": "peronospora", "titolo": "Peronospora: come nasce un'infezione", "tipo": "simulazione", "fasi": [4, 5], "stato": "in arrivo", "anteprima": null, "link": null },
+  { "id": "fiore", "titolo": "Il fiore della vite", "tipo": "modello 3D", "fasi": [5], "stato": "in arrivo", "anteprima": null, "link": null },
+  { "id": "chioma", "titolo": "Chioma e microclima del grappolo", "tipo": "simulazione", "fasi": [6], "stato": "in arrivo", "anteprima": null, "link": null },
+  { "id": "colatura", "titolo": "Colatura e acinellatura", "tipo": "scheda", "fasi": [6], "stato": "in arrivo", "anteprima": null, "link": null },
+  { "id": "diradamento", "titolo": "Diradamento: quanto lasciare", "tipo": "gioco", "fasi": [7], "stato": "in arrivo", "anteprima": null, "link": null },
+  { "id": "colore", "titolo": "Il colore degli acini", "tipo": "scheda", "fasi": [7], "stato": "in arrivo", "anteprima": null, "link": null },
+  { "id": "campionamento", "titolo": "Campionare le uve", "tipo": "simulazione", "fasi": [8], "stato": "in arrivo", "anteprima": null, "link": null },
+  { "id": "maturita", "titolo": "Le maturità dell'uva", "tipo": "scheda", "fasi": [8], "stato": "in arrivo", "anteprima": null, "link": null },
+  { "id": "vigna-cantina", "titolo": "Dalla vigna alla cantina", "tipo": "simulazione", "fasi": [9], "stato": "in arrivo", "anteprima": null, "link": null },
+  { "id": "riserve", "titolo": "Le riserve della vite in inverno", "tipo": "scheda", "fasi": [10], "stato": "in arrivo", "anteprima": null, "link": null },
+  { "id": "sovesci", "titolo": "Sovesci e copertura del suolo", "tipo": "atlante", "fasi": [10], "stato": "in arrivo", "anteprima": null, "link": null }
+]

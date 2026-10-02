@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Il ciclo a quattro tempi — Il trattore in campo</title>
+<meta name="description" content="Il ciclo a quattro tempi del motore diesel spiegato scorrendo: il modello 3D gira con la pagina, il diagramma pressione-volume segue il pistone, fase per fase.">
+<meta name="theme-color" content="#EEE8DA">
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/icons/favicon-16.png">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Trattore">
+<meta name="color-scheme" content="light">
+<link rel="preload" href="assets/fonts/fraunces-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/ibm-plex-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<script>
+  /* "js" abilita le animazioni; "rm" (movimento ridotto) va deciso prima del primo disegno,
+     così la pagina non salta dal layout a scorrimento a quello a schede. */
+  document.documentElement.classList.add("js");
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) document.documentElement.classList.add("rm");
+</script>
+<style>
+  /* ---------- Font locali (funzionano offline) ---------- */
+  @font-face{font-family:"Fraunces";src:url("assets/fonts/fraunces-latin-wght-normal.woff2") format("woff2");font-weight:300 800;font-style:normal;font-display:swap;}
+  @font-face{font-family:"Fraunces";src:url("assets/fonts/fraunces-latin-wght-italic.woff2") format("woff2");font-weight:300 800;font-style:italic;font-display:swap;}
+  @font-face{font-family:"IBM Plex Sans";src:url("assets/fonts/ibm-plex-sans-latin-400-normal.woff2") format("woff2");font-weight:400;font-display:swap;}
+  @font-face{font-family:"IBM Plex Sans";src:url("assets/fonts/ibm-plex-sans-latin-500-normal.woff2") format("woff2");font-weight:500;font-display:swap;}
+  @font-face{font-family:"IBM Plex Sans";src:url("assets/fonts/ibm-plex-sans-latin-600-normal.woff2") format("woff2");font-weight:600;font-display:swap;}
+  @font-face{font-family:"IBM Plex Mono";src:url("assets/fonts/ibm-plex-mono-latin-400-normal.woff2") format("woff2");font-weight:400;font-display:swap;}
+  @font-face{font-family:"IBM Plex Mono";src:url("assets/fonts/ibm-plex-mono-latin-500-normal.woff2") format("woff2");font-weight:500;font-display:swap;}
+  @font-face{font-family:"IBM Plex Mono";src:url("assets/fonts/ibm-plex-mono-latin-600-normal.woff2") format("woff2");font-weight:600;font-display:swap;}
+
+  /* ---------- Token (vedi DESIGN.md) ---------- */
+  :root{
+    --bg:#EEE8DA; --surface:#F7F3E9; --surface-2:#FFFDF7; --sunken:#E6DFCE; --tray:#E2D9C5;
+    --ink:#221E18; --ink-2:#4F493E; --ink-3:#6B6456;
+    --line:#DCD3BF; --line-strong:#C4B99F;
+    --brand:#233A2C; --brand-2:#2F4A39; --brand-ink:#F3EEE2;
+    --accent:#A9581F; --accent-ink:#8A4415; --accent-soft:#F3E3D2;
+    /* colori della carica nel cilindro (DESIGN.md §7) */
+    --g-asp:#8FBFDE; --g-com:#3E5C76; --g-sco:#E0521C; --g-sca:#8C8577; --inj:#C08A2E;
+    --serif:"Fraunces", "Iowan Old Style", Georgia, serif;
+    --sans:"IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono:"IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    --t-xs:12px; --t-sm:13px; --t-md:14px; --t-base:16px; --t-lg:18px; --t-xl:22px;
+    --t-h2:clamp(28px,4.2vw,40px); --t-h1:clamp(40px,7.2vw,76px);
+    --r-xs:6px; --r-sm:8px; --r-md:12px; --r-lg:16px; --r-xl:22px;
+    --shadow-1:0 1px 2px rgba(35,58,44,.06);
+    --shadow-2:0 1px 0 rgba(255,255,255,.55) inset, 0 28px 56px -36px rgba(35,58,44,.42), 0 2px 6px -2px rgba(35,58,44,.08);
+    --hairline:inset 0 0 0 1px rgba(35,58,44,.09);
+    --ease:cubic-bezier(.32,.72,0,1); --d1:160ms; --d2:240ms; --d3:420ms;
+    --z-hud:5; --z-panel:8; --z-popup:10; --z-nav:20;
+    --gutter:clamp(16px,5vw,40px);
+    --sec:clamp(72px,9vw,120px);
+    --nav:60px;
+    /* pannello fisso su telefono e tablet: modello e diagramma in alto, testo sotto */
+    --panel-h:clamp(330px,56svh,520px);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-padding-top:72px;-webkit-text-size-adjust:100%;color-scheme:light;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:var(--t-base);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden;font-feature-settings:"kern";}
+  ::selection{background:var(--accent-soft);color:var(--ink);}
+  :focus-visible{outline:2px solid var(--accent-ink);outline-offset:3px;border-radius:var(--r-xs);}
+  a{color:var(--brand);}
+  button, a, input[type=range]{touch-action:manipulation;-webkit-tap-highlight-color:rgba(169,88,31,.12);}
+  .skip{position:absolute;left:-999px;top:8px;background:var(--brand);color:var(--brand-ink);padding:10px 14px;border-radius:var(--r-sm);z-index:99;}
+  .skip:focus{left:8px;}
+  .container{max-width:1200px;margin:0 auto;padding:0 var(--gutter);}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums;}
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+  strong{font-weight:600;color:var(--ink);}
+
+  /* ---------- Barra di navigazione ---------- */
+  .topbar{position:sticky;top:0;z-index:var(--z-nav);background:rgba(238,232,218,.86);backdrop-filter:saturate(1.3) blur(12px);-webkit-backdrop-filter:saturate(1.3) blur(12px);box-shadow:0 1px 0 var(--line);}
+  .topbar .container{display:flex;align-items:center;gap:16px;height:var(--nav);}
+  .brand{display:flex;align-items:center;gap:10px;color:var(--brand);text-decoration:none;font-family:var(--serif);font-weight:600;font-size:17px;letter-spacing:-.01em;white-space:nowrap;flex:none;}
+  .nav{display:flex;gap:2px;margin-left:auto;overflow-x:auto;scrollbar-width:none;padding:4px;background:rgba(255,253,247,.55);border-radius:999px;box-shadow:var(--hairline);-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 18px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 18px),transparent);}
+  .nav::-webkit-scrollbar{display:none;}
+  .nav a{display:flex;align-items:center;gap:6px;min-height:36px;font-size:var(--t-md);font-weight:500;color:var(--ink-2);text-decoration:none;padding:0 14px;border-radius:999px;white-space:nowrap;transition:background var(--d2) var(--ease),color var(--d2) var(--ease);}
+  .nav a:last-child{margin-right:14px;}
+  .nav a:hover{color:var(--ink);background:rgba(35,58,44,.06);}
+  .nav a[aria-current="true"]{background:var(--brand);color:var(--brand-ink);}
+  @media (min-width:900px){.nav{-webkit-mask-image:none;mask-image:none;}.nav a:last-child{margin-right:0;}}
+  @media (max-width:560px){.brand .brand-text{display:none;}.topbar .container{gap:10px;}.nav{margin-left:0;flex:1;}}
+
+  /* ---------- Apertura ---------- */
+  .intro{min-height:calc(100svh - var(--nav));display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:clamp(28px,5vw,72px);align-items:center;padding:clamp(40px,6vw,80px) 0 clamp(32px,5vw,56px);}
+  @media (max-width:900px){.intro{grid-template-columns:1fr;align-content:center;}}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:var(--t-xs);font-weight:500;color:var(--accent-ink);letter-spacing:.06em;text-transform:uppercase;margin:0 0 22px;padding:6px 12px 6px 10px;background:var(--surface-2);border-radius:999px;box-shadow:var(--hairline);}
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);}
+  h1.title{font-family:var(--serif);font-weight:600;font-size:var(--t-h1);line-height:.98;letter-spacing:-.03em;margin:0 0 24px;color:var(--brand);max-width:13ch;text-wrap:balance;font-variation-settings:"SOFT" 40,"opsz" 144;}
+  h1.title em{font-style:italic;font-weight:500;color:var(--accent-ink);}
+  .lead{font-size:clamp(17px,1.7vw,19px);line-height:1.6;color:var(--ink-2);max-width:54ch;margin:0;text-wrap:pretty;}
+  .cue{display:inline-flex;align-items:center;gap:10px;margin-top:32px;font-family:var(--mono);font-size:var(--t-xs);font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);text-decoration:none;min-height:44px;border-radius:999px;transition:color var(--d2) var(--ease);}
+  .cue:hover{color:var(--ink);}
+  .cue svg{width:28px;height:28px;flex:none;color:var(--accent-ink);}
+  .cue .rm-only,.rm .cue .scroll-only{display:none;}
+  .rm .cue .rm-only{display:inline;}
+  .scheda{background:var(--surface-2);border-radius:var(--r-lg);box-shadow:var(--hairline),var(--shadow-1);padding:18px 20px 6px;}
+  .scheda h2{font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:0 0 6px;}
+  .specs{display:grid;grid-template-columns:1fr 1fr;margin:0;}
+  .specs div{padding:12px 0;border-top:1px solid var(--line);}
+  .specs div:nth-child(odd){padding-right:12px;border-right:1px solid var(--line);}
+  .specs div:nth-child(even){padding-left:14px;}
+  .specs dt{color:var(--ink-3);font-size:var(--t-xs);margin-bottom:3px;}
+  .specs dd{margin:0;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:15px;color:var(--brand);font-weight:600;}
+  .specs dd small{font-family:var(--sans);font-weight:400;font-size:var(--t-xs);color:var(--ink-3);}
+
+  /* ---------- Sezioni ---------- */
+  section.block{padding-top:var(--sec);}
+  .sec-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 48px;align-items:end;margin-bottom:28px;}
+  @media (max-width:900px){.sec-head{grid-template-columns:1fr;margin-bottom:22px;}}
+  .sec-eyebrow{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:var(--t-xs);font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink);margin:0 0 12px;}
+  .sec-eyebrow::after{content:"";flex:0 0 36px;height:1px;background:var(--line-strong);}
+  h2.section-title{font-family:var(--serif);font-weight:600;font-size:var(--t-h2);letter-spacing:-.022em;line-height:1.06;color:var(--brand);margin:0;text-wrap:balance;font-variation-settings:"opsz" 96;}
+  .sec-sub{font-size:var(--t-base);line-height:1.6;color:var(--ink-2);margin:0;max-width:52ch;text-wrap:pretty;}
+
+  /* ---------- Strumento (doppio bordo) ---------- */
+  .instrument{background:var(--tray);border-radius:var(--r-xl);padding:6px;box-shadow:var(--shadow-2);}
+  .instrument > .core{border-radius:calc(var(--r-xl) - 6px);overflow:hidden;background:var(--surface);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),inset 0 0 0 1px rgba(35,58,44,.06);}
+
+  /* ---------- Pulsanti ---------- */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;font-family:var(--sans);font-size:var(--t-md);font-weight:600;background:var(--surface-2);color:var(--brand);border:0;border-radius:999px;padding:0 16px;cursor:pointer;box-shadow:var(--hairline),var(--shadow-1);transition:background var(--d2) var(--ease),transform var(--d1) var(--ease);}
+  .btn:hover{background:#fff;}
+  .btn:active{transform:scale(.97);}
+
+  /* ---------- Ciclo: layout a scorrimento ---------- */
+  .sc-grid{position:relative;}
+  .sc-panel{z-index:var(--z-panel);}
+  .sc-panel .instrument{height:100%;}
+  .sc-panel .core{height:100%;display:flex;flex-direction:column;}
+  .sc-views{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);}
+
+  @media (min-width:1024px){
+    .sc-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:clamp(32px,4vw,56px);align-items:start;}
+    .sc-panel{position:sticky;top:72px;height:calc(100svh - 84px);min-height:520px;}
+    /* il testo di una fase è centrato sulla linea di lettura (metà dello spazio sotto la barra)
+       quando la manovella è a metà di quella fase: vedi readLine() nello script */
+    .sc-steps{padding-block:calc(50svh - 42px);}
+    .step{min-height:calc(100svh - var(--nav));}
+  }
+  @media (max-width:1023px){
+    .sc-panel{position:sticky;top:var(--nav);height:var(--panel-h);margin:0 calc(-1 * var(--gutter));padding:8px var(--gutter) 10px;background:var(--bg);box-shadow:0 1px 0 var(--line);}
+    .sc-steps{padding-block:calc((100svh - var(--nav) - var(--panel-h)) / 2);}
+    .step{min-height:calc(100svh - var(--nav) - var(--panel-h));}
+  }
+
+  /* modello 3D */
+  .cm-model{position:relative;min-width:0;min-height:0;background:radial-gradient(120% 90% at 42% 34%,#FFFDF7 0%,#F1ECDF 55%,#E1D9C6 100%);overflow:hidden;}
+  .cm-canvas,.cm-canvas canvas{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  .cm-canvas{opacity:0;transition:opacity var(--d3) var(--ease);}
+  .cm-poster{position:absolute;inset:4% 6%;width:88%;height:92%;object-fit:contain;transition:opacity var(--d3) var(--ease);pointer-events:none;}
+  .cm-model.is-ready .cm-poster{opacity:0;}
+  .cm-model.is-ready .cm-canvas{opacity:1;}
+  .cm-progress{position:absolute;left:0;right:0;top:0;height:3px;opacity:0;transition:opacity var(--d2);}
+  .cm-progress i{display:block;height:100%;background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform .2s linear;}
+  .cm-model.is-loading .cm-progress{opacity:1;}
+  .cm-status{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);font-size:var(--t-xs);font-weight:500;color:var(--ink);background:rgba(255,253,247,.92);border-radius:999px;padding:6px 12px;opacity:0;transition:opacity var(--d2);pointer-events:none;white-space:nowrap;box-shadow:var(--hairline);}
+  .cm-model.is-loading .cm-status{opacity:1;}
+  .cm-error{position:absolute;left:8px;right:8px;bottom:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 10px;background:var(--surface-2);box-shadow:var(--hairline),var(--shadow-1);border-radius:var(--r-md);padding:8px;font-size:var(--t-sm);color:#9B3B2E;text-align:center;z-index:var(--z-popup);}
+  .cm-error[hidden]{display:none;}
+
+  /* diagramma p-V */
+  .cm-pv{position:relative;margin:0;min-width:0;min-height:0;border-left:1px solid var(--line);background:var(--surface-2);display:flex;flex-direction:column;}
+  .cm-pv svg{flex:1 1 auto;min-height:0;width:100%;display:block;overflow:visible;}
+  .cm-pv figcaption{display:flex;flex-wrap:wrap;gap:2px 12px;padding:0 10px 8px;font-size:11.5px;line-height:1.35;color:var(--ink-2);}
+  .cm-pv figcaption span{display:inline-flex;align-items:center;gap:6px;}
+  .cm-pv figcaption i{display:inline-block;width:16px;height:0;border-top:2px solid var(--ink-2);}
+  .cm-pv figcaption i.d{border-top:1.5px dashed var(--ink-3);}
+  .pv-ax{stroke:var(--ink-3);stroke-width:1;fill:none;}
+  .pv-grid{stroke:var(--line);stroke-width:1;}
+  .pv-t{font-family:var(--mono);font-size:11px;fill:var(--ink-3);}
+  .sm .pv-t{font-size:10px;}
+  .pv-t{paint-order:stroke;stroke:var(--surface-2);stroke-width:3px;stroke-linejoin:round;}   /* alone: le etichette restano leggibili sopra le curve */
+  .pv-t.b{fill:var(--ink-2);font-weight:600;}
+  .pv-theo{fill:none;stroke:var(--ink-3);stroke-width:1.2;stroke-dasharray:4 3;}
+  .pv-real{fill:none;stroke:var(--ink-2);stroke-width:1.4;stroke-linejoin:round;opacity:.42;transition:stroke var(--d2) var(--ease),opacity var(--d2) var(--ease);}
+  .pv-real.on{stroke:var(--accent);opacity:1;stroke-width:2.4;}
+  .pv-ev{fill:var(--surface-2);stroke:var(--ink-2);stroke-width:1.2;}
+  .pv-lens-bg{fill:var(--surface);stroke:var(--line-strong);stroke-width:1;}
+  .pv-p0{stroke:var(--ink-3);stroke-width:1;stroke-dasharray:2 3;}
+  .pv-pt{fill:var(--accent);stroke:#FFFDF7;stroke-width:2;}
+  .pv-halo{fill:rgba(169,88,31,.18);}
+
+  /* indicatore: sempre visibile nel pannello */
+  .sc-hud{flex:none;display:grid;grid-template-columns:40px minmax(0,1fr);gap:4px 12px;align-items:center;padding:10px 14px 12px;border-top:1px solid var(--line);background:var(--surface);}
+  .dial{grid-row:1 / span 2;width:40px;height:40px;}
+  .dial .rim{fill:var(--surface-2);stroke:var(--line-strong);stroke-width:1.5;}
+  .dial .arm{stroke:var(--brand);stroke-width:2.5;stroke-linecap:round;}
+  .dial .pin{fill:var(--accent);}
+  .dial .tdc{fill:var(--ink-3);}
+  .hud-row{display:flex;align-items:center;gap:8px 12px;min-width:0;}
+  .hud-phase{font-weight:600;font-size:15px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+  .hud-ang{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:var(--t-sm);font-weight:600;color:var(--accent-ink);background:var(--accent-soft);border-radius:var(--r-xs);padding:1px 7px;flex:none;}
+  .hud-valves{display:flex;gap:10px;margin-left:auto;flex:none;}
+  .vv{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--ink-3);}
+  .vv .m{width:22px;height:6px;border-radius:3px;background:var(--sunken);overflow:hidden;box-shadow:var(--hairline);}
+  .vv .m i{display:block;height:100%;background:var(--brand);transform:scaleX(0);transform-origin:left;}
+  .vv.inj .m i{background:var(--inj);}
+  .vv.on{color:var(--ink);}
+  .hud-ev{font-size:var(--t-sm);line-height:1.35;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+  .track{grid-column:1 / -1;position:relative;height:16px;margin-top:4px;}
+  .track .segs{position:absolute;left:0;right:0;top:5px;height:6px;display:grid;grid-template-columns:repeat(4,1fr);gap:2px;}
+  .track .segs b{background:var(--sunken);border-radius:2px;transition:background var(--d2) var(--ease);}
+  .track .segs b.on{background:var(--accent-soft);box-shadow:inset 0 0 0 1px rgba(169,88,31,.35);}
+  .track .fill{position:absolute;left:0;right:0;top:7px;height:2px;background:var(--accent);transform:scaleX(0);transform-origin:left;border-radius:1px;}
+  .track .tk{position:absolute;top:1px;width:2px;height:14px;margin-left:-1px;background:var(--ink-3);border-radius:1px;opacity:.7;}
+  .track .tk.inj{background:var(--inj);opacity:1;}
+  .hud-scale{grid-column:1 / -1;display:grid;grid-template-columns:repeat(4,1fr);font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-top:-2px;}
+  .hud-scale span:last-child{display:flex;justify-content:space-between;}
+  @media (max-width:1023px){
+    .sc-hud{padding:8px 10px 10px;gap:2px 10px;grid-template-columns:34px minmax(0,1fr);}
+    .dial{width:34px;height:34px;}
+    .hud-phase{font-size:14px;}
+    .hud-scale{display:none;}
+  }
+  @media (max-width:480px){.hud-valves{gap:7px;}.vv .m{width:16px;}.vv.inj{display:none;}}
+
+  /* controllo manuale (movimento ridotto) */
+  .sc-manual{display:none;grid-column:1 / -1;gap:6px;margin-top:6px;}
+  .rm .sc-manual{display:grid;}
+  .rm .track,.rm .hud-scale{display:none;}
+  .sc-manual label{font-size:var(--t-sm);font-weight:500;color:var(--ink-2);}
+  input[type=range]{--p:0%;width:100%;-webkit-appearance:none;appearance:none;height:32px;background:transparent;margin:0;cursor:pointer;}
+  input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:4px;background:linear-gradient(to right,var(--accent) var(--p),var(--line-strong) var(--p));}
+  input[type=range]::-moz-range-track{height:4px;border-radius:4px;background:var(--line-strong);}
+  input[type=range]::-moz-range-progress{height:4px;border-radius:4px;background:var(--accent);}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--surface-2);border:0;box-shadow:0 0 0 2px var(--accent),0 3px 8px -2px rgba(35,58,44,.35);margin-top:-9px;}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--surface-2);border:2px solid var(--accent);}
+  input[type=range]:focus-visible{outline:none;}
+  input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 2px var(--accent),0 0 0 6px rgba(138,68,21,.35);}
+  input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 4px rgba(138,68,21,.35);}
+  .seg4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:4px;gap:2px;background:var(--sunken);border-radius:999px;}
+  .seg4 button{min-height:40px;padding:0 4px;font-family:var(--sans);font-size:var(--t-sm);font-weight:500;background:transparent;border:0;border-radius:999px;color:var(--ink-2);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background var(--d2) var(--ease),color var(--d2) var(--ease),transform var(--d1) var(--ease);}
+  .seg4 button:hover{color:var(--ink);}
+  .seg4 button[aria-pressed="true"]{background:var(--surface-2);color:var(--brand);font-weight:600;box-shadow:0 1px 3px rgba(35,58,44,.18),var(--hairline);}
+  .seg4 button:active{transform:scale(.97);}
+  .rm{--panel-h:clamp(440px,70svh,620px);}
+  @media (max-width:480px){.seg4{grid-template-columns:1fr 1fr;border-radius:var(--r-lg);}.seg4 button{min-height:38px;border-radius:12px;}}
+
+  /* testi delle fasi */
+  .sc-steps{list-style:none;margin:0;padding-inline:0;position:relative;}
+  .step{display:flex;align-items:center;}
+  .step-in{max-width:48ch;padding:28px 0 28px 20px;border-left:2px solid var(--line);transition:border-color var(--d2) var(--ease);}
+  .step.is-active .step-in{border-left-color:var(--accent);}
+  .step .eb{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:var(--t-xs);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-ink);margin:0 0 8px;}
+  .step .eb .sw{width:10px;height:10px;border-radius:3px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.1);flex:none;}
+  .step h3{font-family:var(--serif);font-weight:600;font-size:clamp(24px,2.6vw,30px);letter-spacing:-.018em;line-height:1.1;color:var(--brand);margin:0 0 12px;text-wrap:balance;}
+  .step p{margin:0 0 14px;color:var(--ink-2);text-wrap:pretty;}
+  .timing{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px;padding:0;list-style:none;}
+  .timing li{font-family:var(--mono);font-size:var(--t-xs);color:var(--ink-2);background:var(--surface-2);border-radius:999px;padding:3px 10px;box-shadow:var(--hairline);font-variant-numeric:tabular-nums;}
+  .farm{margin:0;padding:12px 14px;background:var(--accent-soft);border-radius:var(--r-md);font-size:var(--t-md);line-height:1.55;color:var(--ink-2);}
+  .farm b{display:block;font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:2px;}
+  .sc-hint{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:8px;padding-top:6px;font-family:var(--mono);font-size:var(--t-xs);letter-spacing:.04em;color:var(--ink-3);}
+  .rm .sc-hint{display:none;}
+
+  /* movimento ridotto (o GSAP non disponibile): quattro schede statiche */
+  .rm .sc-steps{padding-block:16px 0;display:grid;gap:14px;}
+  .rm .step{min-height:0;}
+  .rm .step-in{max-width:none;width:100%;padding:18px 18px 18px 18px;border-left:0;border-radius:var(--r-lg);background:var(--surface-2);box-shadow:var(--hairline),var(--shadow-1);}
+  .rm .step.is-active .step-in{box-shadow:inset 0 0 0 2px var(--accent),var(--shadow-1);}
+
+  /* ---------- Teorico e reale ---------- */
+  .diff{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 40px;counter-reset:d;}
+  @media (max-width:760px){.diff{grid-template-columns:1fr;}}
+  .diff li{counter-increment:d;padding-top:14px;border-top:1px solid var(--line-strong);font-size:15px;line-height:1.55;color:var(--ink-2);}
+  .diff li::before{content:counter(d,decimal-leading-zero);display:block;font-family:var(--mono);font-size:var(--t-xs);font-weight:600;color:var(--accent-ink);margin-bottom:4px;}
+  .diff h3{font-size:16px;font-weight:600;color:var(--ink);margin:0 0 4px;}
+  .diff .tr{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:8px 0 0;}
+  .diff .tr dt{font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);padding-top:2px;}
+  .diff .tr dd{margin:0;}
+
+  /* ---------- Fasatura ---------- */
+  .fas{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(24px,4vw,56px);align-items:center;}
+  @media (max-width:900px){.fas{grid-template-columns:1fr;}}
+  .fas figure{margin:0;}
+  .fas .core{background:radial-gradient(120% 90% at 50% 40%,#FFFDF7 0%,#F4EFE3 70%,#ECE5D5 100%);padding:clamp(12px,3vw,24px);}
+  .fas svg{display:block;width:100%;max-width:440px;height:auto;margin:0 auto;}
+  .fas svg text{font-family:var(--mono);font-size:12px;fill:var(--ink-2);paint-order:stroke;stroke:#FAF6EC;stroke-width:4px;stroke-linejoin:round;}
+  .fas svg text.big{font-size:13px;font-weight:600;fill:var(--ink);}
+  .fas-legend{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:10px;}
+  .fas-legend li{display:grid;grid-template-columns:18px minmax(0,1fr);gap:10px;align-items:start;font-size:15px;color:var(--ink-2);}
+  .fas-legend .sw{width:18px;height:6px;border-radius:3px;margin-top:9px;}
+  .fas-legend b{color:var(--ink);font-weight:600;}
+  .abbr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;margin:0;border-top:1px solid var(--line);}
+  .abbr div{padding:10px 0;border-bottom:1px solid var(--line);}
+  .abbr div:nth-child(odd){padding-right:12px;border-right:1px solid var(--line);}
+  .abbr div:nth-child(even){padding-left:14px;}
+  .abbr dt{font-family:var(--mono);font-size:var(--t-sm);font-weight:600;color:var(--brand);}
+  .abbr dd{margin:0;font-size:var(--t-sm);color:var(--ink-2);}
+
+  /* ---------- Valori tipici ---------- */
+  .tbl-wrap{overflow-x:auto;background:var(--surface-2);border-radius:var(--r-lg);box-shadow:var(--hairline),var(--shadow-1);}
+  table{width:100%;border-collapse:collapse;font-size:var(--t-md);min-width:720px;}
+  caption{text-align:left;padding:14px 16px 0;font-size:var(--t-sm);color:var(--ink-2);}
+  th,td{text-align:left;vertical-align:top;padding:11px 16px;border-bottom:1px solid var(--line);}
+  thead th{font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);}
+  tbody th{font-weight:600;color:var(--ink);}
+  tbody tr:last-child > *{border-bottom:0;}
+  td.v{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap;}
+  td.here{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--brand);}
+  .cert{display:inline-block;font-family:var(--mono);font-size:11.5px;font-weight:600;border-radius:999px;padding:1px 8px;white-space:nowrap;}
+  .cert.alta{background:#DCE9DF;color:#2E6B45;}
+  .cert.media{background:var(--sunken);color:var(--ink-2);}
+  .cert.bassa,.cert.verif{background:#F3DCD6;color:#9B3B2E;}
+  .sources{margin:22px 0 0;padding:0 0 0 20px;font-size:var(--t-md);color:var(--ink-2);display:grid;gap:6px;}
+  .sources b{color:var(--ink);font-family:var(--mono);font-size:var(--t-sm);}
+  .note{display:flex;gap:12px;align-items:flex-start;font-size:var(--t-sm);line-height:1.55;color:var(--ink-2);margin:18px 0 0;padding:14px 16px;background:var(--accent-soft);border-radius:var(--r-md);}
+  .note svg{flex:none;width:18px;height:18px;color:var(--accent-ink);margin-top:1px;}
+
+  /* ---------- Footer ---------- */
+  footer{margin-top:var(--sec);padding:28px 0 calc(40px + env(safe-area-inset-bottom));border-top:1px solid var(--line-strong);font-size:var(--t-sm);color:var(--ink-2);}
+  footer .container{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:14px 24px;}
+  footer .f-brand{display:flex;align-items:center;gap:10px;font-family:var(--serif);font-weight:600;font-size:16px;color:var(--brand);margin:0 0 4px;}
+  footer .f-text{max-width:60ch;margin:0;}
+  .f-links{display:flex;flex-wrap:wrap;gap:8px;}
+  .f-links a{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:999px;color:var(--brand);font-weight:500;text-decoration:none;box-shadow:var(--hairline);background:var(--surface-2);transition:background var(--d2) var(--ease);}
+  .f-links a:hover{background:#fff;}
+
+  /* ---------- Entrata delle testate ---------- */
+  .js .reveal{opacity:0;transform:translateY(14px);transition:opacity .7s var(--ease),transform .7s var(--ease);}
+  .js .reveal.in{opacity:1;transform:none;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001ms !important;transition-duration:.001ms !important;}
+    .js .reveal{opacity:1;transform:none;}
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#ciclo">Vai al ciclo</a>
+
+<header class="topbar">
+  <div class="container">
+    <a class="brand" href="index.html" aria-label="Il trattore in campo, pagina principale">
+      <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#233A2C"/><circle cx="16" cy="16" r="9" fill="none" stroke="#F3EEE2" stroke-width="2.5"/><circle cx="16" cy="16" r="3" fill="#C0692A"/></svg>
+      <span class="brand-text">Il trattore in campo</span>
+    </a>
+    <nav class="nav" aria-label="Sezioni">
+      <a href="index.html#motore"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg>Motore 3D</a>
+      <a href="#ciclo">Ciclo</a>
+      <a href="#confronto">Teorico e reale</a>
+      <a href="#fasatura">Fasatura</a>
+      <a href="#valori">Valori</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <div class="container">
+    <header class="intro">
+      <div>
+        <p class="eyebrow"><span class="dot" aria-hidden="true"></span>Motore diesel · quattro tempi</p>
+        <h1 class="title">Il ciclo a quattro tempi, <em>un grado alla volta</em></h1>
+        <p class="lead">Scorrendo la pagina fai girare l'albero motore: due giri, cioè 720°, formano un ciclo completo. Il pistone, le valvole e l'iniettore si muovono in sincronia, e il diagramma pressione-volume mostra cosa succede ai gas nel cilindro.</p>
+        <a class="cue" href="#ciclo"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="14" cy="14" r="12.5"/><path d="M14 8v11M9.5 14.5 14 19l4.5-4.5"/></svg><span class="scroll-only">Scorri per far girare la manovella</span><span class="rm-only">Vai al ciclo</span></a>
+      </div>
+      <aside class="scheda" aria-labelledby="t-scheda">
+        <h2 id="t-scheda">Il motore del modello</h2>
+        <dl class="specs">
+          <div><dt>Alesaggio × corsa</dt><dd>100 × 115&#8239;mm</dd></div>
+          <div><dt>Cilindrata</dt><dd>903&#8239;cm³</dd></div>
+          <div><dt>Rapporto di compressione</dt><dd>≈ 20 : 1 <small>dalla geometria</small></dd></div>
+          <div><dt>Alimentazione</dt><dd>aspirato <small>iniezione diretta</small></dd></div>
+          <div><dt>Un ciclo</dt><dd>720° <small>2 giri</small></dd></div>
+          <div><dt>Albero a camme</dt><dd>1 : 2 <small>1 giro per ciclo</small></dd></div>
+        </dl>
+      </aside>
+    </header>
+  </div>
+
+  <section class="block" id="ciclo" aria-labelledby="t-ciclo">
+    <div class="container">
+      <div class="sec-head reveal">
+        <div>
+          <p class="sec-eyebrow">01 · Il ciclo</p>
+          <h2 class="section-title" id="t-ciclo">Aspirazione, compressione, combustione, scarico</h2>
+        </div>
+        <p class="sec-sub">Il cilindro è in sezione e la testata è trasparente, così si vedono entrambe le valvole. Nel diagramma, la linea continua è il ciclo reale e quella tratteggiata il ciclo teorico; il punto segue il pistone.</p>
+      </div>
+
+      <div class="sc-grid">
+        <div class="sc-panel">
+          <div class="instrument">
+            <div class="core">
+              <div class="sc-views">
+                <div class="cm-model" id="cmModel" data-model="models/motore_diesel.glb">
+                  <img class="cm-poster" src="models/motore_diesel-poster.webp" alt="Motore diesel monocilindro in sezione: pistone, biella, albero motore, valvole e iniettore" width="720" height="800" decoding="async" loading="lazy">
+                  <div class="cm-canvas"></div>
+                  <div class="cm-progress" aria-hidden="true"><i></i></div>
+                  <div class="cm-status" aria-hidden="true">Caricamento del modello…</div>
+                  <div class="cm-error" hidden role="alert"><span>Il modello 3D non si è caricato.</span><button class="btn cm-retry" type="button">Riprova</button></div>
+                </div>
+                <figure class="cm-pv" id="cmPv">
+                  <svg id="pvSvg" role="img" aria-labelledby="pvTitle"><title id="pvTitle">Diagramma pressione-volume del ciclo: pressione in bar sull'asse verticale, volume del cilindro in centimetri cubi sull'asse orizzontale</title></svg>
+                  <figcaption><span><i aria-hidden="true"></i>reale</span><span><i class="d" aria-hidden="true"></i>teorico</span></figcaption>
+                </figure>
+              </div>
+
+              <div class="sc-hud">
+                <svg class="dial" viewBox="0 0 40 40" aria-hidden="true">
+                  <circle class="rim" cx="20" cy="20" r="17"/>
+                  <circle class="tdc" cx="20" cy="4.5" r="1.6"/>
+                  <g id="hudCrank"><line class="arm" x1="20" y1="20" x2="20" y2="9"/><circle class="pin" cx="20" cy="9" r="3.4"/></g>
+                  <circle cx="20" cy="20" r="2.4" fill="#4F493E"/>
+                </svg>
+                <div class="hud-row">
+                  <span class="hud-phase" id="hudPhase">Aspirazione</span>
+                  <span class="hud-ang" id="hudAng">0°</span>
+                  <span class="hud-valves" aria-hidden="true">
+                    <span class="vv" id="vvA" title="Valvola di aspirazione">Asp<span class="m"><i></i></span></span>
+                    <span class="vv" id="vvS" title="Valvola di scarico">Sca<span class="m"><i></i></span></span>
+                    <span class="vv inj" id="vvI" title="Iniettore">Inj<span class="m"><i></i></span></span>
+                  </span>
+                </div>
+                <div class="hud-ev" id="hudEv">Incrocio: aspirazione e scarico aperte</div>
+                <div class="track" aria-hidden="true">
+                  <div class="segs"><b class="on"></b><b></b><b></b><b></b></div>
+                  <div class="fill" id="hudFill"></div>
+                  <span class="tk" style="left:31.25%" title="Chiude l'aspirazione, 225°"></span>
+                  <span class="tk inj" style="left:47.92%" title="Inizio iniezione, 345°"></span>
+                  <span class="tk" style="left:68.06%" title="Apre lo scarico, 490°"></span>
+                  <span class="tk" style="left:97.92%" title="Apre l'aspirazione, 705°"></span>
+                </div>
+                <div class="hud-scale" aria-hidden="true"><span>0°</span><span>180°</span><span>360°</span><span><span>540°</span><span>720°</span></span></div>
+                <div class="sc-manual">
+                  <label for="cmRange">Angolo di manovella</label>
+                  <input type="range" id="cmRange" min="0" max="720" step="1" value="0" aria-valuetext="Aspirazione, 0 gradi">
+                  <div class="seg4" role="group" aria-label="Vai alla fase">
+                    <button type="button" data-th="90" aria-pressed="true">Aspirazione</button>
+                    <button type="button" data-th="345" aria-pressed="false">Compressione</button>
+                    <button type="button" data-th="372" aria-pressed="false">Combustione</button>
+                    <button type="button" data-th="630" aria-pressed="false">Scarico</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <ol class="sc-steps" id="steps">
+          <li class="sc-hint" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v10M4 9l4 4 4-4"/></svg>Il pistone parte dal punto morto superiore</li>
+
+          <li class="step is-active" data-fase="0">
+            <div class="step-in">
+              <p class="eb"><span class="sw" style="background:var(--g-asp)" aria-hidden="true"></span>Tempo 1 · 0° → 180°</p>
+              <h3>Aspirazione</h3>
+              <p>Il pistone scende dal punto morto superiore (PMS) a quello inferiore (PMI) con la valvola di aspirazione aperta. Nel cilindro entra <strong>solo aria</strong>, a una pressione poco sotto quella esterna, circa 0,9&#8239;bar. Nel diesel non c'è farfalla: la potenza si regola dosando il gasolio, non l'aria.</p>
+              <ul class="timing"><li>Aspirazione aperta −15° → 225°</li><li>Scarico chiude a 15°</li></ul>
+              <p class="farm"><b>Sul trattore</b>Conta quanta aria entra. Un filtro intasato dalla polvere del campo toglie potenza e fa fumo nero: per questo c'è il prefiltro a ciclone. Nei motori sovralimentati il turbocompressore spinge dentro più aria, e così si può bruciare più gasolio.</p>
+            </div>
+          </li>
+
+          <li class="step" data-fase="1">
+            <div class="step-in">
+              <p class="eb"><span class="sw" style="background:var(--g-com)" aria-hidden="true"></span>Tempo 2 · 180° → 360°</p>
+              <h3>Compressione</h3>
+              <p>Chiusa anche l'aspirazione, il pistone risale e stringe l'aria in un volume circa venti volte più piccolo: arriva a 40–55&#8239;bar e a 450–650&#8239;°C, ben sopra la temperatura a cui il gasolio si accende da solo. A 15° prima del PMS l'iniettore spruzza il gasolio ad alta pressione nella camera del pistone. <strong>Non c'è candela.</strong></p>
+              <ul class="timing"><li>Valvole chiuse 225° → 490°</li><li>Iniezione 345° → 370°</li></ul>
+              <p class="farm"><b>Sul trattore</b>A motore freddo le pareti sottraggono calore e l'aria compressa non basta ad accendere il gasolio. Candelette o griglia di preriscaldo servono solo all'avviamento: durante il ciclo non accendono nulla.</p>
+            </div>
+          </li>
+
+          <li class="step" data-fase="2">
+            <div class="step-in">
+              <p class="eb"><span class="sw" style="background:var(--g-sco)" aria-hidden="true"></span>Tempo 3 · 360° → 540°</p>
+              <h3>Combustione ed espansione</h3>
+              <p>Dopo un ritardo di circa 1&#8239;ms il gasolio <strong>si accende da solo</strong>: la parte già iniettata brucia di colpo, il resto man mano che arriva. La pressione sale a 60–90&#8239;bar e spinge il pistone verso il basso. È l'unico tempo attivo: il volano accumula l'energia che servirà negli altri tre.</p>
+              <ul class="timing"><li>Accensione ≈ 353°</li><li>Pressione massima ≈ 368°</li><li>Scarico apre a 490°</li></ul>
+              <p class="farm"><b>Sul trattore</b>Da qui vengono la coppia ai bassi regimi e la riserva di coppia: se la fresa incontra terra dura il regime cala, ma la coppia cresce e il trattore non si pianta.</p>
+            </div>
+          </li>
+
+          <li class="step" data-fase="3">
+            <div class="step-in">
+              <p class="eb"><span class="sw" style="background:var(--g-sca)" aria-hidden="true"></span>Tempo 4 · 540° → 720°</p>
+              <h3>Scarico</h3>
+              <p>La valvola di scarico ha aperto 50° prima del PMI: i gas escono prima da soli, per la differenza di pressione, poi spinti dal pistone che risale. Vicino al PMS le due valvole restano aperte insieme per circa 30°: è l'<strong>incrocio</strong>, che lava il cilindro con aria fresca. A 720° il ciclo ricomincia.</p>
+              <ul class="timing"><li>Scarico aperto 490° → 735°</li><li>Incrocio 705° → 735°</li></ul>
+              <p class="farm"><b>Sul trattore</b>A pieno carico i gas escono a 400–650&#8239;°C. Nei motori sovralimentati quell'energia fa girare la turbina del turbo; poi i gas passano da filtro antiparticolato e SCR con <span translate="no">AdBlue</span> (<span translate="no">Stage V</span>).</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+      <p class="sr-only" aria-live="polite" id="liveFase"></p>
+    </div>
+  </section>
+
+  <section class="block" id="confronto" aria-labelledby="t-confronto">
+    <div class="container">
+      <div class="sec-head reveal">
+        <div>
+          <p class="sec-eyebrow">02 · Teorico e reale</p>
+          <h2 class="section-title" id="t-confronto">Perché il ciclo reale non è quello dei libri</h2>
+        </div>
+        <p class="sec-sub">Il ciclo teorico (Diesel ideale ad aria) è un modello: rende calcolabile il rendimento. Il ciclo reale, quello che si misura con un sensore di pressione nel cilindro, se ne discosta in cinque punti.</p>
+      </div>
+      <ol class="diff">
+        <li><h3>Aspirazione e scarico</h3>
+          <dl class="tr"><dt>Teorico</dt><dd>Due linee orizzontali alla pressione atmosferica, sovrapposte: lavoro nullo.</dd><dt>Reale</dt><dd>Si aspira sotto 1&#8239;bar e si scarica sopra: nasce il ciclo di pompaggio, un piccolo lavoro <em>negativo</em> (la lente nel diagramma).</dd></dl></li>
+        <li><h3>Compressione ed espansione</h3>
+          <dl class="tr"><dt>Teorico</dt><dd>Adiabatiche, con esponente γ = 1,4.</dd><dt>Reale</dt><dd>Politropiche, con esponente circa 1,3–1,37: le pareti scambiano calore e un po' di gas trafila oltre le fasce.</dd></dl></li>
+        <li><h3>Combustione</h3>
+          <dl class="tr"><dt>Teorico</dt><dd>Calore fornito a pressione costante, esattamente dal PMS.</dd><dt>Reale</dt><dd>Inizia prima del PMS dopo un ritardo d'accensione; la prima parte è quasi a volume costante (il picco), il resto più lenta. Somiglia di più al ciclo misto (Sabathé).</dd></dl></li>
+        <li><h3>Valvole</h3>
+          <dl class="tr"><dt>Teorico</dt><dd>Aprono e chiudono di colpo nei punti morti.</dd><dt>Reale</dt><dd>Anticipi e ritardi (vedi la fasatura) e alzate graduali: gli spigoli del diagramma si arrotondano.</dd></dl></li>
+        <li><h3>Rendimento</h3>
+          <dl class="tr"><dt>Teorico</dt><dd>Circa 65&#8239;% con ε = 20 e rapporto di combustione 2.</dd><dt>Reale</dt><dd>Effettivo 35–42&#8239;% nei diesel agricoli moderni: il resto va in calore a pareti e scarico, attriti e pompaggio.</dd></dl></li>
+      </ol>
+      <p class="note"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="9" cy="9" r="7.5"/><path d="M9 8v5M9 5.2v.1" stroke-linecap="round"/></svg><span>La curva “reale” del diagramma è <strong>calcolata</strong>, non misurata. Usa la geometria del modello (ε ≈ 20), compressione ed espansione con esponente 1,34 e una combustione in due parti, premiscelata e diffusiva, con leggi di Wiebe tarate sui valori tipici della tabella. Serve a mostrare la forma del ciclo, non le prestazioni di un motore preciso.</span></p>
+    </div>
+  </section>
+
+  <section class="block" id="fasatura" aria-labelledby="t-fasatura">
+    <div class="container">
+      <div class="sec-head reveal">
+        <div>
+          <p class="sec-eyebrow">03 · Fasatura</p>
+          <h2 class="section-title" id="t-fasatura">Quando si aprono le valvole</h2>
+        </div>
+        <p class="sec-sub">Il diagramma della distribuzione sovrappone i due giri su un solo cerchio: la manovella gira in senso orario, il PMS è in alto. Aprire in anticipo e chiudere in ritardo sfrutta l'inerzia dei gas e riempie meglio il cilindro.</p>
+      </div>
+      <div class="fas">
+        <figure class="instrument"><div class="core">
+          <svg viewBox="0 0 340 340" role="img" aria-labelledby="fasTitle fasDesc">
+            <title id="fasTitle">Diagramma della distribuzione</title>
+            <desc id="fasDesc">Aspirazione aperta da 15 gradi prima del PMS a 45 gradi dopo il PMI; scarico aperto da 50 gradi prima del PMI a 15 gradi dopo il PMS; iniezione da 15 gradi prima del PMS.</desc>
+            <line x1="170" y1="30" x2="170" y2="310" stroke="#C4B99F" stroke-dasharray="3 4"/>
+            <circle cx="170" cy="170" r="140" fill="none" stroke="#DCD3BF"/>
+            <path d="M138.4 52.2A122 122 0 1 1 83.7 256.3" fill="none" stroke="#5B92B8" stroke-width="11" stroke-linecap="round"/>
+            <path d="M246.6 234.3A100 100 0 1 1 195.9 73.4" fill="none" stroke="#8C8577" stroke-width="11" stroke-linecap="round"/>
+            <path d="M149.8 94.7A78 78 0 0 1 183.5 93.2" fill="none" stroke="#C08A2E" stroke-width="11" stroke-linecap="round"/>
+            <path d="M304.2 98.6A152 152 0 0 1 321.9 175.3" fill="none" stroke="#6B6456" stroke-width="1.5"/>
+            <path d="M316.4 168.2 321.9 175.3 327.4 168.2" fill="none" stroke="#6B6456" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <text x="170" y="20" text-anchor="middle" class="big">PMS</text>
+            <text x="170" y="332" text-anchor="middle" class="big">PMI</text>
+            <text x="126" y="28" text-anchor="end">AAA 15°</text>
+            <text x="60" y="284" text-anchor="end">RCA 45°</text>
+            <text x="276" y="262">AAS 50°</text>
+            <text x="206" y="44">RCS 15°</text>
+            <text x="164" y="130" text-anchor="end">AI 15°</text>
+            <text x="170" y="175" text-anchor="middle" fill="#6B6456">1 giro = 360°</text>
+          </svg>
+        </div></figure>
+        <div>
+          <ul class="fas-legend">
+            <li><span class="sw" style="background:#5B92B8"></span><span><b>Aspirazione</b>: aperta 240°, da 15° prima del PMS a 45° dopo il PMI.</span></li>
+            <li><span class="sw" style="background:#8C8577"></span><span><b>Scarico</b>: aperto 245°, da 50° prima del PMI a 15° dopo il PMS.</span></li>
+            <li><span class="sw" style="background:#C08A2E"></span><span><b>Iniezione</b>: da 15° prima del PMS, dura circa 25°.</span></li>
+          </ul>
+          <dl class="abbr">
+            <div><dt>AAA</dt><dd>Anticipo apertura aspirazione</dd></div>
+            <div><dt>RCA</dt><dd>Ritardo chiusura aspirazione</dd></div>
+            <div><dt>AAS</dt><dd>Anticipo apertura scarico</dd></div>
+            <div><dt>RCS</dt><dd>Ritardo chiusura scarico</dd></div>
+            <div><dt>AI</dt><dd>Anticipo d'iniezione</dd></div>
+            <div><dt>Incrocio</dt><dd>AAA + RCS = 30°</dd></div>
+          </dl>
+          <p class="note"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="9" cy="9" r="7.5"/><path d="M9 8v5M9 5.2v.1" stroke-linecap="round"/></svg><span>Angoli tipici, non di un motore preciso: ogni costruttore li sceglie in base a regime e sovralimentazione. L'animazione del modello 3D è stata riallineata a questi valori.</span></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="valori" aria-labelledby="t-valori">
+    <div class="container">
+      <div class="sec-head reveal">
+        <div>
+          <p class="sec-eyebrow">04 · Valori tipici</p>
+          <h2 class="section-title" id="t-valori">I numeri del ciclo, con le fonti</h2>
+        </div>
+        <p class="sec-sub">Intervalli tipici per diesel a iniezione diretta; la colonna “In questa pagina” dice quale valore usano modello e diagramma. Dove la certezza è bassa o da verificare, conviene controllare sulla fonte prima di studiarlo.</p>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <caption>Motore aspirato salvo dove indicato. Pressioni assolute.</caption>
+          <thead><tr><th scope="col">Grandezza</th><th scope="col">Intervallo tipico</th><th scope="col">In questa pagina</th><th scope="col">Fonte</th><th scope="col">Certezza</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Rapporto di compressione ε</th><td class="v">16–22 : 1</td><td class="here">≈ 20 : 1 (geometria)</td><td>H, B</td><td><span class="cert alta">alta</span></td></tr>
+            <tr><th scope="row">Pressione in aspirazione</th><td class="v">0,85–0,95 bar</td><td class="here">0,89–0,95 bar</td><td>H</td><td><span class="cert media">media</span></td></tr>
+            <tr><th scope="row">Pressione a fine compressione (senza combustione)</th><td class="v">30–55 bar</td><td class="here">≈ 46 bar</td><td>H</td><td><span class="cert media">media</span></td></tr>
+            <tr><th scope="row">Temperatura a fine compressione</th><td class="v">700–900 K ≈ 430–630 °C</td><td class="here">≈ 600 °C (stima)</td><td>H</td><td><span class="cert media">media</span></td></tr>
+            <tr><th scope="row">Autoaccensione del gasolio</th><td class="v">≈ 220–260 °C</td><td class="here">—</td><td>B</td><td><span class="cert verif">da verificare</span></td></tr>
+            <tr><th scope="row">Anticipo d'iniezione</th><td class="v">5–20° prima del PMS</td><td class="here">15° (345°)</td><td>H, G</td><td><span class="cert media">media</span></td></tr>
+            <tr><th scope="row">Ritardo d'accensione</th><td class="v">0,5–2 ms</td><td class="here">8° ≈ 0,9 ms a 1500 giri/min</td><td>H</td><td><span class="cert media">media</span></td></tr>
+            <tr><th scope="row">Pressione d'iniezione</th><td class="v">200–1000 bar pompa · 1600–2500 bar common rail</td><td class="here">—</td><td>B</td><td><span class="cert media">media</span></td></tr>
+            <tr><th scope="row">Pressione massima</th><td class="v">60–90 bar · 120–200 bar turbo</td><td class="here">≈ 78 bar a 368°</td><td>H, B</td><td><span class="cert verif">da verificare</span></td></tr>
+            <tr><th scope="row">Temperatura massima media dei gas</th><td class="v">1800–2200 K ≈ 1500–1900 °C</td><td class="here">—</td><td>H</td><td><span class="cert bassa">bassa</span></td></tr>
+            <tr><th scope="row">Temperatura allo scarico, pieno carico</th><td class="v">400–650 °C</td><td class="here">—</td><td>B</td><td><span class="cert media">media</span></td></tr>
+            <tr><th scope="row">Fasatura (AAA · RCA · AAS · RCS)</th><td class="v">5–25° · 30–50° · 40–60° · 5–25°</td><td class="here">15° · 45° · 50° · 15°</td><td>G</td><td><span class="cert media">media</span></td></tr>
+            <tr><th scope="row">Rendimento teorico (Diesel ideale)</th><td class="v">≈ 60–65 %</td><td class="here">65 % (ε 20, ρ 2)</td><td>H</td><td><span class="cert alta">alta</span></td></tr>
+            <tr><th scope="row">Rendimento effettivo</th><td class="v">35–42 %</td><td class="here">—</td><td>H, B</td><td><span class="cert media">media</span></td></tr>
+            <tr><th scope="row">Consumo specifico</th><td class="v">200–240 g/kWh</td><td class="here">—</td><td>B</td><td><span class="cert media">media</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ol class="sources">
+        <li><b>H</b> · J. B. Heywood, <em>Internal Combustion Engine Fundamentals</em>, 2ª ed., McGraw-Hill, 2018: cicli ideali, combustione nei motori diesel, scambio termico.</li>
+        <li><b>G</b> · D. Giacosa, <em>Motori endotermici</em>, Hoepli: fasatura della distribuzione, ciclo indicato.</li>
+        <li><b>B</b> · Bosch, <em>Automotive Handbook</em> (Kraftfahrtechnisches Taschenbuch): iniezione diesel, carburanti, emissioni.</li>
+      </ol>
+      <p class="note"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="9" cy="9" r="7.5"/><path d="M9 8v5M9 5.2v.1" stroke-linecap="round"/></svg><span>Le fonti sono indicate per capitolo, non per pagina: i numeri vanno ricontrollati sull'edizione che usi. “Certezza” è una valutazione di chi ha scritto questa pagina, non della fonte.</span></p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="container">
+    <div>
+      <p class="f-brand"><svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#233A2C"/><circle cx="16" cy="16" r="9" fill="none" stroke="#F3EEE2" stroke-width="2.5"/><circle cx="16" cy="16" r="3" fill="#C0692A"/></svg>Il trattore in campo</p>
+      <p class="f-text">Il ciclo a quattro tempi del motore diesel · materiale di studio, uso personale</p>
+    </div>
+    <div class="f-links">
+      <a href="index.html#motore">Motore 3D pezzo per pezzo</a>
+      <a href="#top"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg>Torna su</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+"use strict";
+var root = document.documentElement;
+
+/* ---------- Fasatura e fasi (gradi di manovella, 0° = PMS all'inizio dell'aspirazione) ---------- */
+var F = { IVO:-15, IVC:225, SOI:345, SOC:353, EOI:370, EVO:490, EVC:735 };
+var FASI = ["Aspirazione", "Compressione", "Combustione ed espansione", "Scarico"];
+var FASI_BREVI = ["Aspirazione", "Compressione", "Combustione", "Scarico"];   // indicatore stretto (telefono)
+var EVENTI = [          // [da, a, testo]: la riga sotto la fase nell'indicatore
+  [0, 15, "Incrocio: aspirazione e scarico aperte"],
+  [15, 180, "Valvola di aspirazione aperta: entra aria"],
+  [180, 225, "Passato il PMI, l'aspirazione chiude a 225°"],
+  [225, 345, "Valvole chiuse: l'aria si scalda comprimendosi"],
+  [345, 353, "Iniezione del gasolio: ritardo d'accensione"],
+  [353, 370, "Accensione spontanea: la pressione sale"],
+  [370, 490, "Espansione: i gas spingono il pistone"],
+  [490, 540, "Scarico spontaneo: la valvola apre prima del PMI"],
+  [540, 705, "Il pistone risale e spinge fuori i gas"],
+  [705, 721, "Incrocio: aspirazione e scarico aperte"]
+];
+
+/* ---------- Geometria del modello (mm, cm³) ---------- */
+var CR = 57.5, CL = 200, AREA = Math.PI * 50 * 50, VC = 47, VS = AREA * 2 * CR / 1000;
+function vol(th){ var t = th * Math.PI / 180, s = CR * (1 - Math.cos(t)) + CL - Math.sqrt(CL * CL - Math.pow(CR * Math.sin(t), 2)); return VC + AREA * s / 1000; }
+function sm(a, b, x){ var t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); }
+
+/* ---------- Ciclo reale calcolato (modello a una zona) ----------
+   aspirazione e scarico: linee di pompaggio; da IVC a EVO: primo principio con esponente 1,34
+   e rilascio di calore con due leggi di Wiebe (premiscelata 20 %, diffusiva 80 %). */
+var ST = 0.5, N = 1440, P = new Float64Array(N + 1), V = new Float64Array(N + 1);
+function wiebe(th, s, d, m){ if (th <= s) return 0; var x = (th - s) / d; return 1 - Math.exp(-6.9 * Math.pow(x, m + 1)); }
+function xb(th){ return 0.2 * wiebe(th, F.SOC, 8, 2) + 0.8 * wiebe(th, F.SOC + 2, 60, 1.2); }
+(function(){
+  var i, th, g = 1.34, Q = 1700, p = 0.95e5, a = F.IVC, h = 0.25, pEvo, p540;
+  for (i = 0; i <= N; i++) V[i] = vol(i * ST);
+  for (i = 0; i * ST < F.IVC; i++){
+    th = i * ST;
+    P[i] = th <= 180 ? 0.93 - 0.04 * Math.sin(th * Math.PI / 180) + 0.15 * Math.pow(Math.max(0, 1 - th / 20), 2)
+                     : 0.93 + 0.02 * (th - 180) / 45;
+  }
+  P[F.IVC / ST] = 0.95;
+  while (a < F.EVO - 1e-9){
+    var v1 = vol(a) * 1e-6, v2 = vol(a + h) * 1e-6;
+    p += ((g - 1) * Q * (xb(a + h) - xb(a)) - g * p * (v2 - v1)) / ((v1 + v2) / 2);
+    a += h;
+    if (Math.abs(a / ST - Math.round(a / ST)) < 1e-6) P[Math.round(a / ST)] = p / 1e5;
+  }
+  pEvo = P[F.EVO / ST];
+  for (i = F.EVO / ST + 1; i <= N; i++){
+    th = i * ST;
+    if (th <= 540) P[i] = 1.12 + (pEvo - 1.12) * Math.exp(-(th - F.EVO) / 11);
+    else {
+      if (p540 === undefined) p540 = P[540 / ST];
+      var b = 1.12 + 0.04 * Math.sin((th - 540) * Math.PI / 180) + (p540 - 1.12) * Math.exp(-(th - 540) / 10);
+      P[i] = b + (1.08 - b) * sm(700, 720, th);
+    }
+  }
+})();
+var iMax = 0; for (var k = 0; k <= N; k++) if (P[k] > P[iMax]) iMax = k;
+
+/* ciclo teorico: Diesel ideale ad aria (γ 1,4) con rapporto di combustione 2, pompaggio a 1 bar */
+var EPS = (VC + VS) / VC, RHO = 2, P2 = Math.pow(EPS, 1.4), V1 = VC + VS;
+function theoPts(){
+  var pts = [[VC, 1], [V1, 1]], j, v;
+  for (j = 0; j <= 40; j++){ v = V1 - (V1 - VC) * j / 40; pts.push([v, Math.pow(V1 / v, 1.4)]); }
+  for (j = 0; j <= 40; j++){ v = RHO * VC + (V1 - RHO * VC) * j / 40; pts.push([v, P2 * Math.pow(RHO * VC / v, 1.4)]); }
+  pts.push([V1, 1], [VC, 1]);
+  return pts;
+}
+var THEO = theoPts();
+
+/* ---------- Diagramma p-V (SVG ridisegnato alla misura reale, testi in px veri) ---------- */
+var svg = document.getElementById("pvSvg"), NS = "http://www.w3.org/2000/svg";
+var pvX, pvY, lensX, lensY, ptMain, ptLens, realPaths = [], lensPaths = [];
+function f1(n){ return Math.round(n * 10) / 10; }
+function drawPV(){
+  var w = svg.clientWidth, h = svg.clientHeight;
+  if (!w || !h) return;
+  var small = w < 250, ml = small ? 26 : 34, mr = 10, mt = 20, mb = small ? 20 : 24, PM = 90;
+  pvX = function(v){ return ml + v / 1000 * (w - ml - mr); };
+  pvY = function(p){ return h - mb - p / PM * (h - mt - mb); };
+  var lx0 = pvX(small ? 430 : 470), lx1 = pvX(990), ly0 = pvY(PM - 2), ly1 = pvY(small ? 40 : 46);
+  lensX = function(v){ return lx0 + 6 + v / 1000 * (lx1 - lx0 - 12); };
+  lensY = function(p){ return ly1 - 6 - (p - 0.8) / 0.5 * (ly1 - ly0 - 22); };
+  var s = "", k, j;
+  s += '<title id="pvTitle">Diagramma pressione-volume del ciclo: pressione in bar sull\'asse verticale, volume del cilindro in centimetri cubi sull\'asse orizzontale</title>';
+  [20, 40, 60, 80].forEach(function(p){
+    s += '<line class="pv-grid" x1="' + ml + '" x2="' + (w - mr) + '" y1="' + f1(pvY(p)) + '" y2="' + f1(pvY(p)) + '"/>';
+    s += '<text class="pv-t" x="' + (ml - 5) + '" y="' + f1(pvY(p) + 3.5) + '" text-anchor="end">' + p + '</text>';
+  });
+  s += '<text class="pv-t" x="' + (ml - 5) + '" y="' + f1(pvY(0) + 3.5) + '" text-anchor="end">0</text>';
+  s += '<text class="pv-t b" x="' + (ml - 5) + '" y="12" text-anchor="start">p (bar)</text>';
+  s += '<path class="pv-ax" d="M' + ml + ' ' + mt + 'V' + f1(pvY(0)) + 'H' + (w - mr) + '"/>';
+  [[VC, "PMS"], [VC + VS, "PMI"]].forEach(function(t){
+    var x = f1(pvX(t[0]));
+    s += '<line class="pv-ax" x1="' + x + '" x2="' + x + '" y1="' + f1(pvY(0)) + '" y2="' + f1(pvY(0) + 4) + '"/>';
+    s += '<text class="pv-t b" x="' + x + '" y="' + f1(pvY(0) + 15) + '" text-anchor="' + (t[1] === "PMS" ? "start" : "end") + '">' + t[1] + '</text>';
+  });
+  s += '<text class="pv-t" x="' + f1((pvX(VC) + pvX(VC + VS)) / 2) + '" y="' + f1(pvY(0) + 15) + '" text-anchor="middle">V (cm³)</text>';
+  s += '<path class="pv-theo" d="' + THEO.map(function(q, i){ return (i ? "L" : "M") + f1(pvX(q[0])) + " " + f1(pvY(q[1])); }).join("") + '"/>';
+  for (k = 0; k < 4; k++){
+    var d = "";
+    for (j = k * 360; j <= (k + 1) * 360; j += 2) d += (j === k * 360 ? "M" : "L") + f1(pvX(V[j])) + " " + f1(pvY(P[j]));
+    s += '<path class="pv-real" data-k="' + k + '" d="' + d + '"/>';
+  }
+  if (!small){
+    var ev = [[F.SOI, "iniezione", 7, 12, "start"], [iMax * ST, "≈ " + Math.round(P[iMax]) + " bar", 8, 4, "start"], [F.EVO, "apre scarico", 0, -10, "middle"]];
+    ev.forEach(function(e){
+      var i = Math.round(e[0] / ST), x = f1(pvX(V[i])), y = f1(pvY(P[i]));
+      s += '<circle class="pv-ev" cx="' + x + '" cy="' + y + '" r="3"/>';
+      s += '<text class="pv-t" x="' + f1(x + e[2]) + '" y="' + f1(y + e[3]) + '" text-anchor="' + e[4] + '">' + e[1] + '</text>';
+    });
+  }
+  // lente sul ciclo di pompaggio (0,8–1,3 bar)
+  s += '<clipPath id="pvClip"><rect x="' + f1(lx0) + '" y="' + f1(ly0 + 16) + '" width="' + f1(lx1 - lx0) + '" height="' + f1(ly1 - ly0 - 16) + '"/></clipPath>';
+  s += '<rect class="pv-lens-bg" x="' + f1(lx0) + '" y="' + f1(ly0) + '" width="' + f1(lx1 - lx0) + '" height="' + f1(ly1 - ly0) + '" rx="6"/>';
+  s += '<text class="pv-t" x="' + f1(lx0 + 6) + '" y="' + f1(ly0 + 12) + '">' + (lx1 - lx0 < 130 ? "0,8–1,3 bar" : "lente 0,8–1,3 bar") + '</text>';
+  s += '<g clip-path="url(#pvClip)"><line class="pv-p0" x1="' + f1(lx0) + '" x2="' + f1(lx1) + '" y1="' + f1(lensY(1)) + '" y2="' + f1(lensY(1)) + '"/>';
+  for (k = 0; k < 4; k++){
+    var dl = "";
+    for (j = k * 360; j <= (k + 1) * 360; j += 2) dl += (j === k * 360 ? "M" : "L") + f1(lensX(V[j])) + " " + f1(lensY(Math.min(P[j], 1.6)));
+    s += '<path class="pv-real" data-k="' + k + '" d="' + dl + '"/>';
+  }
+  s += '<g id="pvPtL"><circle class="pv-pt" r="3.5"/></g></g>';
+  s += '<text class="pv-t" x="' + f1(lx1 - 5) + '" y="' + f1(lensY(1) - 3) + '" text-anchor="end">1 bar</text>';
+  s += '<g id="pvPt"><circle class="pv-halo" r="10"/><circle class="pv-pt" r="5"/></g>';
+  svg.setAttribute("viewBox", "0 0 " + w + " " + h);
+  svg.classList.toggle("sm", small);
+  svg.innerHTML = s;
+  ptMain = document.getElementById("pvPt"); ptLens = document.getElementById("pvPtL");
+  realPaths = [].slice.call(svg.querySelectorAll(".pv-real"));
+  hudNarrow = hudPhase.parentNode.clientWidth < 330;      // letto qui (al ridimensionamento), non a ogni fotogramma
+  lastK = -1; if (cur != null) render(cur, true);
+}
+
+/* ---------- Indicatore e sincronizzazione ---------- */
+var hudPhase = document.getElementById("hudPhase"), hudAng = document.getElementById("hudAng"), hudEv = document.getElementById("hudEv");
+var hudCrank = document.getElementById("hudCrank"), hudFill = document.getElementById("hudFill");
+var segs = [].slice.call(document.querySelectorAll(".track .segs b"));
+var steps = [].slice.call(document.querySelectorAll(".step"));
+var vvA = document.getElementById("vvA"), vvS = document.getElementById("vvS"), vvI = document.getElementById("vvI");
+var live = document.getElementById("liveFase"), range = document.getElementById("cmRange");
+var segBtns = [].slice.call(document.querySelectorAll(".seg4 button"));
+var cur = null, lastK = -1, lastEv = -1, engine = null, hudNarrow = false;
+
+function lift(th, a, b){      // alzata normalizzata della valvola (profilo a campana)
+  var c = (a + b) / 2, h = (b - a) / 2, d = th - c;
+  if (d > 360) d -= 720; else if (d < -360) d += 720;
+  if (Math.abs(d) >= h) return 0;
+  var u = Math.cos(d / h * Math.PI / 2); return u * u;
+}
+function meter(el, v){ el.firstElementChild.firstElementChild.style.transform = "scaleX(" + v.toFixed(3) + ")"; el.classList.toggle("on", v > 0.02); }
+
+function render(th, force){
+  th = Math.min(720, Math.max(0, th));
+  if (th === cur && !force) return;
+  cur = th;
+  var k = Math.min(3, Math.floor(th / 180)), i = Math.round(th / ST);
+  hudAng.textContent = Math.round(th) + "°";
+  hudCrank.setAttribute("transform", "rotate(" + th.toFixed(1) + " 20 20)");
+  hudFill.style.transform = "scaleX(" + (th / 720).toFixed(4) + ")";
+  meter(vvA, lift(th, F.IVO, F.IVC));
+  meter(vvS, lift(th, F.EVO, F.EVC));
+  meter(vvI, th >= F.SOI && th < F.EOI ? 1 : 0);
+  for (var e = 0; e < EVENTI.length; e++) if (th >= EVENTI[e][0] && th < EVENTI[e][1]) break;
+  if (e !== lastEv){ lastEv = e; hudEv.textContent = EVENTI[Math.min(e, EVENTI.length - 1)][2]; }
+  if (k !== lastK){
+    lastK = k;
+    hudPhase.textContent = (hudNarrow ? FASI_BREVI : FASI)[k];
+    live.textContent = "Fase: " + FASI[k];
+    segs.forEach(function(b, j){ b.classList.toggle("on", j === k); });
+    steps.forEach(function(s, j){ s.classList.toggle("is-active", j === k); });
+    realPaths.forEach(function(p){ p.classList.toggle("on", +p.getAttribute("data-k") === k); });
+    segBtns.forEach(function(b, j){ b.setAttribute("aria-pressed", j === k); });
+  }
+  if (ptMain){
+    ptMain.setAttribute("transform", "translate(" + f1(pvX(V[i])) + " " + f1(pvY(P[i])) + ")");
+    var inLens = P[i] <= 1.32;
+    ptLens.setAttribute("transform", "translate(" + f1(lensX(V[i])) + " " + f1(lensY(Math.min(P[i], 1.32))) + ")");
+    ptLens.style.opacity = inLens ? 1 : 0;
+  }
+  if (engine) engine.setAngle(th);
+  window.__cicloPagina = { th: th, fase: FASI[k], p: P[i], v: V[i] };
+}
+
+drawPV();
+render(0, true);
+new ResizeObserver(function(){ drawPV(); }).observe(document.getElementById("cmPv"));
+
+/* ---------- Controllo manuale: cursore e pulsanti di fase ---------- */
+function paint(){ range.style.setProperty("--p", (range.value / 7.2) + "%"); range.setAttribute("aria-valuetext", FASI[Math.min(3, Math.floor(range.value / 180))] + ", " + range.value + " gradi"); }
+range.addEventListener("input", function(){ paint(); render(+range.value); });
+segBtns.forEach(function(b){ b.addEventListener("click", function(){ range.value = b.getAttribute("data-th"); paint(); render(+range.value); }); });
+
+/* ---------- Scorrimento: la pagina è l'albero motore ---------- */
+var desk = matchMedia("(min-width: 1024px)"), panel = document.querySelector(".sc-panel");
+var fr = [0, .25, .5, .75, 1];
+function readLine(){           // linea di lettura: metà dello spazio visibile sotto barra (e pannello, su telefono)
+  var nav = 60, top = desk.matches ? nav : nav + panel.offsetHeight;
+  return Math.round(top + (innerHeight - top) / 2);
+}
+function measure(){            // frazioni di scorrimento a cui cambiano le fasi (i testi possono avere altezze diverse)
+  var t0 = steps[0].offsetTop, tot = steps[3].offsetTop + steps[3].offsetHeight - t0;
+  for (var j = 0; j < 4; j++) fr[j] = (steps[j].offsetTop - t0) / tot;
+  fr[4] = 1;
+}
+function toAngle(p){
+  for (var j = 0; j < 4; j++) if (p <= fr[j + 1] || j === 3) return 180 * (j + Math.min(1, Math.max(0, (p - fr[j]) / (fr[j + 1] - fr[j]))));
+}
+/* GSAP si scarica al primo gesto (vedi arm), non all'apertura: la sezione è sotto la prima schermata. */
+function setupScroll(){
+  gsap.registerPlugin(ScrollTrigger);
+  ScrollTrigger.config({ ignoreMobileResize: true });
+  var mm = gsap.matchMedia();
+  mm.add("(prefers-reduced-motion: no-preference)", function(){
+    root.classList.remove("rm");
+    var proxy = { p: 0 };
+    measure();
+    gsap.to(proxy, {
+      p: 1, ease: "none",
+      scrollTrigger: {
+        trigger: steps[0], endTrigger: steps[3],
+        start: function(){ return "top " + readLine(); },
+        end: function(){ return "bottom " + readLine(); },
+        scrub: 0.25, invalidateOnRefresh: true, onRefresh: measure
+      },
+      onUpdate: function(){ render(toAngle(proxy.p)); }
+    });
+    return function(){ root.classList.add("rm"); };
+  });
+  mm.add("(prefers-reduced-motion: reduce)", function(){ root.classList.add("rm"); range.value = Math.round(cur); paint(); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ ScrollTrigger.refresh(); });
+}
+paint();
+
+/* ---------- Modello 3D: si scarica solo quando la sezione si avvicina ---------- */
+var model = document.getElementById("cmModel"), bar = model.querySelector(".cm-progress i"), err = model.querySelector(".cm-error");
+var loading = false, scripts = {};
+function load(src){
+  return scripts[src] || (scripts[src] = new Promise(function(res, rej){
+    var s = document.createElement("script"); s.src = src; s.onload = res;
+    s.onerror = function(){ delete scripts[src]; rej(new Error(src)); }; document.body.appendChild(s);
+  }));
+}
+function start3D(){
+  if (loading || engine) return;
+  loading = true; err.hidden = true;
+  model.classList.remove("is-error"); model.classList.add("is-loading");
+  load("vendor/three-runtime.min.js").then(function(){ return load("vendor/ciclo-motore-3d.min.js"); }).then(function(){
+    var api = window.CicloMotore3D.init(model, {
+      fasi: F,
+      onProgress: function(p){ bar.style.transform = "scaleX(" + p + ")"; },
+      onReady: function(){ engine = api; loading = false; api.setAngle(cur); model.classList.remove("is-loading"); model.classList.add("is-ready"); },
+      onError: fail
+    });
+    api.setAngle(cur);
+  }).catch(fail);
+}
+function fail(e){ console.error(e); loading = false; model.classList.remove("is-loading"); err.hidden = false; }
+model.querySelector(".cm-retry").addEventListener("click", start3D);
+
+/* Si arma al primo gesto (scorrimento, tocco, tasto) o se la sezione è già in vista:
+   chi apre la pagina e non scorre non scarica three.js e il modello (≈ 1,4 MB). */
+var section = document.getElementById("ciclo"), armed = false;
+function arm(){
+  if (armed) return; armed = true;
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches)
+    load("vendor/gsap.min.js").then(function(){ return load("vendor/gsap-scrolltrigger.min.js"); }).then(setupScroll)
+      .catch(function(e){ console.error(e); root.classList.add("rm"); });   // senza GSAP: schede statiche e cursore
+  if (!("IntersectionObserver" in window)) return start3D();
+  new IntersectionObserver(function(es, io){ if (es.some(function(e){ return e.isIntersecting; })){ io.disconnect(); start3D(); } }, { rootMargin: "600px 0px" }).observe(section);
+}
+["scroll", "wheel", "touchstart", "pointerdown", "keydown"].forEach(function(ev){ addEventListener(ev, arm, { once: true, passive: true }); });
+if (location.hash || section.getBoundingClientRect().top < innerHeight) arm();
+
+/* ---------- Testate che salgono, voce di menu attiva ---------- */
+var io = "IntersectionObserver" in window, reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+var rev = [].slice.call(document.querySelectorAll(".reveal"));
+if (!io || reduce) rev.forEach(function(r){ r.classList.add("in"); });
+else {
+  var ro = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add("in"); ro.unobserve(e.target); } }); }, { rootMargin: "0px 0px -8% 0px" });
+  rev.forEach(function(r){ ro.observe(r); });
+}
+if (io){
+  var links = [].slice.call(document.querySelectorAll('.nav a[href^="#"]'));
+  var spy = new IntersectionObserver(function(es){
+    es.forEach(function(e){ if (e.isIntersecting) links.forEach(function(a){ a.setAttribute("aria-current", a.getAttribute("href") === "#" + e.target.id); }); });
+  }, { rootMargin: "-45% 0px -50% 0px" });
+  ["ciclo", "confronto", "fasatura", "valori"].forEach(function(id){ spy.observe(document.getElementById(id)); });
+}
+});
+</script>
+<script>
+/* App installabile e offline: stesso service worker della pagina principale. */
+(function(){
+  if (!("serviceWorker" in navigator) || location.protocol === "file:") return;
+  var aggiornamento = !!navigator.serviceWorker.controller, ricaricata = false;
+  navigator.serviceWorker.addEventListener("controllerchange", function(){
+    if (!aggiornamento || ricaricata) { aggiornamento = true; return; }
+    ricaricata = true; location.reload();
+  });
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("sw.js").then(function(reg){
+      document.addEventListener("visibilitychange", function(){ if (document.visibilityState === "visible") reg.update(); });
+    }).catch(function(e){ console.warn("Service worker non registrato:", e); });
+  });
+})();
+</script>
+</body>
+</html>
