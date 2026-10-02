@@ -12,7 +12,9 @@ import { spazio, useSpazio } from '@/spazio/stato'
 const SOGLIA = 0.94
 
 export function Finale() {
-  const su = useAnno((p) => tFase(p, FASI.length - 1) > SOGLIA && p > 0.9) && useSpazio((d) => d.dentro)
+  const fine = useAnno((p) => tFase(p, FASI.length - 1) > SOGLIA && p > 0.9)
+  const dentro = useSpazio((d) => d.dentro)
+  const su = fine && dentro
   const btn = useRef<HTMLButtonElement>(null)
   useEffect(() => {
     document.documentElement.classList.toggle('finale-su', su)
