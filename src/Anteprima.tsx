@@ -1,6 +1,7 @@
 import { useLayoutEffect } from 'react'
 import { anno } from '@/core/anno'
 import { ViteNelPalco } from '@/components/vite/ViteNelPalco'
+import { regolaCamera } from '@/components/vite/camera'
 
 /*
  * Solo per `npm run anteprime` (scripts/anteprime.mjs): la tavola da sola, su fondo trasparente,
@@ -8,7 +9,10 @@ import { ViteNelPalco } from '@/components/vite/ViteNelPalco'
  */
 export function Anteprima() {
   useLayoutEffect(() => {
-    const p = Number(new URLSearchParams(location.search).get('p') ?? 0)
+    const qs = new URLSearchParams(location.search)
+    const p = Number(qs.get('p') ?? 0)
+    // le tavole dei pannelli: l'inquadratura della stagione, ma mai troppo stretta
+    regolaCamera.zoomMax = Number(qs.get('zoom') ?? Infinity)
     anno.set(p)
     document.documentElement.classList.add('anteprima')
     document.documentElement.dataset.svela = 'si'

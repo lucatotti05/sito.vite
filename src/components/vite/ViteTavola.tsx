@@ -185,6 +185,14 @@ const Definizioni = memo(function Definizioni() {
           </symbol>
         ))}
         {/* due tracciati per acino: il contorno, e in un solo tracciato mezzaluna d'ombra e punto di luce */}
+        {/* fili e suolo del filare: pieni vicino alla pianta, sfumano nel buio da entrambi i lati
+            (non attraversano lo schermo dietro titoli e calendario) */}
+        <linearGradient id="v-sfuma-filare" gradientUnits="userSpaceOnUse" x1={SFUMA[0]} y1="0" x2={SFUMA[3]} y2="0">
+          <stop offset="0" style={{ stopColor: 'var(--avorio)', stopOpacity: 0 }} />
+          <stop offset={(SFUMA[1] - SFUMA[0]) / (SFUMA[3] - SFUMA[0])} style={{ stopColor: 'var(--avorio)', stopOpacity: 0.2 }} />
+          <stop offset={(SFUMA[2] - SFUMA[0]) / (SFUMA[3] - SFUMA[0])} style={{ stopColor: 'var(--avorio)', stopOpacity: 0.2 }} />
+          <stop offset="1" style={{ stopColor: 'var(--avorio)', stopOpacity: 0 }} />
+        </linearGradient>
         <symbol id="v-acino" overflow="visible">
           <circle r="1" className="v-acino" />
           <path d={`${ACINO_OMBRA}M-0.5 -0.4a0.12 0.12 0 1 0 0.24 0a0.12 0.12 0 1 0 -0.24 0`} className="v-incisione" />
@@ -194,8 +202,10 @@ const Definizioni = memo(function Definizioni() {
   )
 })
 
-/** Pali del filare ogni 520 unità: il filare continua fuori campo da entrambi i lati. */
-const PALI = Array.from({ length: 11 }, (_, k) => 64 + (k - 5) * 520)
+/** I due pali attorno alla pianta; il filare continua solo come accenno e sfuma (SFUMA). */
+const PALI = [64, 584]
+/** dove i fili del filare sono pieni (dal secondo al terzo valore) e dove spariscono */
+const SFUMA = [-40, 70, 584, 690] as const
 const ZOLLA = Array.from({ length: 40 }, (_, i): Pt => {
   const a = (i / 40) * Math.PI * 2
   return [302 + Math.cos(a) * 78, SUOLO + 6 + Math.sin(a) * 13]
@@ -205,7 +215,7 @@ const Fissi = memo(function Fissi() {
   // palo, fili, suolo: non cambiano mai. Linee sottili come la vite, mai barre scure
   return (
     <g className="v-fissi">
-      <path d={`M-3000 ${SUOLO + 2} C-1000 ${SUOLO - 6} 1400 ${SUOLO + 8} 3600 ${SUOLO}`} className="v-suolo" />
+      <path d={`M${SFUMA[0]} ${SUOLO + 2} C0 ${SUOLO - 4} 600 ${SUOLO + 6} ${SFUMA[3]} ${SUOLO}`} className="v-suolo" style={{ stroke: 'url(#v-sfuma-filare)' }} />
       {/* la zolla e l'ombra portata verso destra (luce da sinistra): solo tratteggio */}
       <path d={tratteggio(ZOLLA, 0, 3.2, 0.06)} className="v-suolo" />
       <path d={tratteggio(OMBRA_PORTATA, 8, 3, 0.04)} className="v-suolo" />
@@ -213,7 +223,7 @@ const Fissi = memo(function Fissi() {
         <path key={x} d={`M${x} 128 V${SUOLO + 2} M${x + 12} 128 V${SUOLO + 2} M${x} 128 H${x + 12}`} className="v-palo" />
       ))}
       {FILI.map((y) => (
-        <path key={y} d={`M-3000 ${y} L3600 ${y + 3}`} className="v-filo" />
+        <path key={y} d={`M${SFUMA[0]} ${y} L${SFUMA[3]} ${y + 0.5}`} className="v-filo" style={{ stroke: 'url(#v-sfuma-filare)' }} />
       ))}
     </g>
   )
@@ -332,12 +342,12 @@ function LegnoInverno({ g }: { g: number }) {
   return (
     <g>
       {viaCapoVecchio < 1 && (
-        <g style={{ opacity: 1 - viaCapoVecchio, transform: `translateY(${viaCapoVecchio * 30}px)` }}>
+        <g className="v-cade" style={{ opacity: 1 - viaCapoVecchio, transform: `translateY(${viaCapoVecchio * 30}px)` }}>
           {TRALCI_VECCHI.map((t, k) => {
             const via = tra(g, t.taglio, t.taglio + 2.2)
             if (via >= 1) return null
             return (
-              <g key={k} style={{ opacity: 1 - via, transform: `translateY(${(via * via * 60).toFixed(1)}px)` }}>
+              <g key={k} className="v-cade" style={{ opacity: 1 - via, transform: `translateY(${(via * via * 60).toFixed(1)}px)` }}>
                 <Legno pts={t.pts} w={[4.4, 1.3]} />
                 <Nodi pts={t.pts} ogni={0.1} larghezza={2.6} />
               </g>
@@ -348,7 +358,7 @@ function LegnoInverno({ g }: { g: number }) {
         </g>
       )}
       {taglioB < 1 && (
-        <g style={{ opacity: 1 - taglioB, transform: `translateY(${(taglioB * 40).toFixed(1)}px)` }}>
+        <g className="v-cade" style={{ opacity: 1 - taglioB, transform: `translateY(${(taglioB * 40).toFixed(1)}px)` }}>
           <Legno pts={puntiBEretto().slice(2)} w={[4.2, 1.2]} />
           <Nodi pts={puntiBEretto()} ogni={0.1} larghezza={2.5} />
         </g>

@@ -23,14 +23,15 @@
     linear-gradient(90deg, var(--nero-90) 0%, var(--nero-60) 24%, var(--nero-0) 46%),
     linear-gradient(0deg, var(--nero-90) 0%, var(--nero-0) 14%);
 }
-/* ── titoli: colonne 1-7 della griglia, dal margine superiore ───────────── */
+/* ── titoli: colonne 1-6 della griglia, sotto la voce dell'angolo ───────────── */
 .titoli {
   position: absolute;
   z-index: 6;
   left: var(--margine-x);
   /* sotto la voce dell'angolo in alto a sinistra */
   top: calc(var(--angolo) + var(--s-8));
-  width: var(--col-7);
+  /* sei colonne: la pianta sta a destra (camera.ts, regia) e il testo non le passa sopra */
+  width: calc(6 * var(--colonna) + 5 * var(--gutter));
   height: 0;
   pointer-events: none;
 }

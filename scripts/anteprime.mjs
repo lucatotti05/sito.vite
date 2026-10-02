@@ -4,8 +4,12 @@
  *   ciclo.webp  atlante 4 × 3 di 12 fotogrammi lungo la fase (la crescita della tavola o la clip),
  *               per il ciclo vivo del pannello centrale.
  * Uso: con il sito in esecuzione (npm run dev), `npm run anteprime [-- http://localhost:5180/]`.
- * La tavola si fotografa in modalità ?anteprima (src/Anteprima.tsx) a 1440 × 900, ritagliata in
- * 3:4 attorno alla pianta (dove la mette la regia: 56% della larghezza).
+ * La tavola si fotografa in modalità ?anteprima (src/Anteprima.tsx) a 1440 × 900 con l'inquadratura
+ * della stagione, ma con lo zoom limitato (1,6): il soggetto della fase resta leggibile e la pianta
+ * non viene tagliata a caso. Ritagliata in 3:4
+ * attorno alla pianta (dove la mette la regia: 62% della larghezza). Le forme sono riempite del
+ * colore della carta del pannello (--terra). Ogni immagine è montata come una tavola: margine
+ * tutt'intorno e una fascia libera in basso, dove il pannello scrive il nome della fase.
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -21,12 +25,14 @@ const film = fs.existsSync(dirFilm)
 
 const W = 1440, H = 900
 const CW = 512, CH = 683, COL = 4, RIG = 3, N = COL * RIG
-const ritaglio = { x: Math.round(0.56 * W - (H * 0.75) / 2), y: 0, width: Math.round(H * 0.75), height: H }
+const ritaglio = { x: Math.round(0.62 * W - (H * 0.75) / 2), y: 0, width: Math.round(H * 0.75), height: H }
+/** la tavola dentro la cella: margini e fascia per il nome (frazioni della cella) */
+const MONTA = { x: 0.08, y: 0.03, w: 0.84, h: (0.84 * 512) / (0.75 * 683) }
 
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
 const pagina = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 })
-await pagina.goto(`${BASE}?anteprima&p=0`, { waitUntil: 'networkidle' })
-await pagina.addStyleTag({ content: '.vite-note{display:none!important}' })
+await pagina.goto(`${BASE}?anteprima&p=0&zoom=1.6`, { waitUntil: 'networkidle' })
+await pagina.addStyleTag({ content: '.vite-note{display:none!important}.anteprima-palco{--nero:var(--terra)}' })
 await pagina.evaluate(() => document.fonts.ready)
 // la pagina che compone e codifica le immagini (stessa origine: niente canvas contaminati)
 const banco = await browser.newPage()
@@ -54,7 +60,8 @@ async function componi(sorgenti, col, rig) {
         im.src = s.src
         await im.decode()
         const r = s.taglio ?? { x: 0, y: 0, w: im.naturalWidth, h: im.naturalHeight }
-        ctx.drawImage(im, r.x, r.y, r.w, r.h, (i % col) * CW, Math.floor(i / col) * CH, CW, CH)
+        const m = s.monta
+        ctx.drawImage(im, r.x, r.y, r.w, r.h, (i % col) * CW + m.x * CW, Math.floor(i / col) * CH + m.y * CH, m.w * CW, m.h * CH)
       }
       return c.toDataURL('image/webp', 0.86)
     },
@@ -72,17 +79,18 @@ for (const [i, f] of fasi.entries()) {
   if (m) {
     // la clip: primo fotogramma e 12 fotogrammi lungo la clip, ritagliati in 3:4 sul soggetto
     const { larghezza: IW, altezza: IH, numero, percorso, cifre } = m.fotogrammi
-    const tw = IH * 0.75
-    const tx = Math.max(0, Math.min(IW - tw, m.inquadratura.fuoco[0] * IW - tw / 2))
-    const taglio = { x: tx, y: 0, w: tw, h: IH }
+    // la fotografia, con le stesse proporzioni della tavola montata
+    const th = IH, tww = th * ((MONTA.w * CW) / (MONTA.h * CH))
+    const taglio = { x: Math.max(0, Math.min(IW - tww, m.inquadratura.fuoco[0] * IW - tww / 2)), y: 0, w: tww, h: th }
     const src = (k) => `${BASE}${m.cartella}${percorso.replace('{n}', String(k).padStart(cifre, '0'))}`
-    fotogrammi = Array.from({ length: N }, (_, k) => ({ src: src(Math.round((k / (N - 1)) * (numero - 1))), taglio }))
+    fotogrammi = Array.from({ length: N }, (_, k) => ({ src: src(Math.round((k / (N - 1)) * (numero - 1))), taglio, monta: MONTA }))
   } else {
     const span = f.fine - f.inizio
     fotogrammi = []
-    for (let k = 0; k < N; k++) fotogrammi.push({ src: await scatta(f.inizio + 0.0005 + (k / (N - 1)) * span * 0.97) })
+    for (let k = 0; k < N; k++) fotogrammi.push({ src: await scatta(f.inizio + 0.0005 + (k / (N - 1)) * span * 0.97), monta: MONTA })
   }
-  fs.writeFileSync(path.join(dir, 'fermo.webp'), await componi([fotogrammi[0]], 1, 1))
+  // il fermo-immagine: il momento più rappresentativo della fase (poco prima della metà)
+  fs.writeFileSync(path.join(dir, 'fermo.webp'), await componi([fotogrammi[m ? 0 : 5]], 1, 1))
   fs.writeFileSync(path.join(dir, 'ciclo.webp'), await componi(fotogrammi, COL, RIG))
   console.log(`${nn} ${f.titolo}${m ? ' (clip)' : ''}`)
 }

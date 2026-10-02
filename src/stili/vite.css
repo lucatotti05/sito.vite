@@ -204,7 +204,7 @@ html.pratica-aperta .vite-chioma {
 }
 [data-movimento="ridotto"] .v-luogo-anello { animation: none; }
 /* movimento ridotto: i tralci tagliati svaniscono senza cadere */
-[data-movimento="ridotto"] .vite-svg g[style] { transform: none !important; }
+[data-movimento="ridotto"] .vite-svg .v-cade { transform: none !important; }
 
 
 /* il raccordo film ruota la vite: ciò che sta fuori dal viewBox resta disegnato negli angoli */

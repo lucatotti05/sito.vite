@@ -45,12 +45,16 @@ export function regia(vw: number) {
   // desktop: la pianta a destra della colonna del nodo, suolo al 93% dell'altezza;
   // telefono: la pianta occupa il 60% alto dello schermo, il nodo sta sotto
   const base = stretto ? 1250 : 860
-  const ax = stretto ? 0.5 : 0.56
+  // desktop: la pianta a destra, fuori dalla colonna dei testi
+  const ax = stretto ? 0.5 : 0.62
   const ay = stretto ? 0.38 : 0.5
   const suoloY = stretto ? 0.6 : 0.93
   const largo: Punto = [330, 745 - (suoloY - ay) * base]
   return { base, ax, ay, largo }
 }
+
+/** Solo per le anteprime dei pannelli (src/Anteprima.tsx): limite allo zoom della stagione. */
+export const regolaCamera = { zoomMax: Infinity }
 
 // pratica selezionata: la camera va verso il suo luogo (0 = nessuna, 1 = arrivata)
 const verso = { k: 0, luogo: [0, 0] as Punto }
@@ -90,6 +94,12 @@ export function inquadratura(p: number, vw: number, H: number): Inquadratura {
     const t = smooth(tra(p, a.p, b.p))
     zoom = Math.exp(lerp(Math.log(a.zoom), Math.log(b.zoom), t)) // zoom percettivamente uniforme
     fuoco = lerpP(a.fuoco ?? r.largo, b.fuoco ?? r.largo, t)
+    if (zoom > regolaCamera.zoomMax) {
+      // il fuoco si avvicina all'inquadratura larga quanto lo zoom si riduce: il soggetto resta in campo
+      const k = Math.log(regolaCamera.zoomMax) / Math.log(zoom)
+      fuoco = lerpP(r.largo, fuoco, k)
+      zoom = regolaCamera.zoomMax
+    }
   }
   if (verso.k > 0) {
     fuoco = lerpP(fuoco, verso.luogo, verso.k * 0.75)

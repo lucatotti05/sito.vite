@@ -128,7 +128,11 @@ function muovi(e: PointerEvent) {
   const canvas = e.currentTarget as HTMLElement
   if (!trascina) {
     // sopra un pannello il cursore lo dice
-    if (e.pointerType === 'mouse' && spazio.get().livello === 'anno') canvas.style.cursor = motore.pannelloSotto(e.clientX, e.clientY) >= 0 ? 'pointer' : 'grab'
+    if (e.pointerType === 'mouse' && spazio.get().livello === 'anno') {
+      const i = motore.pannelloSotto(e.clientX, e.clientY)
+      canvas.style.cursor = i >= 0 ? 'pointer' : 'grab'
+      motore.impostaSopra(i)
+    }
     return
   }
   if (e.pointerId !== trascina.id || !lenis) return

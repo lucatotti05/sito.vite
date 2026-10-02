@@ -7,7 +7,7 @@ import { FASI } from '@/core/tempo'
 import { FILM } from '@/components/film/registro'
 import { spazio } from './stato'
 import { PANNELLO_F, PANNELLO_V, SUOLO_F, SUOLO_V, TERRA_F, TERRA_V, VELO_F, VELO_V } from './shader'
-import { ASPETTO_CELLA, CELLE, VUOTA, caricaTexture, libera, ritaglio, textureNome, urlCiclo, urlFermo } from './texture'
+import { ASPETTO_CELLA, CELLE, FONT_NOME, PX_NOME, VUOTA, caricaTexture, libera, ritaglio, textureNome, urlCiclo, urlFermo } from './texture'
 
 /*
  * IL MOTORE DELLO SPAZIO: un solo canvas WebGL, un solo ciclo (core/ciclo.ts, il ticker di GSAP).
@@ -44,7 +44,7 @@ export type Disposizione = {
 export function disposizione(vw: number): Disposizione {
   return vw < 760
     ? { stretto: true, fov: 40, R: 3.6, vicino: 0.12, D: -0.7, w: 0.75, h: 1, passo: 0.8, camY: 0.12, guardaY: -0.1, suoloY: -0.74, kRiposo: 0.55 }
-    : { stretto: false, fov: 34, R: 5.2, vicino: 0.25, D: -1.4, w: 0.75, h: 1, passo: 0.88, camY: 0.26, guardaY: 0.0, suoloY: -0.74, kRiposo: 0.6 }
+    : { stretto: false, fov: 34, R: 5.2, vicino: 0.25, D: -1.9, w: 0.75, h: 1, passo: 0.95, camY: 0.24, guardaY: -0.02, suoloY: -0.72, kRiposo: 0.6 }
 }
 
 /** quanto i pannelli laterali si voltano verso il centro, oltre l'orientamento dell'arco */
@@ -130,6 +130,7 @@ class Motore {
   curva = molla()
   piega = molla()
   ritardo = molla()
+  avanti = molla()
   // lanterna
   mouse = { x: -1e4, y: -1e4, tx: -1e4, ty: -1e4, forza: 0, bersaglio: 0, ok: false }
   focus = -1
@@ -223,10 +224,9 @@ class Motore {
     const hPalo = 0.5
     for (let f = 0; f < nFile; f++) {
       const x = -largo / 2 + (f + 0.5) * passoFila
-      // filare a terra e filo, in tratti corti: un segmento lungo che passa dietro la camera si perde nel ritaglio
+      // filare a terra, in tratti corti: un segmento lungo che passa dietro la camera si perde nel ritaglio
       for (let z = 3; z > -lungo; z -= 2) {
         v.push(x, 0, z, x, 0, z - 2)
-        v.push(x, hPalo, z, x, hPalo, z - 2)
       }
       for (let z = 3 - ((f * 0.37) % passoPali); z > -lungo * 0.65; z -= passoPali) v.push(x, 0, z, x, hPalo, z)
     }
@@ -317,8 +317,8 @@ class Motore {
       })
     })
 
-    // i nomi si riscrivono quando Instrument Sans è caricato (prima la misura sarebbe sbagliata)
-    document.fonts?.ready.then(() => {
+    // i nomi si riscrivono quando il Bodoni corsivo è caricato (prima la misura sarebbe sbagliata)
+    Promise.resolve(document.fonts?.load(`italic 400 ${PX_NOME}px ${FONT_NOME}`)).then(() => {
       this.pannelli.forEach((p) => {
         const n = textureNome(FASI[p.i].titolo)
         libera(p.u.uNome.value as THREE.Texture)
@@ -485,6 +485,8 @@ class Motore {
     anima = passoMolla(this.curva, clamp(Math.abs(v) * 0.32, 0, 1.4), dt) || anima
     anima = passoMolla(this.piega, clamp(-Math.abs(v) * 0.05, -0.16, 0), dt) || anima
     anima = passoMolla(this.ritardo, clamp(-v * 0.055, -0.3, 0.3), dt) || anima
+    const sopraCentrale = this.sopra >= 0 && this.sopra === Math.round(arco) && st.livello === 'anno' && !st.volo
+    anima = passoMolla(this.avanti, sopraCentrale && !ridotto ? 1 : 0, dt) || anima
     if (Math.abs(vIst) > 1e-4) this.sporco = true
 
     const c = Math.round(clamp(arco, 0, FASI.length - 1))
@@ -570,15 +572,16 @@ class Motore {
 
     const su = this.suolo.material.uniforms
     su.uScorre.value = spazio.arco * L.passo * 0.85
-    su.uAlfa.value = 0.14 * (1 - ee)
+    // una linea di 1 pixel del dispositivo sullo schermo denso è sottile la metà: si compensa l'opacità
+    su.uAlfa.value = 0.13 * Math.pow(Math.min(2, this.dpr), 0.85) * (1 - ee)
     this.aggiornaLanterna(su)
     this.aggiornaLanterna(this.terra.material.uniforms)
     this.terra.material.uniforms.uAlfa.value = 1 - ee
 
     const aspettoSchermo = this.vw / this.H
     const pxUnita = this.H / (2 * (Rc + L.D) * Math.tan(fov / 2))
-    const nomeH = (13 * 1.5) / pxUnita // altezza della riga del nome, in unità del mondo
-    const margine = 16 / pxUnita
+    const nomeH = (PX_NOME * 1.5) / pxUnita // altezza della riga del nome, in unità del mondo
+    const margine = 18 / pxUnita
     const ridotto = preferenze.get().ridotto
 
     for (const p of this.pannelli) {
@@ -589,7 +592,7 @@ class Motore {
       // gli altri pannelli si aprono di lato e si spengono mentre la camera entra
       const allarga = aperto ? 0 : Math.sign(off || 1) * ee * 0.55
       const th = off * (L.passo / L.R) + allarga
-      const R = L.R - L.vicino * vic
+      const R = L.R - L.vicino * vic - (p.i === this.sopra ? this.avanti.x * 0.1 : 0)
       const ea = aperto ? e : 0
       const eac = clamp(ea)
       const visibile = Math.abs(off) < 5.5
@@ -607,7 +610,7 @@ class Motore {
       u.uPiega.value = this.piega.x * (1 - eac)
       u.uAspetto.value.set(w / L.h, 1)
       u.uFondo.value.copy(TERRA).lerp(NERO, eac)
-      u.uLuce.value = lerp(lerp(0.42, 1, vic), 1, eac)
+      u.uLuce.value = lerp(lerp(0.66, 1, vic) * clamp(1.1 - Math.abs(off) * 0.12), 1, eac)
       u.uAlfa.value = (aperto ? 1 : clamp(1 - ee * 1.6) * clamp(1.2 - Math.max(0, Math.abs(off) - 3.5) * 0.6)) * comp
       u.uFocus.value = this.focus === p.i ? 1 - eac : 0
       u.uBordo.value.set(1 / (pxUnita * w), 1 / (pxUnita * L.h))
@@ -650,8 +653,9 @@ class Motore {
       // il nome, in basso a sinistra, sempre alla stessa misura a schermo
       const hN = nomeH / L.h
       const wN = (nomeH * p.nomeAspetto) / w
-      u.uNomeRett.value.set(margine / w, 1 - margine / L.h - hN, wN, hN)
-      u.uNomeAlfa.value = clamp(1 - ea * 3) * lerp(0.55, 1, vic)
+      // allineato al bordo sinistro della tavola montata, al centro della fascia libera in basso
+      u.uNomeRett.value.set((0.08 * L.w) / w, Math.min(1 - margine / L.h - hN, 0.947 - hN / 2), wN, hN)
+      u.uNomeAlfa.value = clamp(1 - ea * 3) * lerp(0.6, 1, vic)
 
       // angoli a schermo (pannello piano): per il clic
       const hw = w / 2, hh = L.h / 2
@@ -710,6 +714,13 @@ class Motore {
       }
     }
     return migliore
+  }
+
+  /** Il pannello sotto il cursore: quello centrale si fa avanti di poco, come per farsi prendere. */
+  impostaSopra(i: number) {
+    if (i === this.sopra) return
+    this.sopra = i
+    this.sporca()
   }
 
   impostaFocus(i: number) {

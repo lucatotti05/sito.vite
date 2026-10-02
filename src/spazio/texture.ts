@@ -72,13 +72,15 @@ export function ritaglio(ta: number, pa: number, cx = 0.5, cy = 0.5, cella?: { c
   return new THREE.Vector4((col + m + x * (1 - 2 * m)) / cella.c, (row + m + y * (1 - 2 * m)) / cella.r, (w * (1 - 2 * m)) / cella.c, (h * (1 - 2 * m)) / cella.r)
 }
 
-/** Il nome della fase come texture: Instrument Sans 500, avorio (l'alfa porta il segno). */
+/** Il nome della fase come texture: Bodoni Moda corsivo (stile annotazione, più grande), avorio. */
+export const FONT_NOME = '"Bodoni Moda Variable", "Bodoni Moda", Didot, Georgia, serif'
+export const PX_NOME = 20
 export function textureNome(testo: string) {
   const scala = 3
-  const px = 13 * scala
+  const px = PX_NOME * scala
   const c = document.createElement('canvas')
   const ctx = c.getContext('2d')!
-  const font = `500 ${px}px "Instrument Sans Variable", "Instrument Sans", "Helvetica Neue", Arial, sans-serif`
+  const font = `italic 400 ${px}px ${FONT_NOME}`
   ctx.font = font
   const w = Math.ceil(ctx.measureText(testo).width + 2 * scala)
   c.width = w
@@ -86,7 +88,6 @@ export function textureNome(testo: string) {
   ctx.font = font
   ctx.textBaseline = 'middle'
   ctx.fillStyle = '#ede4d3'
-  if ('letterSpacing' in ctx) (ctx as CanvasRenderingContext2D & { letterSpacing: string }).letterSpacing = `${0.02 * px}px`
   ctx.fillText(testo, scala, c.height / 2)
   const t = prepara(new THREE.Texture(c as unknown as HTMLImageElement), true)
   return { t, aspetto: c.width / c.height, altezzaPx: c.height / scala }
