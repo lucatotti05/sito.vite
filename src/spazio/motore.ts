@@ -4,6 +4,7 @@ import { C } from '@/core/colori'
 import { clamp, lerp, smooth } from '@/core/math'
 import { preferenze } from '@/core/preferenze'
 import { FASI } from '@/core/tempo'
+import { LUCI_STAGIONE } from '@/core/stagioni'
 import { FILM } from '@/components/film/registro'
 import { spazio } from './stato'
 import { CIELO_F, CIELO_V, PANNELLO_F, PANNELLO_V, SUOLO_F, SUOLO_V, TERRA_F, TERRA_V, VELO_F, VELO_V } from './shader'
@@ -75,13 +76,8 @@ const TERRA = rgb(C.terra)
 const AVORIO = rgb(C.avorio)
 const ORO = rgb(C.oro)
 const LUCE = rgb('#e8c58a') // la lanterna (--lanterna)
-/**
- * La luce di ogni fase: il colore del giorno sul vigneto in quella stagione (inverno freddo, verde
- * tenero di primavera, oro della fioritura, vino dell'invaiatura e della vendemmia, ambra
- * dell'autunno). Illumina il foglio da dietro la pianta, si versa sul suolo e accende l'orizzonte:
- * scorrendo l'arco la luce dello spazio cambia con l'anno.
- */
-const STAGIONI = ['#7f93ab', '#9fb0a2', '#a7c26a', '#9cbf5a', '#d2b062', '#c9b25c', '#b4515f', '#a8473f', '#b9603e', '#c98a3c'].map(rgb)
+/** la luce della stagione di ogni fase (core/stagioni.ts): scorrendo l'arco la luce dello spazio cambia con l'anno */
+const STAGIONI = LUCI_STAGIONE.map(rgb)
 const stagione = (x: number, out: THREE.Vector3) => {
   const f = clamp(x, 0, STAGIONI.length - 1)
   const i = Math.min(STAGIONI.length - 2, Math.floor(f))

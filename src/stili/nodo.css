@@ -15,25 +15,75 @@
 .nodo-dissolvi {
   animation: dissolvi var(--d-entrata) var(--ease-out) both;
 }
-.forma-tratto,
-.forma-riempi {
-  stroke: none;
-  transition: opacity var(--d-ui) var(--ease-out);
+
+/* l'orbita e il quadrante dell'anno (NodoPratiche): linee di 1px vere sullo schermo */
+.nodo-orbita {
+  fill: none;
+  stroke-width: calc(1px * var(--nodo-k, 1.5));
+  transition: stroke var(--d-ui) var(--ease-out);
 }
-/* la forma si avvicina alla pratica scelta */
-.nodo-fuoco-forma {
-  transform-box: view-box;
-  transform-origin: 200px 200px;
-  transition: transform var(--d-scena) var(--ease-out);
+.nodo-orbita.dietro { stroke: rgb(237 228 211 / 0.12); stroke-dasharray: calc(2px * var(--nodo-k, 1.5)) calc(5px * var(--nodo-k, 1.5)); }
+.nodo-orbita.davanti { stroke: rgb(237 228 211 / 0.32); }
+.nodo.fermo .nodo-orbita.davanti { stroke: rgb(237 228 211 / 0.2); }
+.nodo-tacca {
+  fill: none;
+  stroke: rgb(237 228 211 / 0.4);
+  stroke-width: calc(1px * var(--nodo-k, 1.5));
+  stroke-linecap: round;
 }
-/* mentre una pratica è aperta, il resto della forma fa un passo indietro */
-.nodo.fermo :is(.forma-tratto, .forma-riempi) {
-  opacity: 0.55;
+/* i mesi della fase, accesi sul quadrante */
+.nodo-tacca.accesa { stroke: var(--stagione, var(--avorio-60)); stroke-width: calc(2px * var(--nodo-k, 1.5)); }
+
+/* il cuore della fase: alone della luce della stagione che respira, due onde lente, l'organo */
+.cuore-alone {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: respiro-cuore 5.2s var(--ease-in-out) infinite alternate;
 }
-.nodo.fermo .forma-decoro > * {
-  opacity: 0.45;
-  transition: opacity var(--d-ui) var(--ease-out);
+@keyframes respiro-cuore {
+  from { transform: scale(0.94); opacity: 0.85; }
+  to { transform: scale(1.06); opacity: 1; }
 }
+.nodo.fermo .cuore-alone { opacity: 0.6; animation-play-state: paused; }
+.cuore-onda {
+  fill: none;
+  stroke: var(--stagione, var(--avorio-60));
+  stroke-width: calc(1px * var(--nodo-k, 1.5));
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: onda-cuore 4.8s var(--ease-out) infinite;
+}
+.cuore-onda.tarda { animation-delay: 2.4s; }
+@keyframes onda-cuore {
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+.cuore-disco {
+  fill: var(--nero);
+  stroke: color-mix(in oklab, var(--stagione, var(--avorio)) 55%, transparent);
+  stroke-width: calc(1px * var(--nodo-k, 1.5));
+}
+.cuore-organo {
+  transform: scale(1.45);
+  animation: entra-organo var(--d-scena) var(--ease-out) both;
+}
+@keyframes entra-organo {
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: scale(1.45); opacity: 1; }
+}
+[data-movimento="ridotto"] :is(.cuore-alone, .cuore-organo) { animation: none; }
+
+/* le pratiche: un disco scuro con l'organo della fase, un'ombra morbida sotto */
+.nodo-disco {
+  fill: var(--nero);
+  stroke: var(--avorio-60);
+  stroke-width: calc(1px * var(--nodo-k, 1.5));
+  transition: stroke var(--d-micro) var(--ease-out), fill var(--d-micro) var(--ease-out);
+}
+.nodo-bottone:hover .nodo-disco { stroke: var(--avorio); }
+.nodo-bottone.vicina .nodo-disco { stroke: var(--stagione, var(--avorio-85)); }
+.nodo-bottone.attiva .nodo-disco { stroke: var(--avorio); fill: color-mix(in oklab, var(--stagione, var(--avorio)) 22%, var(--nero)); }
 
 /* etichette, collegamenti, guide */
 .nodo-etichetta {
@@ -42,17 +92,13 @@
   font-size: calc(13px * var(--nodo-k, 1.5));
   font-weight: 500;
   letter-spacing: 0.02em;
-  opacity: var(--vis, 1);
   fill: var(--avorio-60);
   paint-order: stroke;
   stroke: var(--nero);
   stroke-width: calc(4px * var(--nodo-k, 1.5));
   stroke-linejoin: round;
-  transition: fill var(--d-micro) var(--ease-out), opacity var(--d-ui) var(--ease-out);
+  transition: fill var(--d-micro) var(--ease-out);
   pointer-events: none;
-}
-.nodo.fermo .nodo-etichetta:not(.attiva):not(.vicina) {
-  opacity: calc(var(--vis, 1) * 0.35);
 }
 .nodo-etichetta.attiva { fill: var(--avorio); }
 .nodo-etichetta.vicina { fill: var(--avorio-85); }
@@ -86,11 +132,6 @@
 .nodo-bottone {
   cursor: pointer;
   outline: none;
-  opacity: var(--vis, 1);
-  transition: opacity var(--d-ui) var(--ease-out);
-}
-.nodo.fermo .nodo-bottone:not(.attiva):not(.vicina) {
-  opacity: calc(var(--vis, 1) * 0.35);
 }
 /* bersaglio da 44px veri sullo schermo, qualunque sia il disegno */
 .nodo-bersaglio { fill: transparent; r: calc(22px * var(--nodo-k, 1.5)); }
@@ -312,7 +353,7 @@ html.pratica-aperta .nodo-invito {
   .nodo-invito { text-align: center; margin: var(--s-1) auto 0; }
   /* con la scheda aperta il nodo sale e si riduce: il grafo resta visibile sopra il foglio */
   html.pratica-aperta .nodo-svg {
-    transform: translateY(-31svh) scale(0.7);
+    transform: translateY(-36svh) scale(0.7);
   }
   .scheda {
     position: fixed;

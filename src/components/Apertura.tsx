@@ -102,6 +102,7 @@ export function Apertura() {
       Object.assign(st, pieno(), { svela: 1 })
       applica()
       video.removeAttribute('autoplay')
+      video.pause()
       gsap.set(calendario, { opacity: 0 })
       gsap.set(parole, { yPercent: 0 })
       tl.fromTo(el, { opacity: 0 }, { opacity: 1, duration: D.entrata })

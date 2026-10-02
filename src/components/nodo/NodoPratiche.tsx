@@ -1,21 +1,18 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type JSX, type KeyboardEvent } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type JSX, type KeyboardEvent } from 'react'
 import gsap from 'gsap'
 import { D, E } from '@/core/movimento'
 import { ciclo } from '@/core/ciclo'
 import praticheJson from '@/data/pratiche.json'
-import { anno, useAnnoFotogramma } from '@/core/anno'
-import { easeInOut, lerp, mixHex, tra } from '@/core/math'
+import { useAnnoFotogramma } from '@/core/anno'
+import { lerp } from '@/core/math'
 import { usePreferenze } from '@/core/preferenze'
 import { usePrimoPiano } from '@/core/primoPiano'
+import { LUCI_STAGIONE } from '@/core/stagioni'
 import { FASI, mesiDi, tFase, type Fase } from '@/core/tempo'
 import { camera } from '../vite/camera'
 import { righe } from './comune'
 import { luogoDi, pratica } from './luoghi'
-import {
-  Acino, Antera, Bocciolo, DecoroCaduta, DecoroFiore, DecoroFoglia, DecoroGermogliamento, DecoroGrappolo, DecoroLegno,
-  DecoroMaturazione, DecoroPianto, DecoroVendemmia, FogliaSecca, Gemma, Goccia, Punta, Stazione, coloreAcino,
-} from './decori'
-import { CENTRO, FORME, etichettaFuori, misto, nastro, poligono, type Etichettatura, type Posa, type Pt } from './forme'
+import { Acino, Antera, Bocciolo, FogliaSecca, Gemma, Goccia, Punta, Stazione, coloreAcino } from './decori'
 
 export type Pratica = {
   id: string
@@ -29,44 +26,42 @@ export type Pratica = {
   da_verificare?: boolean
 }
 const PRATICHE = praticheJson as Record<string, Pratica[]>
+const NESSUNA: Pratica[] = []
 
 /*
- * IL NODO ORBITALE DELLE PRATICHE — un solo componente per tutto l'anno.
- * La forma principale (120 punti) passa con un morph dalla forma finale della fase precedente
- * a quella della fase corrente, poi si anima con il progresso della fase. Le pratiche sono
- * posate sui punti significativi della forma (gemme, gocce, lobi, antere, acini, parti
- * dell'acino, tappe del percorso, foglie). Con movimento ridotto: stato finale e dissolvenza.
+ * IL NODO ORBITALE DELLE PRATICHE — un sistema in orbita attorno alla fase.
+ * Al centro il cuore della fase: il suo organo (gemma, goccia, fiore, acino, foglia) dentro un
+ * alone della luce della stagione, con due onde che ne escono piano. Attorno, su un piano inclinato,
+ * l'orbita delle pratiche e un quadrante dell'anno (dodici tacche, i mesi della fase accesi).
+ * Scorrendo la fase l'orbita gira (guidata dalla posizione, reversibile); le pratiche dietro il
+ * cuore sono più piccole e più spente, quelle davanti più grandi. Al clic il piano si inclina e
+ * l'orbita ruota con la molla finché la scelta arriva davanti: si ingrandisce, le collegate si
+ * accendono e un filo le unisce, le altre arretrano e si sfocano. Con movimento ridotto: niente
+ * onde, niente sfocature, posizioni senza molla.
  *
- * Dal componente orbitale di partenza (riferimenti/radial-orbital-timeline.tsx) restano:
- * un solo nodo aperto alla volta, i correlati evidenziati, la scheda con i collegamenti
- * cliccabili, il clic fuori che chiude.
+ * Dal componente di riferimento (riferimenti/radial-orbital-timeline.tsx): un solo nodo aperto alla
+ * volta, i correlati evidenziati, la scheda con i collegamenti cliccabili, il clic fuori che chiude.
  */
 
-type Geometria = { Marcatore: () => JSX.Element; Decoro?: (p: { iFase: number }) => JSX.Element; invito: string }
-const GEOMETRIE: Geometria[] = [
-  { Marcatore: Gemma, Decoro: DecoroLegno, invito: 'Ogni gemma sul tralcio è una pratica.' },
-  { Marcatore: Goccia, Decoro: DecoroPianto, invito: 'Le pratiche sono gocce: scorrono lungo l’orbita e si raccolgono in basso.' },
-  { Marcatore: Bocciolo, Decoro: DecoroGermogliamento, invito: 'Le pratiche sono gemme lungo il germoglio e si aprono mentre scorri.' },
-  { Marcatore: Punta, Decoro: DecoroFoglia, invito: 'Le pratiche stanno sulle punte dei lobi, collegate dalle nervature.' },
-  { Marcatore: Antera, Decoro: DecoroFiore, invito: 'Le pratiche stanno sulle antere dei cinque stami.' },
-  { Marcatore: Acino, Decoro: (p) => <DecoroGrappolo {...p} fase={6} />, invito: 'Le pratiche sono acini: crescono finché il grappolo si chiude.' },
-  { Marcatore: Acino, Decoro: (p) => <DecoroGrappolo {...p} fase={7} />, invito: 'Gli acini virano uno alla volta, anche quelli delle pratiche.' },
-  { Marcatore: Stazione, Decoro: DecoroMaturazione, invito: 'Buccia, polpa e vinaccioli: una pratica per ogni parte.' },
-  { Marcatore: Stazione, Decoro: DecoroVendemmia, invito: 'Le pratiche stanno sul percorso dal raspo alla cassetta.' },
-  { Marcatore: FogliaSecca, Decoro: DecoroCaduta, invito: 'Le pratiche sono foglie che cadono e si posano a terra.' },
-]
+/** l'organo della fase: il marcatore delle sue pratiche e del suo cuore */
+const MARCATORI: (() => JSX.Element)[] = [Gemma, Goccia, Bocciolo, Punta, Antera, Acino, Acino, Stazione, Stazione, FogliaSecca]
+const INVITO = 'Le pratiche girano attorno alla fase mentre scorri: scegline una per vederla sulla vite.'
 
-/** Il morph tra le forme è a tempo (non trascinato dallo scroll): parte dalla forma disegnata in quel momento. */
-const MORPH_S = D.entrata
-type Istantanea = { pts: Pt[]; larg: number[]; tratto: string; riempi: string; opR: number }
-const campiona = (a: number[], u: number) => {
-  const f = u * (a.length - 1)
-  const i = Math.min(a.length - 2, Math.floor(f))
-  return lerp(a[i], a[i + 1], f - i)
-}
-
+/** centro dell'orbita a riposo; con una pratica scelta scende (la scheda prende lo spazio sopra) */
+const CENTRO: [number, number] = [214, 192]
+const CY_SCELTA = 300
+/** raggio dell'orbita e del quadrante dell'anno (unità del disegno) */
+const R = 170
+const R_ANNO = 196
+/** inclinazione del piano: a riposo e con una pratica scelta (gradi) */
+const INCL_RIPOSO = 54
+const INCL_SCELTA = 75
+/** quanto gira l'orbita lungo tutta la fase (gradi) */
+const GIRO = 150
 /** interlinea delle etichette su due righe, in corpi (13px a schermo) */
 const INTERLINEA = 1.2
+const rad = (a: number) => (a * Math.PI) / 180
+
 const mqStretto = window.matchMedia('(max-width: 759px)')
 const useStretto = () =>
   useSyncExternalStore(
@@ -84,76 +79,54 @@ function correlateDi(pratiche: Pratica[], id: string | null) {
   pratiche.forEach((p) => p.correlate.includes(id) && s.add(p.id))
   return s
 }
-function coppie(pratiche: Pratica[]) {
-  const visti = new Set<string>()
-  const out: [number, number][] = []
-  pratiche.forEach((p, a) =>
-    p.correlate.forEach((c) => {
-      const b = pratiche.findIndex((q) => q.id === c)
-      const k = [a, b].sort().join('|')
-      if (b >= 0 && !visti.has(k)) {
-        visti.add(k)
-        out.push([a, b])
-      }
-    }),
-  )
-  return out
-}
+
+/** i mesi della fase sul quadrante dell'anno: indici 0–11 */
+const MESI_ANNO = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre']
 
 export function NodoPratiche({ fase }: { fase: Fase }) {
   const iFase = FASI.indexOf(fase)
-  const pratiche = PRATICHE[fase.id] ?? []
-  const geo = GEOMETRIE[iFase]
+  const pratiche = PRATICHE[fase.id] ?? NESSUNA
+  const n = pratiche.length
+  const Marcatore = MARCATORI[iFase] ?? Gemma
   const { ridotto } = usePreferenze()
   const stretto = useStretto()
   const id = useId()
   const [attiva, setAttiva] = useState<string | null>(null)
   const scelta = pratiche.find((p) => p.id === attiva)
   const vicine = correlateDi(pratiche, attiva)
-  const legami = coppie(pratiche)
+  const mesiFase = new Set(fase.mesi.map((m) => MESI_ANNO.indexOf(m)))
 
-  const rRiempi = useRef<SVGPathElement>(null)
-  const rTratto = useRef<SVGPathElement>(null)
-  const rDecoro = useRef<SVGGElement>(null)
+  const rSvg = useRef<SVGSVGElement>(null)
+  const rSezione = useRef<HTMLElement>(null)
+  const rScheda = useRef<HTMLElement>(null)
+  const rOrbitaDietro = useRef<SVGPathElement>(null)
+  const rOrbitaDavanti = useRef<SVGPathElement>(null)
+  const rAnno = useRef<SVGGElement>(null)
+  const rCuore = useRef<SVGGElement>(null)
+  const rTacche = useRef<(SVGPathElement | null)[]>([])
   const rMarc = useRef<(SVGGElement | null)[]>([])
   const rEtich = useRef<(SVGTextElement | null)[]>([])
-  const rGuide = useRef<(SVGPathElement | null)[]>([])
   const rLegami = useRef<(SVGPathElement | null)[]>([])
-  const fermo = useRef(false)
-  const ultimePose = useRef<Posa[]>([])
-  const rSvg = useRef<SVGSVGElement>(null)
-  const rPiano = useRef<SVGGElement>(null)
-  const ultimeEtichette = useRef<Etichettatura[]>([])
   /** --nodo-k: unità del disegno per pixel (le etichette sono 13px veri a schermo) */
   const nodoK = useRef(1.5)
-  /** righe e caratteri di ogni etichetta, per stimarne la scatola */
-  const misureEtich = useRef<{ n: number; c: number }[]>([])
   /** larghezza in px della colonna libera dei testi: le etichette possono arrivare fin lì */
   const limiteX = useRef(0)
   /** larghezza vera di ogni etichetta, in unità del disegno (misurata al ridimensionamento) */
   const larghezze = useRef<number[]>([])
-  /** interlinea delle etichette a due righe e larghezze: si rimisurano a ogni cambio di misura */
+  const righeEtich = useRef<number[]>([])
+  /** l'orbita: angolo (gradi) e inclinazione, con le loro molle; comparsa delle pratiche (0 → 1) */
+  const orbita = useRef({ ang: 0, vAng: 0, incl: INCL_RIPOSO, vIncl: 0, angT: 0, inclT: INCL_RIPOSO, scelta: -1, comparsa: 1 })
+
   const rimisura = () => {
     limiteX.current = document.querySelector<HTMLElement>('.titoli')?.clientWidth ?? 0
     const fs = 13 * nodoK.current
     larghezze.current = rEtich.current.map((e) => {
       if (!e) return 0
       const ts = Array.from(e.querySelectorAll('tspan'))
-      ts.forEach((t, j) => t.setAttribute('dy', String(j ? INTERLINEA * fs : (-(ts.length - 1) * INTERLINEA * fs) / 2)))
+      ts.forEach((t, j) => t.setAttribute('dy', String(j ? INTERLINEA * fs : 0)))
       return Math.max(0, ...ts.map((t) => t.getComputedTextLength()))
     })
   }
-  /**
-   * L'orbita (dalla prova del germogliamento, scegli() e aggiornaNodo()): al clic il piano della
-   * forma si inclina di 58° e ruota con la molla finché la pratica scelta arriva davanti (in basso,
-   * verso chi guarda); le altre arretrano e si sfocano con la profondità. Si ruota e si inclina il
-   * piano, le forme botaniche non si deformano: marcatori ed etichette restano dritti.
-   */
-  const orbita = useRef({ ang: 0, vAng: 0, incl: 0, vIncl: 0, angT: 0, inclT: 0, scelta: -1 })
-  const rScheda = useRef<HTMLElement>(null)
-  const rSezione = useRef<HTMLElement>(null)
-  const morph = useRef<{ k: number; da: Istantanea | null }>({ k: 1, da: null })
-  const ultima = useRef<Istantanea | null>(null)
 
   useEffect(() => setAttiva(null), [fase.id])
   // quando la collana passa in primo piano la pratica aperta si chiude
@@ -161,7 +134,6 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
   useEffect(() => {
     if (primo !== 'nodo') setAttiva(null)
   }, [primo])
-  fermo.current = !!attiva
 
   // ponte con la vite: la pratica scelta si illumina sulla pianta e la camera ci va
   useEffect(() => {
@@ -180,32 +152,61 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
     camera.guarda(null)
   }, [])
 
-  // la pratica scelta: il piano ruota per portarla davanti e si inclina (molla interrompibile)
+  /** l'angolo che porta la pratica i davanti (in basso, verso chi guarda), vicino all'angolo attuale */
+  const angoloPer = (i: number) => {
+    const o = orbita.current
+    let t = (-i * 360) / Math.max(1, n)
+    while (t - o.ang > 180) t -= 360
+    while (t - o.ang < -180) t += 360
+    return t
+  }
+  const angoloScroll = (p: number) => -tFase(p, iFase) * GIRO
+
+  // la pratica scelta: il piano si inclina e l'orbita la porta davanti (molla interrompibile)
   useEffect(() => {
     const o = orbita.current
     const i = pratiche.findIndex((x) => x.id === attiva)
-    const q = i >= 0 ? ultimePose.current[i] : null
     o.scelta = i
-    if (q) {
-      const phi = (Math.atan2(q.p[1] - CENTRO[1], q.p[0] - CENTRO[0]) * 180) / Math.PI
-      let t = 90 - phi
-      while (t - o.ang > 180) t -= 360
-      while (t - o.ang < -180) t += 360
-      o.angT = t
-      o.inclT = 58
-    } else {
-      o.angT = 0
-      o.inclT = 0
-    }
+    o.inclT = i >= 0 ? INCL_SCELTA : INCL_RIPOSO
+    if (i >= 0) o.angT = angoloPer(i)
     if (ridotto) {
       o.ang = o.angT
       o.incl = o.inclT
       o.vAng = o.vIncl = 0
-      applicaPiano()
     }
+    applica()
     ciclo.sveglia()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attiva, pratiche, ridotto])
+
+  // cambio di fase: le pratiche nuove escono dal cuore e prendono il loro posto sull'orbita
+  useLayoutEffect(() => {
+    const o = orbita.current
+    rimisura()
+    if (ridotto) {
+      o.comparsa = 1
+      applica()
+      return
+    }
+    const tw = gsap.fromTo(o, { comparsa: 0 }, { comparsa: 1, duration: D.scena * 1.3, ease: E.out, onUpdate: applica })
+    return () => {
+      tw.kill()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fase.id, ridotto, stretto])
+
+  // lo scroll della fase fa girare l'orbita (finché non c'è una pratica scelta)
+  useAnnoFotogramma(
+    (p) => {
+      const o = orbita.current
+      if (o.scelta >= 0) return
+      o.angT = angoloScroll(p)
+      if (ridotto) o.ang = o.angT
+      ciclo.sveglia()
+      applica()
+    },
+    [iFase, ridotto, n],
+  )
 
   useEffect(
     () =>
@@ -216,7 +217,7 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
           if (o.ang !== o.angT || o.incl !== o.inclT) {
             o.ang = o.angT
             o.incl = o.inclT
-            applicaPiano()
+            applica()
           }
           return false
         }
@@ -229,7 +230,7 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
           o.vIncl += (-170 * (o.incl - o.inclT) - 22 * o.vIncl) * h
           o.incl += o.vIncl * h
         }
-        applicaPiano()
+        applica()
         return true
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -244,14 +245,15 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
       nodoK.current = 590 / Math.max(1, svg.clientWidth)
       sez.style.setProperty('--nodo-k', nodoK.current.toFixed(3))
       rimisura()
-      applicaPiano()
+      applica()
     })
     document.fonts?.ready.then(() => {
       rimisura()
-      applicaPiano()
+      applica()
     })
     ro.observe(svg)
     return () => ro.disconnect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // la scheda nasce dal marcatore scelto
@@ -272,54 +274,74 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
     }
   }, [attiva, pratiche, ridotto])
 
-  /** Porta pose, etichette e guide sul piano ruotato e inclinato; il disegno della forma ruota con lui. */
-  function applicaPiano() {
+  /** Porta pratiche, etichette, orbita, quadrante e fili sul piano ruotato e inclinato. */
+  const rApplica = useRef(() => {})
+  const applica = () => rApplica.current()
+  rApplica.current = function applicaOra() {
     const o = orbita.current
-    const a = (o.ang * Math.PI) / 180, inc = (o.incl * Math.PI) / 180
-    const ca = Math.cos(a), sa = Math.sin(a), ci = Math.cos(inc)
-    const [cx, cy] = CENTRO
-    const ruota = (p: Pt): Pt => {
-      const dx = p[0] - cx, dy = p[1] - cy
-      return [dx * ca - dy * sa, dx * sa + dy * ca]
-    }
-    const piano = rPiano.current
-    if (piano) piano.setAttribute('transform', Math.abs(o.ang) < 0.01 && o.incl < 0.01 ? '' : `translate(${cx} ${cy}) scale(1 ${ci.toFixed(4)}) rotate(${o.ang.toFixed(2)}) translate(${-cx} ${-cy})`)
-    const pose = ultimePose.current
-    const R = Math.max(1, ...pose.map((q) => Math.hypot(q.p[0] - cx, q.p[1] - cy)))
-    const k = Math.min(1, Math.max(0, o.incl / 58))
-    const quiete = o.scelta < 0 && k < 0.002 && Math.abs(o.ang) < 0.01
-    // primo passo: dove andrebbero marcatori ed etichette
-    const posti = pose.map((q, j) => {
-      const [rx, ry] = ruota(q.p)
-      const P: Pt = [cx + rx, cy + ry * ci]
-      const prof = Math.min(1, Math.max(0, (ry / R + 1) / 2)) // 0 lontano, 1 vicino
-      const s = 0.72 + 0.5 * prof * k + (1 - k) * 0.28
-      const scelta = j === o.scelta
-      const et = ultimeEtichette.current[j]
-      let ex = P[0], ey = P[1], ancora: 'start' | 'middle' | 'end' = 'middle'
-      if (et) {
-        const off = ruota([cx + et.x - q.p[0], cy + et.y - q.p[1]])
-        ex = P[0] + off[0]
-        ey = P[1] + off[1] * lerp(1, ci, 0.5)
-        ancora = quiete ? et.ancora : off[0] < -4 ? 'end' : off[0] > 4 ? 'start' : 'middle'
-      }
-      return { q, P, prof, s, scelta, et, ex, ey, ey0: ey, ancora }
+    const cx = CENTRO[0]
+    // il piano si inclina e scende insieme: a pratica scelta l'orbita sta sotto la scheda
+    const u = (o.incl - INCL_RIPOSO) / (INCL_SCELTA - INCL_RIPOSO)
+    const cy = lerp(CENTRO[1], stretto ? CENTRO[1] : CY_SCELTA, u)
+    rCuore.current?.setAttribute('transform', `translate(${cx} ${cy.toFixed(1)}) scale(${lerp(1, 0.72, Math.max(0, Math.min(1, u))).toFixed(3)})`)
+    const ci = Math.cos(rad(o.incl))
+    const k = o.comparsa
+    const rr = R * (0.25 + 0.75 * k)
+    // l'orbita: la metà dietro passa sotto il cuore, quella davanti sopra
+    const ry = rr * ci
+    rOrbitaDietro.current?.setAttribute('d', `M${(cx - rr).toFixed(1)} ${cy} A${rr.toFixed(1)} ${ry.toFixed(1)} 0 0 1 ${(cx + rr).toFixed(1)} ${cy}`)
+    rOrbitaDavanti.current?.setAttribute('d', `M${(cx + rr).toFixed(1)} ${cy} A${rr.toFixed(1)} ${ry.toFixed(1)} 0 0 1 ${(cx - rr).toFixed(1)} ${cy}`)
+    // il quadrante dell'anno gira con l'orbita: dodici tacche radiali sul piano inclinato
+    rTacche.current.forEach((t, m) => {
+      if (!t) return
+      const a = rad(90 + m * 30 + o.ang * 0.6)
+      const lun = mesiFase.has(m) ? 12 : 6
+      const x0 = cx + R_ANNO * Math.cos(a), y0 = cy + R_ANNO * ci * Math.sin(a)
+      const x1 = cx + (R_ANNO + lun) * Math.cos(a), y1 = cy + (R_ANNO + lun) * ci * Math.sin(a)
+      t.setAttribute('d', `M${x0.toFixed(1)} ${y0.toFixed(1)} L${x1.toFixed(1)} ${y1.toFixed(1)}`)
+      t.style.opacity = (0.35 + 0.65 * ((Math.sin(a) + 1) / 2)).toFixed(3)
     })
+    rAnno.current?.setAttribute('transform', '')
 
-    // secondo passo: nessuna etichetta sopra un'altra né fuori dal disegno. Le scatole si stimano
-    // dalla misura del testo (13px a schermo, --nodo-k) e si separano in verticale
     const K = nodoK.current
     const fs = 13 * K
     const lh = INTERLINEA * fs
-    const scatola = (x: (typeof posti)[number], j: number) => {
-      const { n, c } = misureEtich.current[j] ?? { n: 1, c: 10 }
-      // larghezza misurata sul testo vero (larghezze.current), o stimata finché i caratteri non ci sono
-      const w = (larghezze.current[j] || c * 0.56 * fs) + 6 * K
-      const x0 = x.ancora === 'end' ? x.ex - w : x.ancora === 'middle' ? x.ex - w / 2 : x.ex
-      // un margine di un quinto di corpo tutt'intorno: le etichette non si sfiorano mai
-      return { x0: x0 - fs * 0.1, x1: x0 + w + fs * 0.1, y0: x.ey - ((n - 1) * lh) / 2 - fs * 0.95, y1: x.ey + ((n - 1) * lh) / 2 + fs * 0.4 }
+    const scelto = o.scelta
+    // primo passo: dove vanno pratiche ed etichette
+    const posti = pratiche.map((_, i) => {
+      const th = rad(90 + (i * 360) / Math.max(1, n) + o.ang)
+      const c = Math.cos(th), s = Math.sin(th)
+      const x = cx + rr * c, y = cy + rr * ci * s
+      const prof = (s + 1) / 2 // 0 dietro, 1 davanti
+      const eScelta = i === scelto
+      const sc = lerp(0.76, 1.1, prof) * (eScelta ? 1.25 : 1) * (0.4 + 0.6 * k)
+      // l'etichetta sta fuori dall'orbita, dalla parte del suo lato: a destra, a sinistra, sopra o sotto
+      const righeN = righeEtich.current[i] ?? 1
+      const dist = 10 * K + 20 * sc
+      let ancora: 'start' | 'middle' | 'end' = 'middle'
+      let ex = x, ey = y
+      if (c > 0.42) {
+        ancora = 'start'
+        ex = x + dist
+        ey = y - ((righeN - 1) * lh) / 2 + fs * 0.35
+      } else if (c < -0.42) {
+        ancora = 'end'
+        ex = x - dist
+        ey = y - ((righeN - 1) * lh) / 2 + fs * 0.35
+      } else if (s > 0) {
+        ey = y + dist + fs * 0.7
+      } else {
+        ey = y - dist - (righeN - 1) * lh
+      }
+      return { x, y, prof, sc, eScelta, ex, ey, ancora, righeN }
+    })
+
+    // secondo passo: nessuna etichetta sopra un'altra né fuori dal disegno
+    const scatola = (q: (typeof posti)[number], j: number) => {
+      const w = (larghezze.current[j] || 10 * 0.56 * fs) + 6 * K
+      const x0 = q.ancora === 'end' ? q.ex - w : q.ancora === 'middle' ? q.ex - w / 2 : q.ex
+      return { x0: x0 - fs * 0.1, x1: x0 + w + fs * 0.1, y0: q.ey - fs * 0.95, y1: q.ey + (q.righeN - 1) * lh + fs * 0.4 }
     }
-    // limiti: in alto e in basso il disegno; a destra tutta la colonna libera dei testi (limiteX)
     const xMin = -93, xMax = Math.max(493, limiteX.current * K - 95 - 4), yMin = -18, yMax = 398
     const contieni = (i: number) => {
       const b = scatola(posti[i], i)
@@ -328,153 +350,55 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
       if (b.y0 < yMin) posti[i].ey += yMin - b.y0
       else if (b.y1 > yMax) posti[i].ey -= b.y1 - yMax
     }
-    const urto = (i: number, j: number) => {
-      const A = scatola(posti[i], i), B = scatola(posti[j], j)
-      return A.x1 < B.x0 || B.x1 < A.x0 || A.y1 < B.y0 || B.y1 < A.y0 ? null : { A, B }
-    }
-    // prima dentro i limiti, poi separate: riportare un'etichetta dentro il disegno può farla
-    // toccare un'altra, quindi il controllo si ripete dopo ogni contenimento
-    for (let giro = 0; giro < 32; giro++) {
+    for (let giro = 0; giro < 24; giro++) {
       for (let i = 0; i < posti.length; i++) contieni(i)
       let mosso = false
       for (let i = 0; i < posti.length; i++)
         for (let j = i + 1; j < posti.length; j++) {
-          const u = urto(i, j)
-          if (!u) continue
-          const { A, B } = u
-          // prima in verticale; dopo metà dei giri, se ancora si toccano, anche in orizzontale
+          const A = scatola(posti[i], i), B = scatola(posti[j], j)
+          if (A.x1 < B.x0 || B.x1 < A.x0 || A.y1 < B.y0 || B.y1 < A.y0) continue
           const sopra = (A.y0 + A.y1) / 2 <= (B.y0 + B.y1) / 2
           const dy = (sopra ? A.y1 - B.y0 : B.y1 - A.y0) / 2 + fs * 0.2
           posti[i].ey += sopra ? -dy : dy
           posti[j].ey += sopra ? dy : -dy
-          if (giro >= 10) {
-            const sinistra = (A.x0 + A.x1) / 2 <= (B.x0 + B.x1) / 2
-            const dx = (sinistra ? A.x1 - B.x0 : B.x1 - A.x0) / 2 + fs * 0.2
-            posti[i].ex += sinistra ? -dx : dx
-            posti[j].ex += sinistra ? dx : -dx
-          }
           mosso = true
         }
       if (!mosso) break
     }
 
     // terzo passo: si scrive
-    posti.forEach(({ q, P, prof, s, scelta, et, ex, ey, ey0, ancora }, j) => {
-      const op = scelta || o.scelta < 0 ? 1 : lerp(1, 0.2 + 0.4 * prof, k)
-      const sfoca = scelta || o.scelta < 0 ? 0 : (1 - prof) * 2.4 * k
-      const m = rMarc.current[j]
+    posti.forEach((q, i) => {
+      const m = rMarc.current[i]
+      const qualcuna = scelto >= 0
+      const op = q.eScelta || !qualcuna ? lerp(0.5, 1, q.prof) : vicine.has(pratiche[i].id) ? lerp(0.6, 0.95, q.prof) : lerp(0.2, 0.5, q.prof)
+      const sfoca = !ridotto && qualcuna && !q.eScelta ? (1 - q.prof) * 1.8 : 0
       if (m) {
-        m.setAttribute('transform', `translate(${P[0].toFixed(1)} ${P[1].toFixed(1)}) rotate(${(q.ang ?? 0).toFixed(1)}) scale(${((q.scala ?? 1) * s).toFixed(3)})`)
-        m.style.opacity = quiete ? '' : `calc(var(--vis, 1) * ${op.toFixed(3)})`
+        m.setAttribute('transform', `translate(${q.x.toFixed(1)} ${q.y.toFixed(1)}) scale(${q.sc.toFixed(3)})`)
+        m.style.opacity = (op * Math.min(1, k * 1.4)).toFixed(3)
         m.style.filter = sfoca > 0.05 ? `blur(${sfoca.toFixed(2)}px)` : ''
       }
-      const e = rEtich.current[j]
-      if (!et) return
+      const e = rEtich.current[i]
       if (e) {
-        // le etichette non rimpiccioliscono mai sotto la loro misura: la profondità la dicono luce e fuoco
-        e.setAttribute('transform', `translate(${ex.toFixed(1)} ${ey.toFixed(1)})${quiete || !scelta ? '' : ` scale(${Math.max(1, s).toFixed(3)})`}`)
-        e.setAttribute('text-anchor', ancora)
-        // le etichette che arretrano si spengono prima dei marcatori: davanti resta da leggere solo la scelta
-        e.style.opacity = quiete ? '' : `calc(var(--vis, 1) * ${(scelta || o.scelta < 0 ? 1 : op * lerp(1, 0.45, k)).toFixed(3)})`
-        e.style.filter = sfoca > 0.05 ? `blur(${sfoca.toFixed(2)}px)` : ''
-      }
-      const gd = rGuide.current[j]
-      if (gd) {
-        // un'etichetta spostata per far posto alle altre resta legata al suo marcatore da una guida
-        const gx = ex + (ancora === 'end' ? 6 : ancora === 'start' ? -6 : 0)
-        gd.setAttribute('d', et.guida || Math.abs(ey - ey0) > 6 ? `M${P[0].toFixed(1)} ${P[1].toFixed(1)} L${gx.toFixed(1)} ${(ey - 5).toFixed(1)}` : '')
+        e.setAttribute('transform', `translate(${q.ex.toFixed(1)} ${q.ey.toFixed(1)})`)
+        e.setAttribute('text-anchor', q.ancora)
+        const opE = q.eScelta || !qualcuna ? lerp(0.62, 1, q.prof) : vicine.has(pratiche[i].id) ? 0.85 : 0
+        e.style.opacity = (opE * Math.max(0, k * 1.6 - 0.6)).toFixed(3)
+        e.style.filter = sfoca > 0.05 ? `blur(${(sfoca * 0.7).toFixed(2)}px)` : ''
       }
     })
+    // i fili tra la scelta e le collegate: curve che passano vicino al cuore
+    let f = 0
+    if (scelto >= 0) {
+      const A = posti[scelto]
+      posti.forEach((B, j) => {
+        if (j === scelto || !vicine.has(pratiche[j].id)) return
+        const el = rLegami.current[f++]
+        if (!el) return
+        const c: [number, number] = [lerp((A.x + B.x) / 2, cx, 0.55), lerp((A.y + B.y) / 2, cy, 0.55)]
+        el.setAttribute('d', `M${A.x.toFixed(1)} ${A.y.toFixed(1)} Q${c[0].toFixed(1)} ${c[1].toFixed(1)} ${B.x.toFixed(1)} ${B.y.toFixed(1)}`)
+      })
+    }
   }
-
-  const firma = useRef('')
-  const aggiorna = (p: number) => {
-    const forma = FORME[iFase]
-    // si ridisegna solo quando la forma cambia in modo visibile (1/240 della fase) o durante il morph
-    const tVero = Math.round(tFase(p, iFase) * 240) / 240
-    const f = `${iFase}|${tVero}|${morph.current.k.toFixed(3)}|${ridotto}|${pratiche.length}`
-    if (f === firma.current) return
-    firma.current = f
-    const t = ridotto ? 1 : tVero
-    let pts = forma.forma(t)
-    let larg = (u: number) => forma.larghezza(u, t)
-    let tratto = forma.tratto, riempi = forma.riempi, opR = forma.opacitaRiempi(t)
-    const M = morph.current
-    if (!ridotto && M.da && M.k < 1) {
-      const k = easeInOut(M.k)
-      const da = M.da
-      pts = misto(da.pts, pts, k)
-      const l0 = larg
-      larg = (u) => lerp(campiona(da.larg, u), l0(u), k)
-      tratto = mixHex(da.tratto, tratto, k)
-      riempi = mixHex(da.riempi, riempi, k)
-      opR = lerp(da.opR, opR, k)
-    }
-    ultima.current = { pts, larg: pts.map((_, j) => larg(j / (pts.length - 1))), tratto, riempi, opR }
-    rTratto.current?.setAttribute('d', nastro(pts, larg))
-    rTratto.current?.style.setProperty('fill', tratto)
-    rRiempi.current?.setAttribute('d', poligono(pts))
-    rRiempi.current?.style.setProperty('fill', riempi)
-    rRiempi.current?.style.setProperty('fill-opacity', opR.toFixed(3))
-
-    const visDecoro = M.k >= 1 ? 1 : tra(M.k, 0.25, 1)
-    if (rDecoro.current) {
-      rDecoro.current.style.opacity = (ridotto ? 1 : visDecoro).toFixed(3)
-    }
-
-    // le pratiche della nuova fase compaiono nella seconda metà del morph
-    const vis = ridotto || M.k >= 1 ? 1 : tra(M.k, 0.45, 1)
-    let pose = forma.pose(t, pratiche.length)
-    ultimePose.current = pose
-    const etichette: Etichettatura[] = []
-    pose.forEach((q: Posa, k) => {
-      const m = rMarc.current[k]
-      if (m) {
-        m.style.setProperty('--vis', vis.toFixed(3))
-        m.style.setProperty('--apre', (q.apre ?? 1).toFixed(3))
-        if (q.vira !== undefined) m.style.setProperty('--acino', coloreAcino(q.vira))
-        m.tabIndex = vis > 0.5 ? 0 : -1
-      }
-      const et = forma.etichetta?.(k, q, t) ?? etichettaFuori(q.p)
-      etichette.push(et)
-      rEtich.current[k]?.style.setProperty('--vis', vis.toFixed(3))
-      const gd = rGuide.current[k]
-      if (gd) gd.style.opacity = vis.toFixed(3)
-    })
-    ultimeEtichette.current = etichette
-    applicaPiano()
-    legami.forEach(([a, b], k) => {
-      const el = rLegami.current[k]
-      if (!el || !pose[a] || !pose[b]) return
-      const A = pose[a].p, B = pose[b].p
-      const c: Pt = forma.viaLegami ?? [lerp((A[0] + B[0]) / 2, CENTRO[0], 0.45), lerp((A[1] + B[1]) / 2, CENTRO[1], 0.45)]
-      el.setAttribute('d', `M${A[0].toFixed(1)} ${A[1].toFixed(1)} Q${c[0].toFixed(1)} ${c[1].toFixed(1)} ${B[0].toFixed(1)} ${B[1].toFixed(1)}`)
-      el.style.setProperty('--vis', vis.toFixed(3))
-    })
-  }
-
-  // cambio di fase: la forma parte da quella disegnata ora (anche a metà di un altro morph) e arriva
-  // alla nuova in 420 ms; un nuovo cambio la interrompe e riparte da dov'è
-  useLayoutEffect(() => {
-    if (ridotto || !ultima.current) {
-      morph.current = { k: 1, da: null }
-      return
-    }
-    morph.current = { k: 0, da: ultima.current }
-    const tw = gsap.to(morph.current, { k: 1, duration: MORPH_S, ease: 'none', onUpdate: () => aggiorna(anno.get()) })
-    return () => {
-      tw.kill()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [iFase, ridotto])
-
-  useAnnoFotogramma((p) => aggiorna(p), [iFase, ridotto, pratiche.length])
-  // etichette nuove (cambio di fase o di misura del telefono): interlinea e larghezze vere
-  useLayoutEffect(() => {
-    rimisura()
-    applicaPiano()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fase.id, stretto])
 
   useEffect(() => {
     if (!attiva) return
@@ -496,20 +420,19 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
     if (!passo) return
     e.preventDefault()
     const i = pratiche.findIndex((x) => x.id === pid)
-    const j = (i + passo + pratiche.length) % pratiche.length
+    const j = (i + passo + n) % n
     rMarc.current[j]?.focus()
     if (attiva) setAttiva(pratiche[j].id)
   }
-  const { Marcatore, Decoro } = geo
-  misureEtich.current = pratiche.map((p) => {
-    const r = righe(nome(p))
-    return { n: r.length, c: Math.max(...r.map((l) => l.length)) }
-  })
+  righeEtich.current = pratiche.map((p) => righe(nome(p)).length)
+  const nVicine = vicine.size
+  const luce = LUCI_STAGIONE[iFase] ?? LUCI_STAGIONE[0]
 
   return (
     <section
       ref={rSezione}
       className={`nodo nodo-f${fase.numero}${attiva ? ' fermo' : ''}`}
+      style={{ '--stagione': luce } as CSSProperties}
       aria-labelledby={`${id}-t`}
       onClick={() => setAttiva(null)}
     >
@@ -524,30 +447,47 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
         data-tasti-propri
         aria-label={`Pratiche: ${pratiche.map((p) => p.titolo).join(', ')}. Frecce per passare da una all'altra.`}
       >
-        <g key={ridotto ? fase.id : 'nodo'} className={ridotto ? 'nodo-dissolvi' : undefined}>
-          <g ref={rPiano} className="nodo-piano">
-          <path ref={rRiempi} className="forma-riempi" />
-          <g ref={rDecoro} key={`d${fase.id}`} className="forma-decoro" aria-hidden="true">
-            {Decoro && <Decoro iFase={iFase} />}
+        <defs>
+          <radialGradient id={`${id}-alone`}>
+            <stop offset="0" stopColor={luce} stopOpacity="0.42" />
+            <stop offset="0.45" stopColor={luce} stopOpacity="0.12" />
+            <stop offset="1" stopColor={luce} stopOpacity="0" />
+          </radialGradient>
+          <radialGradient id={`${id}-ombra`}>
+            <stop offset="0" stopColor="#000" stopOpacity="0.55" />
+            <stop offset="1" stopColor="#000" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <g aria-hidden="true">
+          {/* il quadrante dell'anno e la metà lontana dell'orbita */}
+          <g ref={rAnno} className="nodo-anno">
+            {MESI_ANNO.map((m, j) => (
+              <path key={m} ref={(e) => { rTacche.current[j] = e }} className={`nodo-tacca${mesiFase.has(j) ? ' accesa' : ''}`} />
+            ))}
           </g>
-          <path ref={rTratto} className="forma-tratto" />
-          <g aria-hidden="true">
-            {legami.map(([a, b], k) => {
-              const acceso = attiva && (pratiche[a].id === attiva || pratiche[b].id === attiva)
-              return (
-                <path
-                  key={`${fase.id}${a}-${b}${acceso ? '-acceso' : ''}`}
-                  ref={(e) => { rLegami.current[k] = e }}
-                  pathLength={1}
-                  className={`nodo-legame${acceso ? ' acceso' : ''}`}
-                />
-              )
-            })}
+          <path ref={rOrbitaDietro} className="nodo-orbita dietro" />
+        </g>
+        {/* il cuore della fase: alone della stagione, onde, l'organo */}
+        <g ref={rCuore} className="nodo-cuore" transform={`translate(${CENTRO[0]} ${CENTRO[1]})`} aria-hidden="true" key={`c${fase.id}`}>
+          <circle r="118" fill={`url(#${id}-alone)`} className="cuore-alone" />
+          {!ridotto && (
+            <>
+              <circle r="36" className="cuore-onda" />
+              <circle r="36" className="cuore-onda tarda" />
+            </>
+          )}
+          <circle r="37" className="cuore-disco" />
+          <g className="cuore-organo">
+            <Marcatore />
           </g>
-          </g>
-          {pratiche.map((pr, k) => (
-            <path key={`g${pr.id}`} ref={(e) => { rGuide.current[k] = e }} className="nodo-guida" aria-hidden="true" />
+        </g>
+        <g aria-hidden="true">
+          <path ref={rOrbitaDavanti} className="nodo-orbita davanti" />
+          {Array.from({ length: nVicine }, (_, j) => (
+            <path key={`${attiva}-${j}`} ref={(e) => { rLegami.current[j] = e }} pathLength={1} className="nodo-legame acceso" />
           ))}
+        </g>
+        <g>
           {pratiche.map((pr, k) => (
             <g
               key={pr.id}
@@ -557,46 +497,51 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
               aria-pressed={attiva === pr.id}
               aria-label={pr.titolo}
               className={`nodo-bottone${attiva === pr.id ? ' attiva' : ''}${vicine.has(pr.id) ? ' vicina' : ''} m-${k % 3}`}
+              style={iFase === 6 ? ({ '--acino': coloreAcino(k / Math.max(1, n - 1)) } as CSSProperties) : undefined}
               onClick={(e) => {
                 e.stopPropagation()
                 scegli(pr.id)
               }}
               onKeyDown={tasti(pr.id)}
             >
+              <ellipse cy="25" rx="20" ry="6" fill={`url(#${id}-ombra)`} className="nodo-ombra" />
               <circle className="nodo-bersaglio" />
-              <circle r="18" className="nodo-fuoco" />
-              {attiva === pr.id && <circle r="14" className="m-onda" key={`onda-${pr.id}`} />}
+              <circle r="26" className="nodo-fuoco" />
+              {attiva === pr.id && <circle r="20" className="m-onda" key={`onda-${pr.id}`} />}
+              <circle r="20" className="nodo-disco" />
               <g className="m-corpo" key={attiva === pr.id ? 'scelta' : 'quieta'}>
-                <Marcatore />
+                <g transform="scale(0.92)">
+                  <Marcatore />
+                </g>
               </g>
             </g>
           ))}
-          {pratiche.map((pr, k) => (
-            <text
-              key={`e${pr.id}`}
-              ref={(e) => { rEtich.current[k] = e }}
-              className={`nodo-etichetta${attiva === pr.id ? ' attiva' : vicine.has(pr.id) ? ' vicina' : ''}`}
-              aria-hidden="true"
-            >
-              {righe(nome(pr)).map((l, j, arr) => (
-                <tspan key={j} x="0" dy={j ? 18 : -(arr.length - 1) * 9}>
-                  {l}
-                </tspan>
-              ))}
-            </text>
-          ))}
         </g>
+        {pratiche.map((pr, k) => (
+          <text
+            key={`e${pr.id}`}
+            ref={(e) => { rEtich.current[k] = e }}
+            className={`nodo-etichetta${attiva === pr.id ? ' attiva' : vicine.has(pr.id) ? ' vicina' : ''}`}
+            aria-hidden="true"
+          >
+            {righe(nome(pr)).map((l, j) => (
+              <tspan key={j} x="0" dy={j ? 18 : 0}>
+                {l}
+              </tspan>
+            ))}
+          </text>
+        ))}
       </svg>
       <p className="nodo-invito t-etichetta" aria-live="polite" style={{ visibility: scelta ? 'hidden' : undefined }}>
-        {geo.invito}
+        {INVITO}
       </p>
       {scelta && (
         <article ref={rScheda} className="scheda" data-lenis-prevent aria-live="polite" aria-labelledby={`${id}-s`} onClick={(e) => e.stopPropagation()}>
           <header className="scheda-testa">
+            <p className="scheda-meta t-etichetta">{luogoDi(scelta.id).dove}</p>
             <h3 id={`${id}-s`} className="scheda-titolo t-titolo-sezione">
               {scelta.titolo}
             </h3>
-            <p className="scheda-meta t-etichetta">{luogoDi(scelta.id).dove}</p>
             <button type="button" className="scheda-chiudi t-etichetta" onClick={() => setAttiva(null)} aria-label="Chiudi la scheda">
               Chiudi
             </button>
