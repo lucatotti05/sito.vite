@@ -116,7 +116,7 @@ html[data-dentro="si"] .calendario {
   transition-delay: 120ms;
 }
 
-/* ── angoli (DESIGN.md, "Spazio"): Instrument Sans 12px maiuscolo, tracking +0.04em ── */
+/* ── angoli (DESIGN.md, "Spazio"): Inter Tight 12px maiuscolo, tracking +0.04em ── */
 .angoli {
   position: absolute;
   inset: 0;

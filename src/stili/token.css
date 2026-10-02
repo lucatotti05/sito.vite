@@ -25,8 +25,8 @@
   --nero-0: rgb(18 13 10 / 0);
 
   /* ── famiglie ── */
-  --f-display: "Bodoni Moda Variable", "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
-  --f-testo: "Instrument Sans Variable", "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+  --f-display: "Fraunces Variable", "Fraunces", Georgia, serif;
+  --f-testo: "Inter Tight Variable", "Inter Tight", "Helvetica Neue", Arial, sans-serif;
 
   /* ── spazio (unità 8px) ── */
   --s-1: 4px;

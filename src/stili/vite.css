@@ -159,7 +159,7 @@ html.pratica-aperta .vite-chioma {
 .v-nota {
   transform: scale(var(--unita, 1));
 }
-/* le note della tavola sono annotazioni (DESIGN.md): Bodoni corsivo 16px, punto di 3px e linea di
+/* le note della tavola sono annotazioni (DESIGN.md): Fraunces corsivo 16px, punto di 3px e linea di
    1px in oro al 60% */
 .v-etichetta {
   font-family: var(--f-display);

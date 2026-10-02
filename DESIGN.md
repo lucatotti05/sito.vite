@@ -20,7 +20,7 @@ Il sito non è una pagina ma uno spazio 3D, renderizzato in un unico canvas WebG
 - **Due livelli.** *Anno*: la vista d'insieme, con l'arco dei pannelli sopra il vigneto. *Fase*: al clic sul pannello (o continuando a scorrere verso di lui) la camera vola dentro, il pannello si spiana e riempie lo schermo e si entra nell'esperienza della fase (film guidato dallo scroll, nodo orbitale, collana). Uscendo, il movimento inverso riporta il pannello nell'arco. Il volo tra i livelli dura `--d-volo` con `--ease-volo` ed è interrompibile (un volo interrotto torna indietro dal punto in cui è, con `--ease-out`). A volo finito il pannello si dissolve in `--d-ui` sulla fase vera, già dipinta sotto: nessuno scatto al passaggio di mano.
 - **Comandi.** L'asse orizzontale è il tempo, quello verticale la profondità. Nell'Anno lo scroll orizzontale, il trascinamento e le frecce ← → fanno scorrere l'arco, che a riposo si posa sul pannello più vicino; la rotella in giù è una spinta verso il pannello centrale (la camera si avvicina con resistenza e, oltre la soglia, entra), come il clic, Invio o ↓. Nella Fase lo scroll verticale fa avanzare la fase; la spinta oltre l'inizio riporta all'Anno, oltre la fine riporta all'Anno con la fase successiva al centro; Esc e la voce "Anno" escono sempre. La spinta torna a zero con la molla appena l'input si ferma.
 - **Arco.** La camera sta tra il centro dell'arco e i pannelli: il centrale è il più vicino, i laterali si voltano e si allontanano. Pannelli 3:4 a riposo, che si spianano e prendono le proporzioni dello schermo entrando. Sul telefono un pannello alla volta, con i vicini che si affacciano ai lati.
-- **Interfaccia agli angoli.** Solo quattro voci, una per angolo, in Instrument Sans 12px maiuscolo con tracking +0.04em (unica eccezione alla regola sul maiuscolo): in alto a sinistra "L'anno della vite", in alto a destra la voce del calendario (mese corrente), in basso a sinistra "Anno / Fase" con quella attiva in `--avorio` e l'altra in `--avorio-60`, in basso a destra "Collana". Margini agli angoli: `max(24px, 5vw)`.
+- **Interfaccia agli angoli.** Solo quattro voci, una per angolo, in Inter Tight 12px maiuscolo con tracking +0.04em (unica eccezione alla regola sul maiuscolo): in alto a sinistra "L'anno della vite", in alto a destra la voce del calendario (mese corrente), in basso a sinistra "Anno / Fase" con quella attiva in `--avorio` e l'altra in `--avorio-60`, in basso a destra "Collana". Margini agli angoli: `max(24px, 5vw)`.
 
 ## Colore
 
@@ -43,23 +43,23 @@ Il colore pieno compare solo come accento con un significato botanico. L'interfa
 
 Due famiglie, con ruoli distinti:
 
-- **Bodoni Moda** (display): titoli, introduzioni, numeri, annotazioni.
-- **Instrument Sans** (testo): testo corrente, etichette, interfaccia.
+- **Fraunces** (display, variabile con optical size): titoli, introduzioni, numeri, annotazioni. Un serif morbido e calligrafico, caldo come la carta e il legno.
+- **Inter Tight** (testo): testo corrente, etichette, interfaccia.
 
 | Stile | Famiglia | Dimensione | Interlinea | Tracking | Peso |
 |---|---|---|---|---|---|
-| `titolo-fase` | Bodoni Moda | `clamp(64px, 7.5vw, 132px)` | 0.92 | −0.02em | 400 |
-| `titolo-sezione` | Bodoni Moda | `clamp(36px, 3.6vw, 60px)` | 1.0 | −0.01em | 400 |
-| `introduzione` | Bodoni Moda corsivo | `clamp(20px, 1.6vw, 26px)` | 1.35 | 0 | 400 |
-| `testo` | Instrument Sans | 17px | 1.6 | 0 | 400 |
-| `etichetta` | Instrument Sans | 13px | 1.4 | +0.02em | 500 |
-| `annotazione` | Bodoni Moda corsivo | 16px | 1.3 | 0 | 400 |
-| `mese` | Bodoni Moda corsivo | 56px | 1.0 | −0.01em | 400 |
+| `titolo-fase` | Fraunces | `clamp(64px, 7.5vw, 132px)` | 0.92 | −0.02em | 400 |
+| `titolo-sezione` | Fraunces | `clamp(36px, 3.6vw, 60px)` | 1.0 | −0.01em | 400 |
+| `introduzione` | Fraunces corsivo | `clamp(20px, 1.6vw, 26px)` | 1.35 | 0 | 400 |
+| `testo` | Inter Tight | 17px | 1.6 | 0 | 400 |
+| `etichetta` | Inter Tight | 13px | 1.4 | +0.02em | 500 |
+| `annotazione` | Fraunces corsivo | 16px | 1.3 | 0 | 400 |
+| `mese` | Fraunces corsivo | 56px | 1.0 | −0.01em | 400 |
 
 Regole:
 
 - Al massimo quattro stili visibili nella stessa schermata.
-- Bodoni Moda sempre con optical size automatico (`font-optical-sizing: auto`).
+- Fraunces sempre con optical size automatico (`font-optical-sizing: auto`).
 - Numeri nel testo in stile old-style (`font-variant-numeric: oldstyle-nums`).
 - Righe di testo tra 40 e 65 caratteri; introduzioni al massimo 42.
 - Niente maiuscolo per etichette o titoletti (unica eccezione: le quattro voci agli angoli, vedi "Spazio").

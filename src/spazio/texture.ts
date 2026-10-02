@@ -72,8 +72,8 @@ export function ritaglio(ta: number, pa: number, cx = 0.5, cy = 0.5, cella?: { c
   return new THREE.Vector4((col + m + x * (1 - 2 * m)) / cella.c, (row + m + y * (1 - 2 * m)) / cella.r, (w * (1 - 2 * m)) / cella.c, (h * (1 - 2 * m)) / cella.r)
 }
 
-/** Il nome della fase come texture: Bodoni Moda corsivo (stile annotazione, più grande), avorio. */
-export const FONT_NOME = '"Bodoni Moda Variable", "Bodoni Moda", Didot, Georgia, serif'
+/** Il nome della fase come texture: Fraunces corsivo (stile annotazione, più grande), avorio. */
+export const FONT_NOME = '"Fraunces Variable", "Fraunces", Georgia, serif'
 export const PX_NOME = 20
 export function textureNome(testo: string) {
   const scala = 3
