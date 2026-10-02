@@ -88,9 +88,12 @@
 .registro {
   position: absolute;
   z-index: 6;
-  right: var(--margine-x);
+  right: var(--angolo);
   top: calc(var(--cal-h) + var(--s-8) + var(--slot-w) / 0.82 + var(--s-7));
   width: var(--slot-w);
+  /* sopra la chioma: un fondo senza bordo tiene leggibili le voci */
+  padding: var(--s-4) var(--s-4) var(--s-4) 0;
+  background: linear-gradient(90deg, var(--nero-0), var(--nero-90) var(--s-6));
   visibility: hidden;
   opacity: 0;
   transform: translateY(8px);
@@ -112,7 +115,7 @@
   transform: none;
 }
 .registro.solo {
-  top: calc(var(--cal-h) + var(--s-8));
+  top: calc(var(--angolo) + var(--cal-h) + var(--s-6));
 }
 .registro-testa {
   margin: 0 0 var(--s-3);

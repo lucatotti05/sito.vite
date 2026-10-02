@@ -43,7 +43,7 @@ export type Disposizione = {
 }
 export function disposizione(vw: number): Disposizione {
   return vw < 760
-    ? { stretto: true, fov: 40, R: 3.6, vicino: 0.12, D: -0.7, w: 0.75, h: 1, passo: 0.8, camY: 0.12, guardaY: -0.1, suoloY: -0.74, kRiposo: 0.55 }
+    ? { stretto: true, fov: 40, R: 3.6, vicino: 0.12, D: -0.7, w: 0.75, h: 1, passo: 0.8, camY: 0.12, guardaY: -0.03, suoloY: -0.74, kRiposo: 0.55 }
     : { stretto: false, fov: 34, R: 5.2, vicino: 0.25, D: -1.9, w: 0.75, h: 1, passo: 0.95, camY: 0.24, guardaY: -0.02, suoloY: -0.72, kRiposo: 0.6 }
 }
 

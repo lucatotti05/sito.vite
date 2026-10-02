@@ -280,7 +280,8 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
       const ex = P[0] + off[0], ey = P[1] + off[1] * lerp(1, ci, 0.5)
       const ancora = quiete ? et.ancora : off[0] < -4 ? 'end' : off[0] > 4 ? 'start' : 'middle'
       if (e) {
-        e.setAttribute('transform', `translate(${ex.toFixed(1)} ${ey.toFixed(1)})${quiete ? '' : ` scale(${s.toFixed(3)})`}`)
+        // le etichette non rimpiccioliscono mai sotto la loro misura: la profondità la dicono luce e fuoco
+        e.setAttribute('transform', `translate(${ex.toFixed(1)} ${ey.toFixed(1)})${quiete || !scelta ? '' : ` scale(${Math.max(1, s).toFixed(3)})`}`)
         e.setAttribute('text-anchor', ancora)
         // le etichette che arretrano si spengono prima dei marcatori: davanti resta da leggere solo la scelta
         e.style.opacity = quiete ? '' : `calc(var(--vis, 1) * ${(scelta || o.scelta < 0 ? 1 : op * lerp(1, 0.45, k)).toFixed(3)})`
@@ -485,7 +486,7 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
         </g>
       </svg>
       <p className="nodo-invito t-etichetta" aria-live="polite" style={{ visibility: scelta ? 'hidden' : undefined }}>
-        {geo.invito} Selezionane una.
+        {geo.invito}
       </p>
       {scelta && (
         <article ref={rScheda} className="scheda" data-lenis-prevent aria-live="polite" aria-labelledby={`${id}-s`} onClick={(e) => e.stopPropagation()}>

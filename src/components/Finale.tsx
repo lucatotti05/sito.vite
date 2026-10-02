@@ -16,13 +16,15 @@ export function Finale() {
     // fuori dal finale non si scrive nulla
     if (o < 0.01 && n.style.visibility === 'hidden') return
     n.style.opacity = o.toFixed(3)
+    // il finale prende il posto del titolo della fase (un titolo per volta)
+    document.documentElement.classList.toggle('finale-su', o > 0.3)
     n.style.visibility = o < 0.01 ? 'hidden' : 'visible'
     n.style.transform = `translateY(${((1 - o) * 14).toFixed(1)}px)`
     if (btn.current) btn.current.tabIndex = o > 0.5 ? 0 : -1
   })
   return (
     <section className="finale" ref={el} aria-label="Fine dell'anno">
-      <h2 className="finale-titolo t-titolo-sezione">La vite torna a riposo</h2>
+      <h2 className="finale-titolo t-titolo-fase">La vite torna a riposo</h2>
       <p className="finale-testo t-testo">
         I tralci sono legno, le gemme dormono sotto le perule. Tra poche settimane si torna a potare: il ciclo ricomincia da qui.
       </p>

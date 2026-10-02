@@ -21,7 +21,15 @@
   /* non decorativo: tiene il contrasto AA dei testi sopra la scena (colonna dei testi, striscia) */
   background:
     linear-gradient(90deg, var(--nero-90) 0%, var(--nero-60) 24%, var(--nero-0) 46%),
-    linear-gradient(0deg, var(--nero-90) 0%, var(--nero-0) 14%);
+    linear-gradient(0deg, var(--nero-90) 0%, var(--nero-90) calc(var(--striscia-h) - 24px), var(--nero-0) calc(var(--striscia-h) + 72px));
+  transition: background-color var(--d-ui) var(--ease-out);
+}
+/* con la collana in primo piano anche il lato destro (carte e registro) ha il suo velo */
+html[data-primo-piano="collana"] .velo-ui {
+  background:
+    linear-gradient(90deg, var(--nero-90) 0%, var(--nero-60) 24%, var(--nero-0) 46%),
+    linear-gradient(270deg, var(--nero-90) 0%, var(--nero-60) 26%, var(--nero-0) 44%),
+    linear-gradient(0deg, var(--nero-90) 0%, var(--nero-90) calc(var(--striscia-h) - 24px), var(--nero-0) calc(var(--striscia-h) + 72px));
 }
 /* ── titoli: colonne 1-6 della griglia, sotto la voce dell'angolo ───────────── */
 .titoli {
@@ -39,7 +47,8 @@
 .titoli {
   transition: opacity var(--d-ui) var(--ease-in);
 }
-html.pratica-aperta .titoli {
+html.pratica-aperta .titoli,
+html.finale-su .titoli {
   opacity: 0;
 }
 .titolo {
@@ -252,7 +261,8 @@ html.pratica-aperta .titoli {
   position: absolute;
   z-index: 12;
   left: var(--margine-x);
-  bottom: calc(var(--striscia-h) + var(--s-8));
+  /* prende il posto del titolo della fase */
+  top: calc(var(--angolo) + var(--s-8));
   width: var(--col-5);
   visibility: hidden;
 }
@@ -298,9 +308,11 @@ html.pratica-aperta .titoli {
   .titolo-nota {
     display: none;
   }
-  .velo-ui {
+  /* sul telefono titolo e introduzione stanno sopra la pianta: il velo li protegge fino in fondo */
+  .velo-ui,
+  html[data-primo-piano="collana"] .velo-ui {
     background:
-      linear-gradient(180deg, var(--nero-90) 0%, var(--nero-60) 30%, var(--nero-0) 44%),
+      linear-gradient(180deg, var(--nero-90) 0%, rgb(from var(--nero) r g b / 0.82) 40%, var(--nero-0) 58%),
       linear-gradient(0deg, var(--nero-90) 0%, var(--nero-60) 30%, var(--nero-0) 42%);
   }
   .nodo-posto {
@@ -338,6 +350,7 @@ html.pratica-aperta .titoli {
     left: var(--margine-x);
     right: var(--margine-x);
     width: auto;
+    top: auto;
     bottom: calc(var(--striscia-h) + var(--s-6));
   }
 }

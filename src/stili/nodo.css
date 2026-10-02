@@ -201,13 +201,11 @@
 .d-doghe { fill: none; stroke: var(--nero-60); stroke-width: 1.4; }
 .d-zolle { fill: none; stroke: #3a2614; stroke-width: 2; stroke-linecap: round; }
 
-/* con la scheda aperta il nodo si riduce verso il basso: la colonna sopra è della scheda */
+/* con la scheda aperta il piano del nodo si inclina (NodoPratiche, orbita): occupa già meno altezza
+   e lascia la colonna sopra alla scheda, senza rimpicciolire le etichette */
 .nodo-svg {
   transform-origin: 0 100%;
   transition: transform var(--d-entrata) var(--ease-out);
-}
-html.pratica-aperta .nodo-svg {
-  transform: scale(0.7);
 }
 html.pratica-aperta .nodo-invito {
   display: none;
@@ -226,8 +224,9 @@ html.pratica-aperta .nodo-invito {
   left: var(--margine-x);
   /* sotto la voce dell'angolo in alto a sinistra */
   top: calc(var(--angolo) + var(--s-6));
-  bottom: calc(var(--striscia-h) + var(--s-3) + var(--col-4) * 0.712 * 0.7 + var(--s-7));
-  width: var(--col-4);
+  bottom: calc(var(--striscia-h) + var(--s-3) + var(--col-4) * 0.712 * 0.62);
+  /* cinque colonne: il titolo della pratica sta in due righe e la scheda non va scorsa */
+  width: var(--col-5);
   overflow: auto;
   padding: var(--s-5) var(--s-5) var(--s-5) var(--s-6);
   background: var(--nero-90);
