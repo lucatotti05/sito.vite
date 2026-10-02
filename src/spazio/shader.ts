@@ -188,6 +188,9 @@ uniform vec4 uQuadro;   // ox, oy, dw, dh (px CSS)
 uniform vec3 uMaschera; // cx, cy, r
 uniform float uFilmAlfa;
 uniform float uMascheraOn;
+uniform float uApertura; // 0 = il portale nasce (forma organica), 1 = aperto (cerchio)
+uniform float uTempo;
+uniform vec3 uBordo;     // colore della luce sul bordo del portale (la luce della clip)
 ${LANTERNA}
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
@@ -210,13 +213,28 @@ void main() {
     }
     if (uBuio > 0.001) acc = sopra(vec4(uNero * uBuio, uBuio), acc);
     if (uFilmAlfa > 0.001) {
-      vec2 uv = (P - uQuadro.xy) / uQuadro.zw;
-      if (uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0) {
+      vec2 c = uMaschera.xy;
+      vec2 dP = P - c;
+      float dist = length(dP);
+      // il portale: un cerchio deformato da onde lente (forma organica che respira); più si apre,
+      // più torna cerchio. d < 0 dentro, in px
+      float ang = atan(dP.y, dP.x);
+      float org = mix(0.16, 0.012, uApertura);
+      float onda = sin(ang * 3.0 + uTempo * 0.9) * 0.55 + sin(ang * 5.0 - uTempo * 1.3 + 1.7) * 0.3 + sin(ang * 2.0 + uTempo * 0.6 + 4.1) * 0.45;
+      float rr = uMaschera.z * (1.0 + org * onda);
+      float d = uMascheraOn > 0.5 ? dist - rr : -1e5;
+      // vicino al bordo la clip si piega come dietro una lente spessa (rifrazione verso l'interno)
+      float spess = clamp(rr * 0.14, 6.0, 90.0);
+      float lente = uMascheraOn > 0.5 ? smoothstep(-spess, 0.0, d) : 0.0;
+      vec2 Q = P - normalize(dP + 1e-4) * lente * lente * spess * 0.55;
+      vec2 uv = (Q - uQuadro.xy) / uQuadro.zw;
+      if (d < 1.5 && uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0) {
         vec3 col = max(texture2D(uFilm, uv).rgb, uNero); // il nero della clip è il nero del sito
-        vec2 c = uMaschera.xy;
         float diag = length(uQuadro.zw);
-        float v = smoothstep(min(uQuadro.z, uQuadro.w) * 0.3, diag * 0.62, distance(P, c));
+        float v = smoothstep(min(uQuadro.z, uQuadro.w) * 0.3, diag * 0.62, dist);
         col = mix(col, uNero, 0.55 * v);
+        // dentro la lente la clip si scurisce appena verso il bordo: dà spessore al vetro
+        col *= 1.0 - 0.35 * lente * lente;
         float a = 1.0;
         // i bordi del fotogramma che cadono dentro lo schermo sfumano (sotto c'è la vite)
         float sf = min(uQuadro.z, uQuadro.w) * 0.16;
@@ -224,10 +242,19 @@ void main() {
         if (uQuadro.x + uQuadro.z < uRis.x - 0.5) a *= smoothstep(0.0, sf, uQuadro.x + uQuadro.z - P.x);
         if (uQuadro.y > 0.5) a *= smoothstep(0.0, sf, P.y - uQuadro.y);
         if (uQuadro.y + uQuadro.w < uRis.y - 0.5) a *= smoothstep(0.0, sf, uQuadro.y + uQuadro.w - P.y);
-        // maschera radiale sfumata sul soggetto
-        if (uMascheraOn > 0.5) a *= 1.0 - smoothstep(uMaschera.z, uMaschera.z * 1.45, distance(P, c));
+        // bordo netto, antialiasato su un pixel e mezzo
+        a *= 1.0 - smoothstep(-0.75, 0.75, d * uDpr) ;
         a *= uFilmAlfa;
         acc = sopra(vec4(col * a, a), acc);
+      }
+      // la luce sul bordo: un filo sottile e caldo, più intenso dove il bordo guarda la lanterna
+      // e che si spegne man mano che il portale copre lo schermo
+      if (uMascheraOn > 0.5 && uMaschera.z > 0.5) {
+        float filo = exp(-pow(d / max(1.2, spess * 0.06), 2.0));
+        float alone = d < 0.0 ? exp(-pow(d / (spess * 0.5), 2.0)) * 0.22 : 0.0; // solo dentro, verso il bordo
+        float verso = 0.65 + 0.35 * dot(normalize(dP + 1e-4), normalize(uMouse / uDpr - c + 1e-4) * vec2(1.0, -1.0));
+        float k = (filo + alone) * verso * (1.0 - smoothstep(0.82, 1.0, uApertura)) * uFilmAlfa;
+        acc = sopra(vec4(uBordo * k * 0.85, k * 0.85), acc);
       }
     }
     // la lanterna: luce calda e morbida, mescolata (mai sommata oltre il bianco)

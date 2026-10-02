@@ -163,7 +163,9 @@ function Momento({ m }: { m: Manifesto }) {
       motore.film.tex = tex
       motore.film.quadro = [ox, oy, dw, dh]
       motore.film.maschera = [cx, cy, r]
-      motore.film.mascheraOn = r < Math.hypot(W, H) * 1.5
+      motore.film.mascheraOn = !st.coperta
+      motore.film.apertura = st.apertura
+      motore.film.bordo = m.luce
       motore.film.alfa = st.alfa
       motore.sporca()
 

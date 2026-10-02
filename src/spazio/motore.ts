@@ -101,7 +101,7 @@ type Pannello = {
   angoli: THREE.Vector3[]
 }
 
-type StatoFilm = { tex: THREE.Texture | null; quadro: [number, number, number, number]; maschera: [number, number, number]; alfa: number; mascheraOn: boolean }
+type StatoFilm = { tex: THREE.Texture | null; quadro: [number, number, number, number]; maschera: [number, number, number]; alfa: number; mascheraOn: boolean; apertura: number; bordo: string }
 type StatoFuoco = { tex: THREE.Texture | null; rett: [number, number, number, number]; alfa: number; buio: number; ruota: [number, number, number] }
 
 class Motore {
@@ -139,7 +139,7 @@ class Motore {
   mouse = { x: -1e4, y: -1e4, tx: -1e4, ty: -1e4, forza: 0, bersaglio: 0, ok: false }
   focus = -1
   sopra = -1
-  film: StatoFilm = { tex: null, quadro: [0, 0, 1, 1], maschera: [0, 0, 1e5], alfa: 0, mascheraOn: false }
+  film: StatoFilm = { tex: null, quadro: [0, 0, 1, 1], maschera: [0, 0, 1e5], alfa: 0, mascheraOn: false, apertura: 1, bordo: '#e8c58a' }
   fuoco: StatoFuoco = { tex: null, rett: [0, 0, 1, 1], alfa: 0, buio: 0, ruota: [0, 0, 0] }
   stacca: (() => void) | null = null
   /** il pannello centrale (per i cicli vivi) */
@@ -362,6 +362,9 @@ class Motore {
           uMaschera: { value: new THREE.Vector3(0, 0, 1e5) },
           uFilmAlfa: { value: 0 },
           uMascheraOn: { value: 0 },
+          uApertura: { value: 1 },
+          uTempo: { value: 0 },
+          uBordo: { value: new THREE.Vector3(0.91, 0.77, 0.54) },
           ...this.uniformLanterna(),
         },
         depthTest: false,
@@ -553,6 +556,9 @@ class Motore {
       anima = true
       this.sporco = true
     }
+
+    // il portale che respira mentre si apre o si chiude
+    if (st.modo === 'fase' && this.film.alfa > 0 && this.film.mascheraOn && this.film.apertura < 0.999 && !ridotto) anima = this.sporco = true
 
     if (!this.sporco && !anima) return false
     this.sporco = false
@@ -760,6 +766,9 @@ class Motore {
     vu.uMaschera.value.set(...f.maschera)
     vu.uFilmAlfa.value = f.tex ? f.alfa : 0
     vu.uMascheraOn.value = f.mascheraOn ? 1 : 0
+    vu.uApertura.value = f.apertura
+    vu.uTempo.value = this.tempo
+    vu.uBordo.value.copy(rgb(f.bordo))
     const s = this.fuoco
     vu.uSfocata.value = s.tex ?? VUOTA
     vu.uSfRett.value.set(...s.rett)

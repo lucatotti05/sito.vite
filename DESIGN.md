@@ -138,7 +138,7 @@ Regole:
 
 - Le clip sono texture in un canvas WebGL, con grana e vignettatura nello shader, uguali al resto del sito.
 - Il nero della clip coincide con `--nero`; i bordi sfumano nel fondo: nessun rettangolo visibile.
-- Il passaggio tavola ↔ film avviene quando il soggetto disegnato e quello filmato coincidono per posizione e dimensione, con una dissolvenza a rumore organico centrata sul soggetto.
+- Il passaggio tavola ↔ film avviene quando il soggetto disegnato e quello filmato coincidono per posizione e dimensione: lì si apre un **portale**, una forma organica che respira e diventa cerchio mentre cresce fino a coprire lo schermo, con un filo di luce calda sul bordo (la luce della clip) e la clip che si piega appena dietro il bordo come dietro una lente. All'uscita si richiude sul soggetto. Fuori dal portale la tavola resta nitida e si scurisce appena: nessuna immagine sfocata.
 
 ## Controllo prima di consegnare
 

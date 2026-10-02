@@ -85,7 +85,11 @@ export type StatoFilm = {
   /** clip: avanzamento 0–1 (note e sottotitoli) */
   t: number
   alfa: number
+  /** il portale sulla clip: centro e raggio (px), apertura 0–1 (forma organica → cerchio) */
   maschera: { cx: number; cy: number; r: number }
+  apertura: number
+  /** la clip copre tutto lo schermo (la tavola sotto non si vede) */
+  coperta: boolean
   sfoca: number
   buio: number
   luce: number
@@ -127,20 +131,23 @@ function calcola(p: number, vw: number, H: number): StatoFilm | null {
   const k = ridotto ? 0 : entra ? smooth(tra(f, 0, T.aggancio)) : 1 - smooth(tra(f, T.esce, 1))
   const nF = m.fotogrammi.numero
   const t = tra(f, T.clip[0], T.clip[1])
-  const alfa = ridotto
-    ? Math.min(tra(f, 0.1, 0.25), 1 - tra(f, 0.75, 0.9))
-    : Math.min(tra(f, T.dissolveIn[0], T.dissolveIn[1]), 1 - tra(f, T.dissolveOut[0], T.dissolveOut[1]))
-  // maschera: dal soggetto (alla sua misura del momento) a tutto lo schermo, in logaritmo
-  const r0 = seg.raggio * q.dh
-  const R = Math.max(Math.hypot(centro[0], centro[1]), Math.hypot(vw - centro[0], centro[1]), Math.hypot(centro[0], H - centro[1]), Math.hypot(vw - centro[0], H - centro[1])) * 1.08
+  // IL PORTALE (come una scheda che si apre su jesperlandberg.com): sulla gemma disegnata, quando
+  // coincide con quella filmata, si apre una forma organica dal bordo di luce che cresce fino a
+  // coprire lo schermo e rivela la clip; all'uscita si richiude sul germoglio. Il raggio cresce in
+  // modo percettivamente uniforme (prima piano, poi veloce, poi si posa) e parte da zero.
+  const R = Math.max(Math.hypot(centro[0], centro[1]), Math.hypot(vw - centro[0], centro[1]), Math.hypot(centro[0], H - centro[1]), Math.hypot(vw - centro[0], H - centro[1])) * 1.12
+  const apertura = ridotto ? 1 : entra ? smooth(tra(f, 0.15, 0.42)) : 1 - smooth(tra(f, 0.58, 0.85))
+  const alfa = ridotto ? Math.min(tra(f, 0.1, 0.25), 1 - tra(f, 0.75, 0.9)) : apertura > 0.0005 ? 1 : 0
+  const rMin = seg.raggio * q.dh * 0.25
   const maschera = ridotto
     ? { cx: vw / 2, cy: H / 2, r: Math.hypot(vw, H) * 1.2 }
-    : { cx: centro[0], cy: centro[1], r: Math.max(r0, (seg.raggio * coprente.dh * T.piccola) * Math.pow(R / (seg.raggio * coprente.dh * T.piccola), e)) }
+    : { cx: centro[0], cy: centro[1], r: apertura <= 0 ? 0 : rMin * Math.pow(R / rMin, Math.pow(apertura, 0.85)) * Math.min(1, apertura * 8) }
+  const coperta = ridotto ? alfa >= 1 : maschera.r >= R * 0.995
   const dentro = ridotto ? 0 : Math.min(tra(f, 0.06, 0.3), 1 - tra(f, 0.7, 0.94))
   return {
     m, f, quadro: q, k, aggancio: ag, ancoraTavola: asse.base, scalaClip: z,
     fotogramma: t * (nF - 1), t, alfa,
-    maschera,
+    maschera, apertura, coperta,
     sfoca: dentro,
     buio: dentro,
     luce: smooth(Math.min(tra(f, 0, 0.2), 1 - tra(f, 0.8, 1))),
