@@ -90,7 +90,24 @@ html[data-dentro="no"] .registro {
   visibility: hidden;
   transition: opacity var(--d-ui) var(--ease-in), transform var(--d-ui) var(--ease-in), visibility 0s linear var(--d-ui);
 }
-/* la pagina d'almanacco scende dall'angolo in alto a destra, dove nell'Anno c'è il mese */
+/* la pagina d'almanacco scende dall'angolo in alto a destra, dove nell'Anno c'è il mese, e
+   oscilla appesa alla sua asola prima di fermarsi */
+.calendario {
+  transform-origin: 50% 0;
+}
+html[data-dentro="si"] .calendario {
+  animation: appesa calc(var(--d-scena) + var(--d-entrata)) var(--ease-out) 120ms both;
+}
+@keyframes appesa {
+  0% { opacity: 0; transform: perspective(900px) translate3d(0, -14px, 0) rotateX(-38deg); }
+  35% { opacity: 1; transform: perspective(900px) rotateX(9deg); }
+  62% { transform: perspective(900px) rotateX(-4deg); }
+  82% { transform: perspective(900px) rotateX(1.5deg); }
+  100% { opacity: 1; transform: none; }
+}
+[data-movimento="ridotto"] .calendario {
+  animation: none !important;
+}
 html[data-dentro="no"] .calendario {
   opacity: 0;
   transform: translate3d(0, -16px, 0);
@@ -436,4 +453,17 @@ html.anteprima body {
 .apertura-sotto {
   margin: var(--s-5) 0 0;
   opacity: 0;
+}
+
+/* nodo: il marcatore sotto il cursore si solleva appena, l'etichetta si accende */
+@media (hover: hover) {
+  .nodo-bottone .m-corpo {
+    transition: transform var(--d-micro) var(--ease-out);
+  }
+  .nodo-bottone:not(.attiva):hover .m-corpo {
+    transform: scale(1.18);
+  }
+}
+.nodo-bottone:not(.attiva):active .m-corpo {
+  transform: scale(0.9);
 }

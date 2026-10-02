@@ -109,3 +109,18 @@
 .contafotogrammi[data-stato="basso"] {
   color: var(--vinaccia);
 }
+
+/* con la clip piena il titolo si fa da parte: la gemma filmata resta libera; sopra la fotografia
+   i testi hanno un'ombra morbida già disegnata nel colore del fondo (nessun filtro) */
+html.film-pieno .titolo-h,
+html.film-pieno .titolo-corpo {
+  opacity: 0 !important;
+  transform: translate3d(0, -8px, 0);
+}
+.titolo-h {
+  transition: opacity var(--d-ui) var(--ease-out), transform var(--d-ui) var(--ease-out);
+}
+.film-sottotitolo,
+.film-nota text {
+  text-shadow: 0 1px 18px rgb(18 13 10 / 0.85), 0 0 2px rgb(18 13 10 / 0.6);
+}

@@ -105,6 +105,8 @@ Regole:
 - Niente `mix-blend-mode` su livelli a tutto schermo: colori e opacità equivalenti, o aree piccole.
 - React non si aggiorna a ogni fotogramma: i valori continui (progresso, posizioni, angoli) si scrivono direttamente su transform, opacity o variabili CSS dell'elemento che li usa.
 - Con `prefers-reduced-motion`: dissolvenze semplici, niente parallasse, niente deformazioni, niente lanterna.
+- **Micro-interazioni.** Ogni gesto ha una risposta che appartiene al mondo del sito, in `--d-micro`/`--d-ui`: le voci rotolano come caratteri da tipografia (le lettere salgono, le stesse arrivano da sotto, 14ms tra l'una e l'altra); la voce attiva di "Anno / Fase" ha un filetto di 1px che scorre all'altra in `--d-scena`; i link testuali ritirano e ridisegnano la sottolineatura; alla pressione il testo scende di 1px. Nell'arco il pannello sotto il cursore si fa avanti, la tavola si sposta appena sotto il vetro e sotto il nome si traccia un filetto; alla pressione il foglio cede; ogni clic ravviva la lanterna. A riposo i pannelli respirano (pochi millimetri, sfasati).
+- **Apertura.** Il nome del sito compare al centro in `titolo-fase` (rivelazione a maschera), resta finché le prime tavole sono pronte (almeno 2,3 s) e vola nell'angolo in alto a sinistra, dove diventa la voce; intanto la camera arriva e l'arco si compone. Qualsiasi input la porta alla fine; non c'è entrando direttamente in una fase.
 
 ## Componenti
 
