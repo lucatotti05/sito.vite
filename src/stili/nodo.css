@@ -353,7 +353,7 @@ html.pratica-aperta .nodo-invito {
   .nodo-invito { text-align: center; margin: var(--s-1) auto 0; }
   /* con la scheda aperta il nodo sale e si riduce: il grafo resta visibile sopra il foglio */
   html.pratica-aperta .nodo-svg {
-    transform: translateY(-36svh) scale(0.7);
+    transform: translateY(-39svh) scale(0.7);
   }
   .scheda {
     position: fixed;
