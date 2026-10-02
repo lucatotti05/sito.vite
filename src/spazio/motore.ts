@@ -6,7 +6,7 @@ import { preferenze } from '@/core/preferenze'
 import { FASI } from '@/core/tempo'
 import { FILM } from '@/components/film/registro'
 import { spazio } from './stato'
-import { PANNELLO_F, PANNELLO_V, SUOLO_F, SUOLO_V, TERRA_F, TERRA_V, VELO_F, VELO_V } from './shader'
+import { CIELO_F, CIELO_V, PANNELLO_F, PANNELLO_V, SUOLO_F, SUOLO_V, TERRA_F, TERRA_V, VELO_F, VELO_V } from './shader'
 import { ASPETTO_CELLA, CELLE, FONT_NOME, PX_NOME, VUOTA, caricaTexture, libera, ritaglio, textureNome, urlCiclo, urlFermo } from './texture'
 
 /*
@@ -46,7 +46,7 @@ export type Disposizione = {
 export function disposizione(vw: number): Disposizione {
   return vw < 760
     ? { stretto: true, fov: 38.5, R: 3.6, vicino: 0.12, D: -0.7, w: 0.75, h: 1, passo: 0.8, camY: 0.12, guardaY: -0.03, suoloY: -0.74, kRiposo: 0.55, volta: 0.2 }
-    : { stretto: false, fov: 34, R: 5.2, vicino: 0.25, D: -1.9, w: 0.75, h: 1, passo: 0.95, camY: 0.24, guardaY: -0.02, suoloY: -0.72, kRiposo: 0.6, volta: 1.6 }
+    : { stretto: false, fov: 34, R: 5.2, vicino: 0.25, D: -2.3, w: 0.75, h: 1, passo: 0.95, camY: 0.24, guardaY: -0.02, suoloY: -0.72, kRiposo: 0.6, volta: 1.6 }
 }
 
 // ── molle (DESIGN.md: rigidità 170, smorzamento 22, massa 1) ────────────────
@@ -75,11 +75,25 @@ const TERRA = rgb(C.terra)
 const AVORIO = rgb(C.avorio)
 const ORO = rgb(C.oro)
 const LUCE = rgb('#e8c58a') // la lanterna (--lanterna)
+/**
+ * La luce di ogni fase: il colore del giorno sul vigneto in quella stagione (inverno freddo, verde
+ * tenero di primavera, oro della fioritura, vino dell'invaiatura e della vendemmia, ambra
+ * dell'autunno). Illumina il foglio da dietro la pianta, si versa sul suolo e accende l'orizzonte:
+ * scorrendo l'arco la luce dello spazio cambia con l'anno.
+ */
+const STAGIONI = ['#7f93ab', '#9fb0a2', '#a7c26a', '#9cbf5a', '#d2b062', '#c9b25c', '#b4515f', '#a8473f', '#b9603e', '#c98a3c'].map(rgb)
+const stagione = (x: number, out: THREE.Vector3) => {
+  const f = clamp(x, 0, STAGIONI.length - 1)
+  const i = Math.min(STAGIONI.length - 2, Math.floor(f))
+  return out.copy(STAGIONI[i]).lerp(STAGIONI[i + 1], smooth(f - i))
+}
 
 // ── un pannello ───────────────────────────────────────────────────────────
 type Pannello = {
   i: number
   mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>
+  /** la copia specchiata sul suolo lucido */
+  riflesso: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>
   u: Record<string, THREE.IUniform>
   fermo: THREE.Texture | null
   ciclo: THREE.Texture | null
@@ -114,6 +128,8 @@ class Motore {
   velo!: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>
   suolo!: THREE.LineSegments<THREE.BufferGeometry, THREE.ShaderMaterial>
   terra!: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>
+  cielo!: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>
+  luceStagione = new THREE.Vector3()
   pannelli: Pannello[] = []
   L = disposizione(window.innerWidth)
   vw = window.innerWidth
@@ -266,7 +282,7 @@ class Motore {
       new THREE.ShaderMaterial({
         vertexShader: TERRA_V,
         fragmentShader: TERRA_F,
-        uniforms: { uLuce: { value: LUCE }, uAlfa: { value: 1 }, ...this.uniformLanterna() },
+        uniforms: { uLuce: { value: LUCE }, uAlfa: { value: 1 }, uStagione: { value: this.luceStagione }, uPozza: { value: new THREE.Vector3(0, -5, 0) }, ...this.uniformLanterna() },
         depthWrite: false,
         transparent: true,
         blending: THREE.CustomBlending,
@@ -278,6 +294,24 @@ class Motore {
     this.terra.position.set(0, L.suoloY - 0.001, -60)
     this.terra.renderOrder = 1
     this.scena.add(this.terra)
+
+    this.cielo = new THREE.Mesh(
+      new THREE.PlaneGeometry(1, 1),
+      new THREE.ShaderMaterial({
+        vertexShader: CIELO_V,
+        fragmentShader: CIELO_F,
+        uniforms: { uStagione: { value: this.luceStagione }, uAlfa: { value: 0.1 }, uRis: { value: new THREE.Vector2(1, 1) }, uDpr: { value: 1 }, uOrizzonte: { value: 0 } },
+        depthWrite: false,
+        depthTest: false,
+        transparent: true,
+        blending: THREE.CustomBlending,
+        blendSrc: THREE.OneFactor,
+        blendDst: THREE.OneFactor,
+      }),
+    )
+    this.cielo.frustumCulled = false
+    this.cielo.renderOrder = -1
+    this.scena.add(this.cielo)
 
     // i pannelli
     const seg = L.stretto ? [28, 6] : [48, 10]
@@ -311,14 +345,26 @@ class Motore {
         uAlfa: { value: 1 },
         uPronto: { value: 0 },
         uAspetto: { value: new THREE.Vector2(0.75, 1) },
+        uStagione: { value: STAGIONI[i] },
+        uBagliore: { value: 0 },
+        uAngolo: { value: 0 },
+        uRiflesso: { value: 0 },
+        uLucido: { value: 1 },
         ...this.uniformLanterna(),
       }
       const m = new THREE.ShaderMaterial({ vertexShader: PANNELLO_V, fragmentShader: PANNELLO_F, uniforms: u, ...premolt, depthWrite: true })
       const mesh = new THREE.Mesh(geo, m)
       mesh.frustumCulled = false
       this.scena.add(mesh)
+      // il riflesso condivide gli stessi uniform (stesso contenuto, stessa curva) tranne uRiflesso
+      const mr = new THREE.ShaderMaterial({ vertexShader: PANNELLO_V, fragmentShader: PANNELLO_F, uniforms: { ...u, uRiflesso: { value: 1 } }, ...premolt, depthWrite: false, side: THREE.DoubleSide })
+      const riflesso = new THREE.Mesh(geo, mr)
+      riflesso.frustumCulled = false
+      riflesso.scale.y = -1
+      riflesso.renderOrder = 2
+      this.scena.add(riflesso)
       this.pannelli.push({
-        i, mesh, u, fermo: null, ciclo: null, cicloInCorso: false, istantanea: null, istAspetto: 1.6, uscita: null, usAspetto: 1.6,
+        i, mesh, riflesso, u, fermo: null, ciclo: null, cicloInCorso: false, istantanea: null, istAspetto: 1.6, uscita: null, usAspetto: 1.6,
         pronto: 0, bPronto: 0, nomeAspetto: nome.aspetto, nomeAltezzaPx: nome.altezzaPx, soggettoX: 0.56,
         film: FILM.some((x) => x.fase === f.numero),
         angoli: [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()],
@@ -413,6 +459,8 @@ class Motore {
     const vu = this.velo.material.uniforms
     vu.uRis.value.set(this.vw, this.H)
     vu.uDpr.value = this.dpr
+    this.cielo.material.uniforms.uRis.value.set(this.vw, this.H)
+    this.cielo.material.uniforms.uDpr.value = this.dpr
     if (L0.stretto !== stretto) this.pannelli.forEach((p) => (p.u.uCurva.value = this.L.kRiposo))
     this.sporca()
   }
@@ -552,7 +600,7 @@ class Motore {
     if (this.apertura < 1) {
       // a orologio (non a fotogrammi): dura 2,2 s anche se i primi fotogrammi sono lenti
       if (!this.inizioApertura && this.liberata && (this.pannelli[c]?.fermo || ora - this.avvio > 1200)) this.inizioApertura = ora
-      if (this.inizioApertura) this.apertura = ridotto ? 1 : Math.min(1, (ora - this.inizioApertura) / 2200)
+      if (this.inizioApertura) this.apertura = ridotto ? 1 : Math.min(1, (ora - this.inizioApertura) / this.durataApertura)
       anima = true
       this.sporco = true
     }
@@ -592,10 +640,33 @@ class Motore {
     requestAnimationFrame(passo)
   }
 
-  /** Il nome al centro ha finito: la camera può arrivare. */
-  liberaApertura() {
+  /** L'apertura ha finito: la camera arriva e l'arco si compone in `ms` (di norma 2,2 s). */
+  durataApertura = 2200
+  liberaApertura(ms?: number) {
+    if (ms && !this.inizioApertura) this.durataApertura = ms
     this.liberata = true
     this.sporca()
+  }
+  /**
+   * Dove starà il pannello centrale ad arco composto (rettangolo che lo contiene, px CSS): l'apertura
+   * del sito vi rimpicciolisce il suo film, che diventa così il pannello.
+   */
+  rettCentrale() {
+    const L = this.L
+    const cam = new THREE.PerspectiveCamera(L.fov, this.vw / this.H, 0.05, 200)
+    cam.position.set(0, L.camY, L.D)
+    cam.lookAt(0, L.guardaY, -L.R)
+    cam.updateMatrixWorld()
+    const z0 = -(L.R - L.vicino)
+    const k = L.kRiposo, a = (L.w / 2) * k
+    const xs = Math.sin(a) / k, zs = (1 - Math.cos(a)) / k
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity
+    for (const [x, y, z] of [[-xs, 0.5, zs], [xs, 0.5, zs], [xs, -0.5, zs], [-xs, -0.5, zs], [0, 0.5, 0], [0, -0.5, 0]]) {
+      const v = new THREE.Vector3(x, y * L.h, z0 + z).project(cam)
+      const px = (v.x + 1) * 0.5 * this.vw, py = (1 - v.y) * 0.5 * this.H
+      x0 = Math.min(x0, px); x1 = Math.max(x1, px); y0 = Math.min(y0, py); y1 = Math.max(y1, py)
+    }
+    return { x: x0, y: y0, w: x1 - x0, h: y1 - y0, raggio: L.stretto ? 8 : 10 }
   }
   /** Le prime tavole sono pronte (il pannello centrale ha la sua immagine). */
   pronto() {
@@ -642,6 +713,14 @@ class Motore {
     this.aggiornaLanterna(su)
     this.aggiornaLanterna(this.terra.material.uniforms)
     this.terra.material.uniforms.uAlfa.value = 1 - ee
+    // la luce della stagione segue l'arco: si versa sul suolo davanti al pannello centrale e accende l'orizzonte
+    stagione(spazio.arco, this.luceStagione)
+    this.terra.material.uniforms.uPozza.value.set(0, -Rc + 0.7, 0.085)
+    const cu = this.cielo.material.uniforms
+    cu.uAlfa.value = 0.16 * (1 - ee) * smooth(this.apertura)
+    // l'orizzonte vero: la direzione orizzontale davanti alla camera, all'infinito
+    const oz = new THREE.Vector3(cam.position.x, cam.position.y, cam.position.z - 1000).project(cam)
+    cu.uOrizzonte.value = (1 - oz.y) * 0.5 * this.H
 
     const aspettoSchermo = this.vw / this.H
     const pxUnita = this.H / (2 * (Rc + L.D) * Math.tan(fov / 2))
@@ -663,6 +742,7 @@ class Motore {
       const eac = clamp(ea)
       const visibile = Math.abs(off) < 5.5
       p.mesh.visible = visibile
+      p.riflesso.visible = visibile && ee < 0.98 && !ridotto
       if (!visibile) continue
       // apertura: i pannelli salgono dal vigneto uno dopo l'altro, dal centro verso i lati
       const comp = smooth(clamp(this.apertura * 1.7 - 0.25 - Math.abs(off) * 0.16))
@@ -671,6 +751,10 @@ class Motore {
       p.mesh.position.set(R * Math.sin(th), -(1 - comp) * 0.35 + respiro, -R * Math.cos(th))
       // i pannelli laterali si voltano verso il centro più di quanto chieda l'arco: profondità
       p.mesh.rotation.set(0, -th * (1 + L.volta * (1 - eac)) + this.ritardo.x * (1 - (aperto ? ee : 0)), 0)
+      // il riflesso: lo stesso foglio specchiato sotto il piano del suolo
+      p.riflesso.position.set(p.mesh.position.x, 2 * L.suoloY - p.mesh.position.y, p.mesh.position.z)
+      p.riflesso.rotation.copy(p.mesh.rotation)
+      p.riflesso.renderOrder = 2 + Math.round((5 - Math.abs(off)) * 0.5)
       const w = lerp(L.w, aspettoSchermo * L.h, eac)
       u.uDim.value.set(w, L.h)
       const flessione = (L.kRiposo + this.curva.x * (1 - 0.25 * Math.min(2, Math.abs(off)))) * (ridotto ? 0 : 1)
@@ -681,6 +765,11 @@ class Motore {
       u.uLuce.value = lerp(lerp(0.66, 1, vic) * clamp(1.1 - Math.abs(off) * 0.12), 1, eac)
       u.uAlfa.value = (aperto ? 1 : clamp(1 - ee * 1.6) * clamp(1.2 - Math.max(0, Math.abs(off) - 3.5) * 0.6)) * comp
       u.uFocus.value = this.focus === p.i ? 1 - eac : 0
+      // materia del foglio: angoli appena smussati, luce radente, luce della stagione dietro la pianta;
+      // tutto si spegne mentre il pannello diventa la fase (a volo finito è identico alla fase vera)
+      u.uAngolo.value = (L.stretto ? 8 : 10) * (1 - eac)
+      u.uLucido.value = 1 - eac
+      u.uBagliore.value = lerp(0.1, 0.24, vic) * (1 - eac)
       // parallasse sotto il vetro: solo il pannello sotto il cursore, solo a riposo
       if (sotto && this.mouse.ok) {
         const cx = (p.angoli[0].x + p.angoli[2].x) / 2, cy = (p.angoli[0].y + p.angoli[2].y) / 2

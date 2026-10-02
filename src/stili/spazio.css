@@ -421,22 +421,102 @@ html.anteprima body {
   }
 }
 
-/* l'apertura: il nome al centro, poi nell'angolo */
+/* l'apertura (Apertura.tsx): una finestra 3:4 sull'anno filmato che si allarga a tutto schermo, il
+   nome in basso a sinistra, poi il film si stringe nel pannello centrale e il nome vola nell'angolo */
 .apertura {
-  position: absolute;
+  --apertura-buio: 1;
+  position: fixed;
   inset: 0;
   z-index: 30;
+  pointer-events: none;
+  /* nel buio, finché il film non diventa il pannello (poi si ritira, Apertura.tsx) */
+  background: rgb(18 13 10 / var(--apertura-buio));
+}
+.apertura-finestra {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  clip-path: inset(50% 50% 50% 50%);
+  will-change: clip-path, opacity;
+  background: var(--nero);
+}
+.apertura-film {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 62% 50%;
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+/* il velo che fa leggere il nome sopra il film (in basso a sinistra, dove il film è buio) */
+.apertura-ombra {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background:
+    linear-gradient(to top, var(--nero-90), var(--nero-0) 55%),
+    linear-gradient(to right, var(--nero-60), var(--nero-0) 60%);
+}
+.apertura-calendario {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 0 var(--margine-x);
-  text-align: center;
-  pointer-events: none;
+  gap: var(--s-3);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+.apertura-maschera {
+  display: block;
+  height: 1.3em;
+  overflow: clip;
+  font-family: var(--f-display);
+  font-style: italic;
+  font-size: 18px;
+  line-height: 1.3;
+  color: var(--avorio-85);
+}
+.apertura-mesi {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform var(--d-entrata) var(--ease-out);
+}
+.apertura-mesi > span {
+  display: block;
+  height: 1.3em;
+}
+/* il filo dell'anno: da gennaio a dicembre, si riempie in oro col passare dei mesi */
+.apertura-filo {
+  display: block;
+  width: min(290px, 46vw);
+  height: 1px;
+  background: var(--avorio-20);
+}
+.apertura-filo > span {
+  display: block;
+  height: 100%;
+  background: var(--oro);
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+}
+.apertura-testi {
+  position: absolute;
+  left: var(--margine-x);
+  right: var(--margine-x);
+  bottom: max(13vh, 96px);
 }
 .apertura-titolo {
   margin: 0;
   will-change: transform;
+}
+.apertura-riga {
+  display: block;
 }
 .apertura-parola {
   display: inline-block;
@@ -450,7 +530,16 @@ html.anteprima body {
 }
 .apertura-sotto {
   margin: var(--s-5) 0 0;
+  max-width: 34ch;
   opacity: 0;
+}
+@media (max-width: 759px) {
+  .apertura-testi {
+    bottom: max(12vh, 88px);
+  }
+  .apertura-film {
+    object-position: 70% 50%;
+  }
 }
 
 /* nodo: il marcatore sotto il cursore si solleva appena, l'etichetta si accende */

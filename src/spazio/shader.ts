@@ -49,8 +49,11 @@ void main() {
 // ── suolo: la luce calda della lanterna sulla terra ──────────────────────
 export const TERRA_V = /* glsl */ `
 varying float vProf;
+varying vec2 vMondo;
 void main() {
-  vec4 mv = modelViewMatrix * vec4(position, 1.0);
+  vec4 w = modelMatrix * vec4(position, 1.0);
+  vMondo = w.xz;
+  vec4 mv = viewMatrix * w;
   vProf = -mv.z;
   gl_Position = projectionMatrix * mv;
 }
@@ -58,11 +61,39 @@ void main() {
 export const TERRA_F = /* glsl */ `
 uniform vec3 uLuce;
 uniform float uAlfa;
+uniform vec3 uStagione;
+uniform vec3 uPozza;    // x, z del pannello centrale e forza della luce che versa a terra
 varying float vProf;
+varying vec2 vMondo;
 ${LANTERNA}
 void main() {
   float l = lanterna(gl_FragCoord.xy) * exp(-vProf * 0.08) * uAlfa;
-  gl_FragColor = vec4(uLuce * l * 0.16, 0.0);
+  // il pannello centrale versa la luce della stagione sul suolo davanti a sé
+  vec2 d = (vMondo - uPozza.xy) / vec2(1.5, 1.1);
+  float pz = exp(-dot(d, d)) * uPozza.z * uAlfa;
+  gl_FragColor = vec4(uLuce * l * 0.16 + uStagione * pz, 0.0);
+}
+`
+
+// ── l'orizzonte: la luce bassa della stagione dietro il vigneto ─────────────
+// un quadro a tutto schermo disegnato per primo: la foschia nasce sulla linea dell'orizzonte vero
+// (uOrizzonte, px CSS dall'alto), sale lenta nel cielo e si spegne subito sul suolo
+export const CIELO_V = /* glsl */ `
+void main() { gl_Position = vec4(position.xy * 2.0, 0.0, 1.0); }
+`
+export const CIELO_F = /* glsl */ `
+uniform vec3 uStagione;
+uniform float uAlfa;
+uniform vec2 uRis;
+uniform float uDpr;
+uniform float uOrizzonte;
+void main() {
+  vec2 P = vec2(gl_FragCoord.x, uRis.y * uDpr - gl_FragCoord.y) / uDpr;
+  float dy = (uOrizzonte - P.y) / uRis.y; // > 0 sopra l'orizzonte
+  float h = dy > 0.0 ? exp(-dy * 3.2) : exp(dy * 9.0);
+  float x = (P.x / uRis.x - 0.5) * 2.0;
+  h *= 1.0 - 0.55 * x * x;
+  gl_FragColor = vec4(uStagione * h * uAlfa, 0.0);
 }
 `
 
@@ -72,20 +103,28 @@ uniform vec2 uDim;
 uniform float uCurva;
 uniform float uPiega;
 varying vec2 vUv;
+varying vec3 vN;
+varying vec3 vV;
 void main() {
   vUv = vec2(uv.x, 1.0 - uv.y);
   vec3 p = vec3(position.x * uDim.x, position.y * uDim.y, 0.0);
   // il foglio si incurva attorno a un asse verticale: i bordi vengono verso chi guarda
   float k = uCurva;
+  vec3 n = vec3(0.0, 0.0, 1.0);
   if (abs(k) > 1e-4) {
     float a = p.x * k;
     p.z = (1.0 - cos(a)) / k;
     p.x = sin(a) / k;
+    n = vec3(-sin(a), 0.0, cos(a));
   }
   // con la velocità il foglio si piega anche in altezza, come carta che fende l'aria
   float y = position.y * 2.0;
   p.z += uPiega * (1.0 - y * y) * uDim.y * 0.5;
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+  n = normalize(n + vec3(0.0, uPiega * y * 1.2, 0.0));
+  vN = normalize(normalMatrix * n);
+  vec4 mv = modelViewMatrix * vec4(p, 1.0);
+  vV = mv.xyz;
+  gl_Position = projectionMatrix * mv;
 }
 `
 export const PANNELLO_F = /* glsl */ `
@@ -112,7 +151,14 @@ uniform float uFocus;
 uniform vec2 uBordo;
 uniform vec2 uSposta;   // la tavola sotto il vetro si sposta appena col cursore
 uniform float uLinea;   // il filetto sotto il nome, tracciato quando il cursore è sul pannello
+uniform vec3 uStagione; // la luce della stagione della fase: illumina il foglio da dietro la pianta
+uniform float uBagliore;
+uniform float uAngolo;  // raggio degli angoli, in px a schermo (0 a pannello aperto)
+uniform float uRiflesso; // 1 = la copia specchiata sul suolo
+uniform float uLucido;  // forza della luce radente sul foglio (0 a pannello aperto)
 varying vec2 vUv;
+varying vec3 vN;
+varying vec3 vV;
 ${LANTERNA}
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -124,7 +170,16 @@ float rumore(vec2 p) {
 vec4 campiona(sampler2D t, vec4 crop, vec2 uv) { return texture2D(t, crop.xy + uv * crop.zw); }
 
 void main() {
+  vec2 px = vec2(1.0) / uBordo;           // misura del foglio in px a schermo
+  vec2 pp = (vUv - 0.5) * px;             // posizione nel foglio, px dal centro
+  // angoli smussati, antialiasati su un pixel e mezzo
+  vec2 qa = abs(pp) - px * 0.5 + uAngolo;
+  float dBordo = length(max(qa, 0.0)) + min(max(qa.x, qa.y), 0.0) - uAngolo;
+  float forma = 1.0 - smoothstep(-0.75, 0.75, dBordo);
+  if (forma <= 0.0) discard;
+
   vec2 uvA = vUv + uSposta;
+  if (uRiflesso > 0.5) uvA.x += (rumore(vec2(vUv.y * 38.0, 0.0)) - 0.5) * 0.012; // il suolo increspa il riflesso
   vec4 a = mix(campiona(uA, uCropA, uvA), campiona(uA, uCropA2, uvA), uMixA);
   a = mix(vec4(0.0), a, uPronto);
   vec4 c = a;
@@ -137,29 +192,58 @@ void main() {
     float m = smoothstep(soglia - 0.12, soglia + 0.12, uMixB * 2.1);
     c = mix(a, b, m);
   }
-  vec3 col = mix(uFondo, c.rgb, c.a);
+  // la carta: più chiara in alto (luce dall'alto), con la luce della stagione dietro la pianta
+  vec2 qb = (vUv - vec2(0.5, 0.4)) * uAspetto;
+  float g = exp(-dot(qb, qb) * 4.2);
+  vec3 fondo = uFondo * mix(1.0, mix(1.14, 0.8, vUv.y), uLucido) + uStagione * g * uBagliore;
+  vec3 col = mix(fondo, c.rgb, c.a);
   // il pannello centrale è più luminoso: gli altri affondano nel fondo
   col = mix(uFondo, col, uLuce);
-  // il nome della fase, in basso a sinistra, stampato sul foglio
-  vec2 nu = (vUv - uNomeRett.xy) / uNomeRett.zw;
-  if (nu.x >= 0.0 && nu.x <= 1.0 && nu.y >= 0.0 && nu.y <= 1.0) {
-    float na = texture2D(uNome, nu).a * uNomeAlfa;
-    col = mix(col, uAvorio, na);
+  if (uRiflesso < 0.5) {
+    // il nome della fase, in basso a sinistra, stampato sul foglio
+    vec2 nu = (vUv - uNomeRett.xy) / uNomeRett.zw;
+    if (nu.x >= 0.0 && nu.x <= 1.0 && nu.y >= 0.0 && nu.y <= 1.0) {
+      float na = texture2D(uNome, nu).a * uNomeAlfa;
+      col = mix(col, uAvorio, na);
+    }
+    // il filetto: 1px sotto il nome, da sinistra a destra
+    float yl = uNomeRett.y + uNomeRett.w + uBordo.y * 2.0;
+    if (uLinea > 0.001 && vUv.y >= yl && vUv.y < yl + uBordo.y && vUv.x >= uNomeRett.x && vUv.x <= uNomeRett.x + uNomeRett.z * uLinea) {
+      col = mix(col, uAvorio, 0.85 * uNomeAlfa);
+    }
+    // in basso a destra, allineato al nome: un cerchio di 1px con un +; col cursore si riempie
+    vec2 cc = vec2((1.0 - uNomeRett.x) * px.x - 13.0, (uNomeRett.y + uNomeRett.w * 0.5) * px.y);
+    vec2 dc = vUv * px - cc;
+    float rc = 11.0 + 2.0 * uLinea;
+    float lc = length(dc);
+    float anello = 1.0 - smoothstep(0.0, 1.0, abs(lc - rc) - 0.35);
+    float disco = (1.0 - smoothstep(rc - 0.8, rc + 0.4, lc)) * uLinea;
+    vec2 ad = abs(dc);
+    float piu = (1.0 - smoothstep(0.0, 1.0, min(max(ad.x - 4.0, ad.y - 0.5), max(ad.y - 4.0, ad.x - 0.5)))) ;
+    col = mix(col, uAvorio, max(anello * 0.55, disco) * uNomeAlfa);
+    col = mix(col, mix(uAvorio, uFondo, disco), piu * uNomeAlfa);
+    // fuoco della tastiera: un filetto di 1px in oro attorno al foglio
+    if (uFocus > 0.0 && dBordo > -2.2) col = mix(col, uOro, uFocus);
+    // luce radente sul foglio curvo: una fascia satinata che scorre quando l'arco gira e un filo
+    // di luce sul bordo (il foglio ha uno spessore)
+    vec3 N = normalize(vN);
+    vec3 V = normalize(-vV);
+    vec3 Lk = normalize(vec3(-0.55, 0.5, 0.65));
+    float sat = pow(max(dot(N, normalize(Lk + V)), 0.0), 26.0);
+    float fr = pow(1.0 - max(dot(N, V), 0.0), 3.0);
+    col += (uLuceCol * sat * 0.07 + uAvorio * fr * 0.05) * uLucido;
   }
-  // il filetto: 1px sotto il nome, da sinistra a destra
-  float yl = uNomeRett.y + uNomeRett.w + uBordo.y * 2.0;
-  if (uLinea > 0.001 && vUv.y >= yl && vUv.y < yl + uBordo.y && vUv.x >= uNomeRett.x && vUv.x <= uNomeRett.x + uNomeRett.z * uLinea) {
-    col = mix(col, uAvorio, 0.85 * uNomeAlfa);
-  }
-  // fuoco della tastiera: un filetto di 1px in oro attorno al foglio
-  if (uFocus > 0.0) {
-    vec2 b = min(vUv, 1.0 - vUv) / uBordo;
-    if (min(b.x, b.y) < 1.6) col = mix(col, uOro, uFocus);
-  }
+  // il filo di luce sul bordo (il foglio ha uno spessore): si vede anche nel riflesso
+  col = mix(col, uAvorio, (1.0 - smoothstep(0.0, 1.2, abs(dBordo + 0.9))) * (0.16 + 0.3 * uRiflesso) * uLucido);
   // la lanterna scalda la carta sotto il cursore
   float l = lanterna(gl_FragCoord.xy);
   col += uLuceCol * l * (0.10 + 0.35 * dot(col, vec3(0.3, 0.5, 0.2)));
-  gl_FragColor = vec4(col * uAlfa, uAlfa);
+  float alfa = uAlfa * forma;
+  if (uRiflesso > 0.5) {
+    // il riflesso: il fondo del foglio (vicino al suolo) si specchia appena e sparisce verso il basso
+    alfa *= smoothstep(0.3, 1.0, vUv.y) * 0.3;
+  }
+  gl_FragColor = vec4(col * alfa, alfa);
 }
 `
 
