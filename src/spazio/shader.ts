@@ -154,7 +154,7 @@ void main() {
   // fuoco della tastiera: un filetto di 1px in oro attorno al foglio
   if (uFocus > 0.0) {
     vec2 b = min(vUv, 1.0 - vUv) / uBordo;
-    if (min(b.x, b.y) < 1.0) col = mix(col, uOro, uFocus);
+    if (min(b.x, b.y) < 1.6) col = mix(col, uOro, uFocus);
   }
   // la lanterna scalda la carta sotto il cursore
   float l = lanterna(gl_FragCoord.xy);
