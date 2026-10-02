@@ -40,15 +40,14 @@ export type Disposizione = {
   suoloY: number
   /** curvatura a riposo (1/raggio) */
   kRiposo: number
+  /** quanto i pannelli laterali si voltano verso il centro, oltre l'orientamento dell'arco */
+  volta: number
 }
 export function disposizione(vw: number): Disposizione {
   return vw < 760
-    ? { stretto: true, fov: 40, R: 3.6, vicino: 0.12, D: -0.7, w: 0.75, h: 1, passo: 0.8, camY: 0.12, guardaY: -0.03, suoloY: -0.74, kRiposo: 0.55 }
-    : { stretto: false, fov: 34, R: 5.2, vicino: 0.25, D: -1.9, w: 0.75, h: 1, passo: 0.95, camY: 0.24, guardaY: -0.02, suoloY: -0.72, kRiposo: 0.6 }
+    ? { stretto: true, fov: 38.5, R: 3.6, vicino: 0.12, D: -0.7, w: 0.75, h: 1, passo: 0.8, camY: 0.12, guardaY: -0.03, suoloY: -0.74, kRiposo: 0.55, volta: 0.2 }
+    : { stretto: false, fov: 34, R: 5.2, vicino: 0.25, D: -1.9, w: 0.75, h: 1, passo: 0.95, camY: 0.24, guardaY: -0.02, suoloY: -0.72, kRiposo: 0.6, volta: 1.6 }
 }
-
-/** quanto i pannelli laterali si voltano verso il centro, oltre l'orientamento dell'arco */
-const VOLTA = 1.6
 
 // ── molle (DESIGN.md: rigidità 170, smorzamento 22, massa 1) ────────────────
 type Molla = { x: number; v: number }
@@ -646,7 +645,7 @@ class Motore {
       const respiro = preferenze.get().ridotto ? 0 : Math.sin(this.tempo * 0.55 + p.i * 1.7) * 0.008 * (1 - ee)
       p.mesh.position.set(R * Math.sin(th), -(1 - comp) * 0.35 + respiro, -R * Math.cos(th))
       // i pannelli laterali si voltano verso il centro più di quanto chieda l'arco: profondità
-      p.mesh.rotation.set(0, -th * (1 + VOLTA * (1 - eac)) + this.ritardo.x * (1 - (aperto ? ee : 0)), 0)
+      p.mesh.rotation.set(0, -th * (1 + L.volta * (1 - eac)) + this.ritardo.x * (1 - (aperto ? ee : 0)), 0)
       const w = lerp(L.w, aspettoSchermo * L.h, eac)
       u.uDim.value.set(w, L.h)
       const flessione = (L.kRiposo + this.curva.x * (1 - 0.25 * Math.min(2, Math.abs(off)))) * (ridotto ? 0 : 1)
