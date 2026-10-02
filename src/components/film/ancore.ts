@@ -1,6 +1,6 @@
-import { tra } from '@/core/math'
+import { lerp, tra } from '@/core/math'
 import {
-  ASSE_GEMMA_RACCORDO, G, S_GEMME_SPERONE, fiancoSperone, germogli, lunghezzaGermoglio, puntiGermoglio, puntiSperone, suPolilinea, type Pt,
+  ASSE_GEMMA_RACCORDO, G, INTERNODO, S_GEMME_SPERONE, fiancoSperone, germogli, lunghezzaGermoglio, puntiGermoglio, puntiSperone, suPolilinea, type Pt,
 } from '../vite/geometria'
 
 /*
@@ -36,7 +36,26 @@ function germoglioSperone(k: number, g: number): Asse {
   return { base: gm.base, punta: pts[pts.length - 1] }
 }
 
+/**
+ * L'infiorescenza j del germoglio k (stessa posa di Grappolo in ViteTavola): dal punto d'attacco
+ * lungo il suo asse, che prima della fioritura punta in alto e in fuori e poi pende.
+ */
+function infiorescenza(k: number, j: number, g: number): Asse {
+  const gm = GERMOGLI[k]
+  const L = Math.max(1, lunghezzaGermoglio(gm, g))
+  const at = suPolilinea(puntiGermoglio(gm, L), Math.min(1, ((j + 0.6) * INTERNODO) / L))
+  const lato = j % 2 ? -1 : 1
+  const appare = tra(g, G.infiorescenze - 6, G.infiorescenze + 10)
+  const sviluppo = appare * 0.4 + tra(g, G.infiorescenze, G.fioreDa) * 0.6
+  const allegato = g >= G.fioreA
+  const scala = (allegato ? lerp(1.3, 1.06, tra(g, G.fioreA, G.fioreA + 24)) : lerp(0.72, 1.3, sviluppo)) * (0.9 + (j % 2) * 0.12)
+  const ang = (lerp(lato * 118, lato * 14, tra(g, G.fioreA - 4, G.fioreA + 24)) * Math.PI) / 180
+  const l = 46 * scala
+  return { base: at, punta: [at[0] - Math.sin(ang) * l, at[1] + Math.cos(ang) * l] }
+}
+
 const ANCORE: Record<string, (g: number) => Asse> = {
+  'infiorescenza-3': (g) => infiorescenza(3, 2, g),
   'gemma-sperone-0': (g) => gemmaSperone(0, g),
   'germoglio-sperone-0': (g) => germoglioSperone(0, g),
 }
