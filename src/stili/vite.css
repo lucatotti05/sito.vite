@@ -26,12 +26,17 @@
   will-change: transform;
   animation: brezza 7.4s ease-in-out infinite alternate;
 }
-.brezza-1 { animation-duration: 9.1s; animation-delay: -3.2s; }
-.brezza-2 { animation-duration: 6.3s; animation-delay: -1.4s; }
+.brezza-1 { animation-duration: 9.1s; animation-delay: 0.4s; }
+.brezza-2 { animation-duration: 6.3s; animation-delay: 0.9s; }
 @keyframes brezza {
-  0% { transform: skewX(0.9deg); }
+  0% { transform: none; }
   45% { transform: skewX(-0.5deg) translateX(0.6px); }
   100% { transform: skewX(-1.1deg); }
+}
+/* fuori dalla fase (sotto il canvas dell'Anno) la chioma è ferma: l'istantanea del pannello e la
+   tavola vera coincidono al passaggio di mano; la brezza riparte da ferma quando si entra */
+html[data-dentro="no"] .vite-chioma {
+  animation: none;
 }
 /* la brezza si ferma sul banco e mentre si legge una pratica; con movimento ridotto non c'è */
 html.banco-aperto .vite-chioma,
