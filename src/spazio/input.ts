@@ -121,6 +121,7 @@ function giu(e: PointerEvent) {
   const st = spazio.get()
   if (st.livello !== 'anno' || st.volo || !lenis || e.button !== 0) return
   document.documentElement.classList.add('trascina')
+  if (motore.pannelloSotto(e.clientX, e.clientY) === Math.round(spazio.arco)) motore.premi(true)
   trascina = { id: e.pointerId, x0: e.clientX, y0: e.clientY, s0: lenis.animatedScroll, asse: null, campioni: [{ t: performance.now(), x: e.clientX }], mosso: false }
   ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
 }
@@ -138,6 +139,7 @@ function muovi(e: PointerEvent) {
   if (e.pointerId !== trascina.id || !lenis) return
   const dx = e.clientX - trascina.x0, dy = e.clientY - trascina.y0
   if (!trascina.asse && Math.hypot(dx, dy) > 6) trascina.asse = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y'
+  if (trascina.asse) motore.premi(false)
   if (trascina.asse === 'x') {
     trascina.mosso = true
     canvas.style.cursor = 'grabbing'
@@ -160,6 +162,7 @@ function su(e: PointerEvent) {
   const t = trascina
   trascina = null
   document.documentElement.classList.remove('trascina')
+  motore.premi(false)
   const canvas = e.currentTarget as HTMLElement
   canvas.style.cursor = ''
   if (!lenis) return
@@ -314,7 +317,11 @@ export function avviaInput(canvas: HTMLCanvasElement) {
   window.addEventListener('touchmove', toccoMuovi, { passive: true })
   window.addEventListener('touchend', toccoFine, { passive: true })
   window.addEventListener('keydown', tasti)
+  // ogni clic ravviva la lanterna (nell'Anno e nella fase)
+  const ravviva = (e: PointerEvent) => e.pointerType === 'mouse' && e.button === 0 && motore.pulsa()
+  window.addEventListener('pointerdown', ravviva, { passive: true })
   return () => {
+    window.removeEventListener('pointerdown', ravviva)
     togli()
     togliLavoro()
     window.removeEventListener('wheel', rotella)

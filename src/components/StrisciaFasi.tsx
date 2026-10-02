@@ -32,6 +32,10 @@ export function StrisciaFasi() {
               >
                 <span className="striscia-n">{String(f.numero).padStart(2, '0')}</span>
               </button>
+              {/* al passaggio il numero rivela il nome della fase */}
+              <span className={`striscia-tip t-annotazione${i >= FASI.length - 3 ? ' destra' : ''}`} aria-hidden="true">
+                {f.titolo}
+              </span>
             </li>
           ))}
         </ol>

@@ -131,6 +131,11 @@ class Motore {
   piega = molla()
   ritardo = molla()
   avanti = molla()
+  /** pressione sul pannello centrale: il foglio cede all'indietro */
+  premuto = molla()
+  premutoT = 0
+  /** impulso della lanterna a ogni clic: la luce si apre e si richiude */
+  impulso = molla()
   // lanterna
   mouse = { x: -1e4, y: -1e4, tx: -1e4, ty: -1e4, forza: 0, bersaglio: 0, ok: false }
   focus = -1
@@ -143,6 +148,8 @@ class Motore {
   /** apertura del sito: la camera arriva e l'arco si compone (0 → 1) */
   apertura = 0
   inizioApertura = 0
+  /** l'apertura del sito (il nome al centro, Apertura.tsx) lascia partire la camera */
+  liberata = false
   avvio = performance.now()
 
   avvia(canvas: HTMLCanvasElement) {
@@ -298,6 +305,8 @@ class Motore {
         uLuceCol: { value: LUCE },
         uOro: { value: ORO },
         uFocus: { value: 0 },
+        uSposta: { value: new THREE.Vector2() },
+        uLinea: { value: 0 },
         uBordo: { value: new THREE.Vector2(0.002, 0.002) },
         uLuce: { value: 0.5 },
         uAlfa: { value: 1 },
@@ -487,6 +496,8 @@ class Motore {
     anima = passoMolla(this.ritardo, clamp(-v * 0.055, -0.3, 0.3), dt) || anima
     const sopraCentrale = this.sopra >= 0 && this.sopra === Math.round(arco) && st.livello === 'anno' && !st.volo
     anima = passoMolla(this.avanti, sopraCentrale && !ridotto ? 1 : 0, dt) || anima
+    anima = passoMolla(this.premuto, ridotto ? 0 : this.premutoT, dt, 260, 20) || anima
+    anima = passoMolla(this.impulso, 0, dt, 90, 11) || anima
     if (Math.abs(vIst) > 1e-4) this.sporco = true
 
     const c = Math.round(clamp(arco, 0, FASI.length - 1))
@@ -514,7 +525,8 @@ class Motore {
 
     // ciclo vivo del pannello centrale (a riposo nel livello Anno)
     const vivo = !ridotto && st.modo === 'scena' && !document.hidden
-    if (vivo && this.pannelli[c]?.ciclo) anima = true
+    // nell'Anno lo spazio è vivo (ciclo del pannello centrale, respiro dei pannelli)
+    if (vivo) anima = true
 
     // comparsa delle immagini
     for (const p of this.pannelli) {
@@ -535,7 +547,7 @@ class Motore {
     // apertura: parte quando il pannello centrale ha la sua immagine (o dopo un attimo)
     if (this.apertura < 1) {
       // a orologio (non a fotogrammi): dura 2,2 s anche se i primi fotogrammi sono lenti
-      if (!this.inizioApertura && (this.pannelli[c]?.fermo || ora - this.avvio > 1200)) this.inizioApertura = ora
+      if (!this.inizioApertura && this.liberata && (this.pannelli[c]?.fermo || ora - this.avvio > 1200)) this.inizioApertura = ora
       if (this.inizioApertura) this.apertura = ridotto ? 1 : Math.min(1, (ora - this.inizioApertura) / 2200)
       anima = true
       this.sporco = true
@@ -550,9 +562,32 @@ class Motore {
 
   private aggiornaLanterna(u: Record<string, THREE.IUniform>) {
     const m = this.mouse
+    const k = Math.max(0, this.impulso.x)
     u.uMouse.value.set(m.x * this.dpr, (this.H - m.y) * this.dpr)
-    u.uLanterna.value = m.forza
-    u.uRaggio.value = 260 * this.dpr
+    u.uLanterna.value = m.forza * (1 + 0.9 * k)
+    u.uRaggio.value = 260 * this.dpr * (1 + 0.45 * k)
+  }
+
+  /** Il nome al centro ha finito: la camera può arrivare. */
+  liberaApertura() {
+    this.liberata = true
+    this.sporca()
+  }
+  /** Le prime tavole sono pronte (il pannello centrale ha la sua immagine). */
+  pronto() {
+    return !!this.pannelli[Math.round(spazio.arco)]?.fermo
+  }
+
+  /** Il pannello centrale sotto il dito o il cursore viene premuto (cede) o rilasciato. */
+  premi(si: boolean) {
+    this.premutoT = si ? 1 : 0
+    this.sporca()
+  }
+  /** Un clic: la lanterna ha un impulso, come una fiamma che si ravviva. */
+  pulsa() {
+    if (!this.mouse.ok) return
+    this.impulso.v += 7
+    this.sporca()
   }
 
   private disegnaScena(e: number, aperta: number, vivo: boolean) {
@@ -568,6 +603,12 @@ class Motore {
     cam.position.set(0, lerp(L.camY, 0, e) + ap * 0.5, lerp(L.D, -Rc + d, e) + ap * 2.6)
     const guarda = new THREE.Vector3(0, lerp(L.guardaY, 0, e), lerp(-L.R, -Rc, e))
     cam.lookAt(guarda)
+    // il campo si stringe appena a metà volo, come un carrello: a volo finito torna esatto
+    const fovVolo = L.fov * (1 - 0.07 * Math.sin(Math.PI * ee))
+    if (Math.abs(cam.fov - fovVolo) > 1e-4) {
+      cam.fov = fovVolo
+      cam.updateProjectionMatrix()
+    }
     cam.updateMatrixWorld()
 
     const su = this.suolo.material.uniforms
@@ -592,7 +633,8 @@ class Motore {
       // gli altri pannelli si aprono di lato e si spengono mentre la camera entra
       const allarga = aperto ? 0 : Math.sign(off || 1) * ee * 0.55
       const th = off * (L.passo / L.R) + allarga
-      const R = L.R - L.vicino * vic - (p.i === this.sopra ? this.avanti.x * 0.1 : 0)
+      const sotto = p.i === this.sopra
+      const R = L.R - L.vicino * vic - (sotto ? this.avanti.x * 0.1 - this.premuto.x * 0.09 : 0)
       const ea = aperto ? e : 0
       const eac = clamp(ea)
       const visibile = Math.abs(off) < 5.5
@@ -600,7 +642,9 @@ class Motore {
       if (!visibile) continue
       // apertura: i pannelli salgono dal vigneto uno dopo l'altro, dal centro verso i lati
       const comp = smooth(clamp(this.apertura * 1.7 - 0.25 - Math.abs(off) * 0.16))
-      p.mesh.position.set(R * Math.sin(th), -(1 - comp) * 0.35, -R * Math.cos(th))
+      // a riposo i pannelli galleggiano appena, sfasati: lo spazio respira
+      const respiro = preferenze.get().ridotto ? 0 : Math.sin(this.tempo * 0.55 + p.i * 1.7) * 0.008 * (1 - ee)
+      p.mesh.position.set(R * Math.sin(th), -(1 - comp) * 0.35 + respiro, -R * Math.cos(th))
       // i pannelli laterali si voltano verso il centro più di quanto chieda l'arco: profondità
       p.mesh.rotation.set(0, -th * (1 + VOLTA * (1 - eac)) + this.ritardo.x * (1 - (aperto ? ee : 0)), 0)
       const w = lerp(L.w, aspettoSchermo * L.h, eac)
@@ -613,6 +657,12 @@ class Motore {
       u.uLuce.value = lerp(lerp(0.66, 1, vic) * clamp(1.1 - Math.abs(off) * 0.12), 1, eac)
       u.uAlfa.value = (aperto ? 1 : clamp(1 - ee * 1.6) * clamp(1.2 - Math.max(0, Math.abs(off) - 3.5) * 0.6)) * comp
       u.uFocus.value = this.focus === p.i ? 1 - eac : 0
+      // parallasse sotto il vetro: solo il pannello sotto il cursore, solo a riposo
+      if (sotto && this.mouse.ok) {
+        const cx = (p.angoli[0].x + p.angoli[2].x) / 2, cy = (p.angoli[0].y + p.angoli[2].y) / 2
+        const mx = (this.mouse.x / this.vw) * 2 - 1, my = 1 - (this.mouse.y / this.H) * 2
+        u.uSposta.value.set(clamp(cx - mx, -1, 1) * 0.012 * this.avanti.x * (1 - eac), clamp(my - cy, -1, 1) * -0.012 * this.avanti.x * (1 - eac))
+      } else u.uSposta.value.set(0, 0)
       u.uBordo.value.set(1 / (pxUnita * w), 1 / (pxUnita * L.h))
       p.mesh.renderOrder = 10 + Math.round((5 - Math.abs(off)) * 10) + (aperto ? 100 : 0)
       this.aggiornaLanterna(u)
@@ -656,6 +706,7 @@ class Motore {
       // allineato al bordo sinistro della tavola montata, al centro della fascia libera in basso
       u.uNomeRett.value.set((0.08 * L.w) / w, Math.min(1 - margine / L.h - hN, 0.947 - hN / 2), wN, hN)
       u.uNomeAlfa.value = clamp(1 - ea * 3) * lerp(0.6, 1, vic)
+      u.uLinea.value = sotto && vic > 0.5 ? smooth(clamp(this.avanti.x)) : 0
 
       // angoli a schermo (pannello piano): per il clic
       const hw = w / 2, hh = L.h / 2

@@ -137,9 +137,17 @@ html[data-dentro="si"] .calendario {
   text-transform: inherit;
   color: inherit;
 }
-.angolo {
+/* le voci arrivano quando il nome dell'apertura vola nell'angolo (Apertura.tsx) */
+html:not(.aperto):not(.aperto-angoli) .angolo {
+  opacity: 0;
+  pointer-events: none;
+}
+html:is(.aperto, .aperto-angoli) .angolo {
   animation: dissolvi var(--d-entrata) var(--ease-out) both;
-  animation-delay: calc(900ms + var(--k, 0) * 60ms);
+  animation-delay: calc(360ms + var(--k, 0) * 70ms);
+}
+html.aperto-angoli:not(.aperto) .angolo-ts {
+  animation-delay: 780ms;
 }
 .angolo-td { --k: 1; }
 .angolo-bs { --k: 2; }
@@ -233,4 +241,199 @@ html.anteprima body {
   position: fixed;
   inset: 0;
   background: transparent;
+}
+
+/* ── micro-interazioni ─────────────────────────────────────────────────
+   Ogni gesto ha una risposta che appartiene al mondo del sito: caratteri da tipografia che
+   rotolano, filetti che si spostano, carta che cede. Solo transform e opacity, token di durata. */
+
+/* il rullo dei caratteri (Rotola.tsx): due righe uguali, la seconda arriva da sotto */
+.rotola {
+  position: relative;
+  display: inline-grid;
+  overflow: clip;
+  vertical-align: top;
+  line-height: 1.15;
+  /* lo spazio sotto per le discendenti, senza spostare la riga */
+  padding-bottom: 0.08em;
+  margin-bottom: -0.08em;
+}
+.rotola-riga {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  white-space: pre;
+}
+.rotola-riga > span {
+  display: inline-block;
+  transition: transform var(--d-ui) var(--ease-out);
+  transition-delay: calc(var(--i, 0) * 14ms);
+}
+.rotola-riga + .rotola-riga > span {
+  transform: translate3d(0, 115%, 0);
+}
+@media (hover: hover) {
+  .con-rotola:hover .rotola-riga > span {
+    transform: translate3d(0, -115%, 0);
+  }
+  .con-rotola:hover .rotola-riga + .rotola-riga > span {
+    transform: none;
+  }
+}
+.con-rotola:focus-visible .rotola-riga > span {
+  transform: translate3d(0, -115%, 0);
+}
+.con-rotola:focus-visible .rotola-riga + .rotola-riga > span {
+  transform: none;
+}
+.con-rotola:disabled .rotola-riga > span {
+  transform: none !important;
+}
+.con-rotola:disabled .rotola-riga + .rotola-riga > span {
+  transform: translate3d(0, 115%, 0) !important;
+}
+[data-movimento="ridotto"] .rotola-riga > span {
+  transition: none;
+}
+
+/* la pressione: il testo si abbassa di un pixel e torna, come un tasto */
+.angolo:active:not(:disabled) .rotola,
+.angolo-bs button:active .rotola {
+  transform: translate3d(0, 1px, 0) scale(0.97);
+}
+.rotola {
+  transition: transform var(--d-micro) var(--ease-out);
+}
+
+/* "Anno / Fase": un filetto di 1px sotto la voce attiva, che scorre dall'una all'altra
+   (.angolo-bs è già posizionato: fa da riferimento) */
+.angolo-cursore {
+  position: absolute;
+  left: 0;
+  bottom: -7px;
+  width: 1px;
+  height: 1px;
+  background: var(--avorio);
+  transform-origin: 0 50%;
+  transition: transform var(--d-scena) var(--ease-in-out);
+  pointer-events: none;
+}
+[data-movimento="ridotto"] .angolo-cursore {
+  transition: none;
+}
+
+/* link testuali: la sottolineatura si ritira verso destra e si ridisegna da sinistra */
+.finale-ricomincia,
+.scheda-chiudi,
+.indicatore {
+  text-decoration: none !important;
+  /* il filetto sotto il testo (i bottoni sono alti 44px: si misura dal centro della riga) */
+  --sotto: calc(50% + 0.9em);
+  background: linear-gradient(var(--avorio-60), var(--avorio-60)) 0 var(--sotto) / 100% 1px no-repeat;
+}
+@media (hover: hover) {
+  .finale-ricomincia:hover,
+  .scheda-chiudi:hover,
+  .indicatore:hover {
+    animation: ridisegna var(--d-scena) var(--ease-in-out);
+  }
+}
+@keyframes ridisegna {
+  0% { background-position: 100% var(--sotto); background-size: 100% 1px; }
+  45% { background-position: 100% var(--sotto); background-size: 0 1px; }
+  55% { background-position: 0 var(--sotto); background-size: 0 1px; }
+  100% { background-position: 0 var(--sotto); background-size: 100% 1px; }
+}
+.finale-ricomincia:active,
+.scheda-chiudi:active,
+.indicatore:active {
+  transform: translate3d(0, 1px, 0);
+}
+[data-movimento="ridotto"] :is(.finale-ricomincia, .scheda-chiudi, .indicatore) {
+  animation: none !important;
+}
+
+/* il fuoco da tastiera si posa con un filetto in oro che si stringe sull'elemento */
+:focus-visible {
+  transition: outline-offset var(--d-micro) var(--ease-out);
+}
+
+/* barra delle fasi: il nome della fase sale dalla sua maschera sopra il numero */
+.striscia-fasi li {
+  position: relative;
+}
+.striscia-tip {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 14px);
+  white-space: nowrap;
+  pointer-events: none;
+  color: var(--avorio);
+  opacity: 0;
+  clip-path: inset(0 0 100% 0);
+  transform: translate3d(0, 8px, 0);
+  transition:
+    opacity var(--d-ui) var(--ease-in),
+    transform var(--d-ui) var(--ease-in),
+    clip-path var(--d-ui) var(--ease-in);
+}
+.striscia-tip.destra {
+  left: auto;
+  right: 0;
+}
+.striscia-fasi li:hover .striscia-tip,
+.striscia-fasi li:focus-within .striscia-tip {
+  opacity: 1;
+  clip-path: inset(0 0 -20% 0);
+  transform: none;
+  transition:
+    opacity var(--d-entrata) var(--ease-out),
+    transform var(--d-entrata) var(--ease-out),
+    clip-path var(--d-entrata) var(--ease-out);
+}
+.striscia-fasi button {
+  transition: color var(--d-micro) var(--ease-out), border-color var(--d-micro) var(--ease-out);
+}
+.striscia-fasi li:hover button {
+  border-top-color: var(--avorio-60);
+}
+.striscia-fasi button:active .striscia-n {
+  display: inline-block;
+  transform: translate3d(0, 1px, 0);
+}
+@media (max-width: 759px) {
+  .striscia-tip {
+    display: none;
+  }
+}
+
+/* l'apertura: il nome al centro, poi nell'angolo */
+.apertura {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--margine-x);
+  text-align: center;
+  pointer-events: none;
+}
+.apertura-titolo {
+  margin: 0;
+  will-change: transform;
+}
+.apertura-parola {
+  display: inline-block;
+  overflow: clip;
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+  vertical-align: top;
+}
+.apertura-parola > span {
+  display: inline-block;
+}
+.apertura-sotto {
+  margin: var(--s-5) 0 0;
+  opacity: 0;
 }

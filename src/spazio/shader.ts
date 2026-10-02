@@ -110,6 +110,8 @@ uniform vec2 uAspetto;
 uniform vec3 uOro;
 uniform float uFocus;
 uniform vec2 uBordo;
+uniform vec2 uSposta;   // la tavola sotto il vetro si sposta appena col cursore
+uniform float uLinea;   // il filetto sotto il nome, tracciato quando il cursore è sul pannello
 varying vec2 vUv;
 ${LANTERNA}
 
@@ -122,7 +124,8 @@ float rumore(vec2 p) {
 vec4 campiona(sampler2D t, vec4 crop, vec2 uv) { return texture2D(t, crop.xy + uv * crop.zw); }
 
 void main() {
-  vec4 a = mix(campiona(uA, uCropA, vUv), campiona(uA, uCropA2, vUv), uMixA);
+  vec2 uvA = vUv + uSposta;
+  vec4 a = mix(campiona(uA, uCropA, uvA), campiona(uA, uCropA2, uvA), uMixA);
   a = mix(vec4(0.0), a, uPronto);
   vec4 c = a;
   if (uMixB > 0.0) {
@@ -142,6 +145,11 @@ void main() {
   if (nu.x >= 0.0 && nu.x <= 1.0 && nu.y >= 0.0 && nu.y <= 1.0) {
     float na = texture2D(uNome, nu).a * uNomeAlfa;
     col = mix(col, uAvorio, na);
+  }
+  // il filetto: 1px sotto il nome, da sinistra a destra
+  float yl = uNomeRett.y + uNomeRett.w + uBordo.y * 2.0;
+  if (uLinea > 0.001 && vUv.y >= yl && vUv.y < yl + uBordo.y && vUv.x >= uNomeRett.x && vUv.x <= uNomeRett.x + uNomeRett.z * uLinea) {
+    col = mix(col, uAvorio, 0.85 * uNomeAlfa);
   }
   // fuoco della tastiera: un filetto di 1px in oro attorno al foglio
   if (uFocus > 0.0) {

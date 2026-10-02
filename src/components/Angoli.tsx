@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
+import { Rotola } from './Rotola'
 import { MESI, FASI, meseDa } from '@/core/tempo'
 import { useAnno } from '@/core/anno'
 import { primoPiano, usePrimoPiano } from '@/core/primoPiano'
@@ -26,6 +27,20 @@ export function Angoli() {
   const mese = livello === 'anno' ? meseDa(FASI[centrale].inizio + 0.001) : meseFase
   const inFase = livello === 'fase'
   const voci = carteDellaFase(FASI[centrale].numero)
+  // il filetto sotto la voce attiva di "Anno / Fase": scorre dall'una all'altra
+  const gruppo = useRef<HTMLDivElement>(null)
+  const cursore = useRef<HTMLSpanElement>(null)
+  useLayoutEffect(() => {
+    const g = gruppo.current, c = cursore.current
+    if (!g || !c) return
+    const posa = () => {
+      const b = g.querySelector<HTMLElement>('button[aria-pressed="true"]')
+      if (!b) return
+      c.style.transform = `translate3d(${b.offsetLeft}px, 0, 0) scaleX(${b.offsetWidth})`
+    }
+    posa()
+    document.fonts?.ready.then(posa)
+  }, [inFase])
 
   useEffect(
     () =>
@@ -49,40 +64,41 @@ export function Angoli() {
 
   return (
     <div className="angoli">
-      <button type="button" className="angolo angolo-ts" onClick={() => esci(0)} aria-label="L’anno della vite: torna alla vista dell’anno">
-        L’anno della vite
+      <button type="button" className="angolo angolo-ts con-rotola" onClick={() => esci(0)} aria-label="L’anno della vite: torna alla vista dell’anno">
+        <Rotola testo="L’anno della vite" />
       </button>
       <button
         type="button"
-        className={`angolo angolo-td${dentro ? ' via' : ''}`}
+        className={`angolo angolo-td con-rotola${dentro ? ' via' : ''}`}
         onClick={() => arco.centra(faseDiOggi())}
         aria-label={`Mese: ${MESI[mese]}. Porta l’arco al mese di oggi`}
         tabIndex={dentro ? -1 : 0}
       >
         <span className="angolo-maschera">
           <span key={mese} className="angolo-mese">
-            {MESI[mese]}
+            <Rotola testo={MESI[mese]} />
           </span>
         </span>
       </button>
-      <div className="angolo angolo-bs" role="group" aria-label="Livello">
-        <button type="button" aria-pressed={!inFase} onClick={() => esci(0)}>
-          Anno
+      <div className="angolo angolo-bs" role="group" aria-label="Livello" ref={gruppo}>
+        <button type="button" className="con-rotola" aria-pressed={!inFase} onClick={() => esci(0)}>
+          <Rotola testo="Anno" />
         </button>
         <span aria-hidden="true">/</span>
-        <button type="button" aria-pressed={inFase} onClick={() => entra(centrale)}>
-          Fase
+        <button type="button" className="con-rotola" aria-pressed={inFase} onClick={() => entra(centrale)}>
+          <Rotola testo="Fase" />
         </button>
+        <span className="angolo-cursore" ref={cursore} aria-hidden="true" />
       </div>
       <button
         type="button"
-        className="angolo angolo-bd"
+        className="angolo angolo-bd con-rotola"
         aria-pressed={dentro && primo === 'collana'}
         disabled={!voci.length}
         onClick={collana}
         aria-label={voci.length ? `Collana della fase: ${voci.length} contenuti` : 'Collana: nessun contenuto per questa fase'}
       >
-        Collana
+        <Rotola testo="Collana" />
       </button>
     </div>
   )

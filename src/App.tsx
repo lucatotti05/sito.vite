@@ -13,6 +13,7 @@ import { Scorrimento } from '@/components/Scorrimento'
 import { StrisciaFasi } from '@/components/StrisciaFasi'
 import { Titoli } from '@/components/Titoli'
 import { Angoli } from '@/components/Angoli'
+import { Apertura } from '@/components/Apertura'
 import { Spazio } from '@/spazio/Spazio'
 
 function Annuncio() {
@@ -45,6 +46,7 @@ export default function App() {
           <Finale />
           <StrisciaFasi />
           <Angoli />
+          <Apertura />
         </Scorrimento>
       </main>
       <Banco />
