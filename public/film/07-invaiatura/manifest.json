@@ -1,0 +1,97 @@
+{
+  "id": "07-invaiatura",
+  "fase": 7,
+  "titolo": "Gli acini cambiano colore",
+  "descrizione": "Timelapse in macro: il grappolo verde e duro si tinge acino per acino di rosso e di viola.",
+  "fotogrammi": {
+    "percorso": "fotogrammi/{n}.webp",
+    "mobile": "fotogrammi-telefono/{n}.webp",
+    "cifre": 3,
+    "numero": 124,
+    "larghezza": 1280,
+    "altezza": 720
+  },
+  "inquadratura": {
+    "fuoco": [
+      0.62,
+      0.52
+    ]
+  },
+  "soggetto": {
+    "inizio": {
+      "base": [
+        0.62,
+        0.95
+      ],
+      "punta": [
+        0.62,
+        0.09
+      ],
+      "centro": [
+        0.62,
+        0.52
+      ],
+      "raggio": 0.44
+    },
+    "fine": {
+      "base": [
+        0.62,
+        0.95
+      ],
+      "punta": [
+        0.62,
+        0.08
+      ],
+      "centro": [
+        0.62,
+        0.52
+      ],
+      "raggio": 0.45
+    }
+  },
+  "tavola": {
+    "inizio": "grappolo-3",
+    "fine": "grappolo-3"
+  },
+  "anno": {
+    "quota": 0.5
+  },
+  "luce": "#cf9460",
+  "note": [
+    {
+      "testo": "acini che invaiano",
+      "x": 0.63,
+      "y": 0.65,
+      "da": 0.06,
+      "a": 0.44,
+      "lx": 200,
+      "ly": 120
+    },
+    {
+      "testo": "antociani nella buccia",
+      "x": 0.74,
+      "y": 0.68,
+      "da": 0.52,
+      "a": 1.0,
+      "lx": 80,
+      "ly": 120
+    }
+  ],
+  "sottotitoli": [
+    {
+      "da": 0.04,
+      "a": 0.38,
+      "testo": "Inizio agosto. Gli acini smettono di crescere e la buccia, verde e dura, comincia a cambiare."
+    },
+    {
+      "da": 0.38,
+      "a": 0.72,
+      "testo": "Gli zuccheri salgono, l'acidità cala, gli antociani tingono la buccia acino per acino."
+    },
+    {
+      "da": 0.72,
+      "a": 1.0,
+      "testo": "In due settimane il grappolo è tutto colorato: da qui alla vendemmia si conta lo zucchero."
+    }
+  ]
+}

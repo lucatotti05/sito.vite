@@ -1,0 +1,106 @@
+{
+  "id": "10-caduta",
+  "fase": 10,
+  "titolo": "Le foglie si staccano",
+  "descrizione": "Timelapse in macro: le foglie gialle si staccano dal tralcio una alla volta, resta il legno con le gemme.",
+  "fotogrammi": {
+    "percorso": "fotogrammi/{n}.webp",
+    "mobile": "fotogrammi-telefono/{n}.webp",
+    "cifre": 3,
+    "numero": 124,
+    "larghezza": 1280,
+    "altezza": 720
+  },
+  "inquadratura": {
+    "fuoco": [
+      0.66,
+      0.46
+    ]
+  },
+  "soggetto": {
+    "inizio": {
+      "base": [
+        0.68,
+        0.78
+      ],
+      "punta": [
+        0.68,
+        0.1
+      ],
+      "centro": [
+        0.66,
+        0.44
+      ],
+      "raggio": 0.38
+    },
+    "fine": {
+      "base": [
+        0.69,
+        0.78
+      ],
+      "punta": [
+        0.69,
+        0.1
+      ],
+      "centro": [
+        0.67,
+        0.44
+      ],
+      "raggio": 0.36
+    }
+  },
+  "tavola": {
+    "inizio": "tralcio-3",
+    "fine": "tralcio-3"
+  },
+  "anno": {
+    "quota": 0.5
+  },
+  "luce": "#d79a4c",
+  "note": [
+    {
+      "testo": "picciolo",
+      "x": 0.77,
+      "y": 0.5,
+      "da": 0.04,
+      "a": 0.4,
+      "lx": 60,
+      "ly": -50
+    },
+    {
+      "testo": "gemma dormiente",
+      "x": 0.69,
+      "y": 0.42,
+      "da": 0.45,
+      "a": 0.78,
+      "lx": 120,
+      "ly": 0
+    },
+    {
+      "testo": "tralcio ormai legno",
+      "x": 0.68,
+      "y": 0.62,
+      "da": 0.8,
+      "a": 1.0,
+      "lx": 100,
+      "ly": 0
+    }
+  ],
+  "sottotitoli": [
+    {
+      "da": 0.04,
+      "a": 0.38,
+      "testo": "Novembre. Con i primi freddi il picciolo si stacca e le foglie cadono una alla volta."
+    },
+    {
+      "da": 0.38,
+      "a": 0.72,
+      "testo": "Prima di lasciarle, la pianta richiama nel legno amido e zuccheri: serviranno a primavera."
+    },
+    {
+      "da": 0.72,
+      "a": 1.0,
+      "testo": "Resta il tralcio, ormai legno, con le gemme chiuse nelle perule fino alla potatura."
+    }
+  ]
+}
