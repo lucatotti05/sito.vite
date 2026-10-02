@@ -37,8 +37,8 @@ function germoglioSperone(k: number, g: number): Asse {
 }
 
 /**
- * L'infiorescenza j del germoglio k (stessa posa di Grappolo in ViteTavola): dal punto d'attacco
- * lungo il suo asse, che prima della fioritura punta in alto e in fuori e poi pende.
+ * L'infiorescenza j del germoglio k (stessa posa di Grappolo in ViteTavola), che prima della
+ * fioritura punta in alto e in fuori e poi pende.
  */
 function infiorescenza(k: number, j: number, g: number): Asse {
   const gm = GERMOGLI[k]
@@ -51,7 +51,10 @@ function infiorescenza(k: number, j: number, g: number): Asse {
   const scala = (allegato ? lerp(1.3, 1.06, tra(g, G.fioreA, G.fioreA + 24)) : lerp(0.72, 1.3, sviluppo)) * (0.9 + (j % 2) * 0.12)
   const ang = (lerp(lato * 118, lato * 14, tra(g, G.fioreA - 4, G.fioreA + 24)) * Math.PI) / 180
   const l = 46 * scala
-  return { base: at, punta: [at[0] - Math.sin(ang) * l, at[1] + Math.cos(ang) * l] }
+  // l'asse del raccordo è verticale, centrato sull'infiorescenza e lungo quanto lei: la camera la
+  // porta su quella filmata per posizione e misura senza ruotare la tavola (la chioma resta diritta)
+  const c: Pt = [at[0] - Math.sin(ang) * l * 0.5, at[1] + Math.cos(ang) * l * 0.5]
+  return { base: [c[0], c[1] + l * 0.5], punta: [c[0], c[1] - l * 0.5] }
 }
 
 const ANCORE: Record<string, (g: number) => Asse> = {

@@ -1,0 +1,106 @@
+{
+  "id": "05-fioritura",
+  "fase": 5,
+  "titolo": "Le caliptre si staccano",
+  "descrizione": "Timelapse in macro: l'infiorescenza chiusa, poi i piccoli cappucci verdi si staccano e liberano gli stami.",
+  "fotogrammi": {
+    "percorso": "fotogrammi/{n}.webp",
+    "mobile": "fotogrammi-telefono/{n}.webp",
+    "cifre": 3,
+    "numero": 80,
+    "larghezza": 1280,
+    "altezza": 720
+  },
+  "inquadratura": {
+    "fuoco": [
+      0.64,
+      0.5
+    ]
+  },
+  "soggetto": {
+    "inizio": {
+      "base": [
+        0.64,
+        0.83
+      ],
+      "punta": [
+        0.64,
+        0.27
+      ],
+      "centro": [
+        0.63,
+        0.55
+      ],
+      "raggio": 0.3
+    },
+    "fine": {
+      "base": [
+        0.63,
+        0.85
+      ],
+      "punta": [
+        0.63,
+        0.25
+      ],
+      "centro": [
+        0.63,
+        0.55
+      ],
+      "raggio": 0.33
+    }
+  },
+  "tavola": {
+    "inizio": "infiorescenza-3",
+    "fine": "infiorescenza-3"
+  },
+  "anno": {
+    "quota": 0.5
+  },
+  "luce": "#d2b062",
+  "note": [
+    {
+      "testo": "caliptre",
+      "x": 0.6,
+      "y": 0.62,
+      "da": 0.0,
+      "a": 0.38,
+      "lx": -160,
+      "ly": 30
+    },
+    {
+      "testo": "rachide dell'infiorescenza",
+      "x": 0.83,
+      "y": 0.34,
+      "da": 0.05,
+      "a": 0.4,
+      "lx": 130,
+      "ly": 110
+    },
+    {
+      "testo": "stami liberi",
+      "x": 0.55,
+      "y": 0.66,
+      "da": 0.62,
+      "a": 1.0,
+      "lx": -170,
+      "ly": 40
+    }
+  ],
+  "sottotitoli": [
+    {
+      "da": 0.04,
+      "a": 0.4,
+      "testo": "Fine maggio. I fiori sono chiusi sotto le caliptre, piccoli cappucci verdi saldati in punta."
+    },
+    {
+      "da": 0.4,
+      "a": 0.74,
+      "testo": "Le caliptre si staccano dal basso e cadono: il fiore della vite non ha petali."
+    },
+    {
+      "da": 0.74,
+      "a": 1.0,
+      "testo": "Restano gli stami liberi. Pochi giorni, e si decide quanti fiori diventeranno acini."
+    }
+  ]
+}

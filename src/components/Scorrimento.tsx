@@ -20,13 +20,16 @@ gsap.registerPlugin(ScrollTrigger)
  * Nel livello Anno la pagina non scorre: lo scroll orizzontale muove l'arco (spazio/input.ts).
  */
 
-// solo per le prove automatiche: posizione di scroll (0–1) del punto f (0–1) del primo momento film
-;(window as unknown as { __film: (f: number) => number }).__film = (f) => {
-  const [i, t] = [...TRATTI_FILM.entries()][0] ?? [0, null]
+// solo per le prove automatiche: posizione di scroll (0–1) del punto f (0–1) di un momento film
+// (__film: il primo; __filmDi: quello della fase numero n)
+const posFilm = (i: number, f: number) => {
+  const t = TRATTI_FILM.get(i)
   if (!t) return 0
   const pista = pistaFase(i)
   return (t.s0 + f * (t.s1 - t.s0) - pista.s0) / pista.lunga
 }
+;(window as unknown as { __film: (f: number) => number }).__film = (f) => posFilm([...TRATTI_FILM.keys()][0] ?? 0, f)
+;(window as unknown as { __filmDi: (n: number, f: number) => number }).__filmDi = (n, f) => posFilm(n - 1, f)
 
 let contenitore: HTMLElement | null = null
 let lenis: Lenis | null = null
