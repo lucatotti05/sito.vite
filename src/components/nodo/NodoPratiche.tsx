@@ -3,8 +3,8 @@ import gsap from 'gsap'
 import { D, E } from '@/core/movimento'
 import { ciclo } from '@/core/ciclo'
 import praticheJson from '@/data/pratiche.json'
-import { useAnnoFotogramma } from '@/core/anno'
-import { lerp } from '@/core/math'
+import { anno, useAnnoFotogramma } from '@/core/anno'
+import { easeInOut, lerp, mixHex, tra } from '@/core/math'
 import { usePreferenze } from '@/core/preferenze'
 import { usePrimoPiano } from '@/core/primoPiano'
 import { LUCI_STAGIONE } from '@/core/stagioni'
@@ -12,7 +12,11 @@ import { FASI, mesiDi, tFase, type Fase } from '@/core/tempo'
 import { camera } from '../vite/camera'
 import { righe } from './comune'
 import { luogoDi, pratica } from './luoghi'
-import { Acino, Antera, Bocciolo, FogliaSecca, Gemma, Goccia, Punta, Stazione, coloreAcino } from './decori'
+import {
+  Acino, Antera, Bocciolo, DecoroCaduta, DecoroFiore, DecoroFoglia, DecoroGermogliamento, DecoroGrappolo, DecoroLegno,
+  DecoroMaturazione, DecoroPianto, DecoroVendemmia, FogliaSecca, Gemma, Goccia, Punta, Stazione, coloreAcino,
+} from './decori'
+import { FORME, misto, nastro, poligono, type Posa, type Pt } from './forme'
 
 export type Pratica = {
   id: string
@@ -45,7 +49,28 @@ const NESSUNA: Pratica[] = []
 
 /** l'organo della fase: il marcatore delle sue pratiche e del suo cuore */
 const MARCATORI: (() => JSX.Element)[] = [Gemma, Goccia, Bocciolo, Punta, Antera, Acino, Acino, Stazione, Stazione, FogliaSecca]
-const INVITO = 'Le pratiche girano attorno alla fase mentre scorri: scegline una per vederla sulla vite.'
+/**
+ * Il cuore di ogni fase è la sua forma botanica (dalla versione precedente del nodo, forme.ts e
+ * decori.tsx): legno con le gemme, gocce del pianto, gemma che si apre, foglia, fiore, grappolo,
+ * acino in sezione, percorso della vendemmia, foglie che cadono. Cresce con la fase e passa con un
+ * morph da quella della fase precedente. Ogni pratica in orbita è legata da un filo al suo punto
+ * sulla forma (la gemma, la goccia, il lobo, l'antera, l'acino...).
+ */
+const DECORI: ((p: { iFase: number }) => JSX.Element)[] = [
+  DecoroLegno, DecoroPianto, DecoroGermogliamento, DecoroFoglia, DecoroFiore,
+  (p) => <DecoroGrappolo {...p} fase={6} />, (p) => <DecoroGrappolo {...p} fase={7} />,
+  DecoroMaturazione, DecoroVendemmia, DecoroCaduta,
+]
+/** la forma nel cuore dell'orbita: scala e centro del disegno della forma (forme.ts, CENTRO) */
+const SCALA_FORMA = 0.66
+const MORPH_S = D.entrata
+type Istantanea = { pts: Pt[]; larg: number[]; tratto: string; riempi: string; opR: number }
+const campiona = (a: number[], u: number) => {
+  const f = u * (a.length - 1)
+  const i = Math.min(a.length - 2, Math.floor(f))
+  return lerp(a[i], a[i + 1], f - i)
+}
+const INVITO = 'Le pratiche girano attorno alla fase, legate al loro punto della pianta: scegline una per vederla sulla vite.'
 
 /** centro dell'orbita a riposo; con una pratica scelta scende (la scheda prende lo spazio sopra) */
 const CENTRO: [number, number] = [214, 192]
@@ -88,6 +113,7 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
   const pratiche = PRATICHE[fase.id] ?? NESSUNA
   const n = pratiche.length
   const Marcatore = MARCATORI[iFase] ?? Gemma
+  const Decoro = DECORI[iFase]
   const { ridotto } = usePreferenze()
   const stretto = useStretto()
   const id = useId()
@@ -103,6 +129,16 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
   const rOrbitaDavanti = useRef<SVGPathElement>(null)
   const rAnno = useRef<SVGGElement>(null)
   const rCuore = useRef<SVGGElement>(null)
+  const rRiempi = useRef<SVGPathElement>(null)
+  const rTratto = useRef<SVGPathElement>(null)
+  const rDecoro = useRef<SVGGElement>(null)
+  const rPunti = useRef<(SVGCircleElement | null)[]>([])
+  const rFili = useRef<(SVGPathElement | null)[]>([])
+  /** i punti delle pratiche sulla forma (coordinate della forma) e la forma disegnata ora (per il morph) */
+  const ultimePose = useRef<Posa[]>([])
+  const morph = useRef<{ k: number; da: Istantanea | null }>({ k: 1, da: null })
+  const ultima = useRef<Istantanea | null>(null)
+  const firma = useRef('')
   const rTacche = useRef<(SVGPathElement | null)[]>([])
   const rMarc = useRef<(SVGGElement | null)[]>([])
   const rEtich = useRef<(SVGTextElement | null)[]>([])
@@ -290,7 +326,8 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
     // il piano si inclina e scende insieme: a pratica scelta l'orbita sta sotto la scheda
     const u = (o.incl - INCL_RIPOSO) / (INCL_SCELTA - INCL_RIPOSO)
     const cy = lerp(CENTRO[1], stretto ? CENTRO[1] : CY_SCELTA, u)
-    rCuore.current?.setAttribute('transform', `translate(${cx} ${cy.toFixed(1)}) scale(${lerp(1, 0.72, Math.max(0, Math.min(1, u))).toFixed(3)})`)
+    const sCuore = lerp(1, 0.72, Math.max(0, Math.min(1, u)))
+    rCuore.current?.setAttribute('transform', `translate(${cx} ${cy.toFixed(1)}) scale(${sCuore.toFixed(3)})`)
     const ci = Math.cos(rad(o.incl))
     const k = o.comparsa
     const rr = R * (0.25 + 0.75 * k)
@@ -388,10 +425,30 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
       if (e) {
         e.setAttribute('transform', `translate(${q.ex.toFixed(1)} ${q.ey.toFixed(1)})`)
         e.setAttribute('text-anchor', q.ancora)
-        const opE = q.eScelta || !qualcuna ? lerp(0.62, 1, q.prof) : vicine.has(pratiche[i].id) ? 0.85 : 0
+        // con una pratica scelta restano solo le etichette della scelta e delle collegate davanti (quelle
+        // dietro salirebbero sotto la scheda)
+        const opE = q.eScelta || !qualcuna ? lerp(0.62, 1, q.prof) : vicine.has(pratiche[i].id) && q.prof > 0.45 ? 0.85 : 0
         e.style.opacity = (opE * Math.max(0, k * 1.6 - 0.6)).toFixed(3)
         e.style.filter = sfoca > 0.05 ? `blur(${(sfoca * 0.7).toFixed(2)}px)` : ''
       }
+    })
+    // ogni pratica è legata da un filo al suo punto sulla forma botanica
+    posti.forEach((q, i) => {
+      const fl = rFili.current[i]
+      const ps = ultimePose.current[i]
+      if (!fl) return
+      if (!ps) {
+        fl.setAttribute('d', '')
+        return
+      }
+      const X = cx + (ps.p[0] - 200) * SCALA_FORMA * sCuore, Y = cy + (ps.p[1] - 200) * SCALA_FORMA * sCuore
+      const mx = lerp(q.x, X, 0.5) + (cx - lerp(q.x, X, 0.5)) * 0.12, my = lerp(q.y, Y, 0.5) - 10
+      fl.setAttribute('d', `M${q.x.toFixed(1)} ${q.y.toFixed(1)} Q${mx.toFixed(1)} ${my.toFixed(1)} ${X.toFixed(1)} ${Y.toFixed(1)}`)
+      const qualcuna = scelto >= 0
+      const opF = q.eScelta ? 0.95 : qualcuna ? (vicine.has(pratiche[i].id) ? 0.5 : 0.06) : lerp(0.3, 0.6, q.prof)
+      fl.style.opacity = (opF * Math.max(0, k * 1.5 - 0.5)).toFixed(3)
+      const pu = rPunti.current[i]
+      if (pu) pu.style.opacity = (q.eScelta ? 1 : qualcuna && !vicine.has(pratiche[i].id) ? 0.35 : 0.8).toFixed(3)
     })
     // i fili tra la scelta e le collegate: curve che passano vicino al cuore
     let f = 0
@@ -406,6 +463,63 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
       })
     }
   }
+
+  /** La forma della fase per il progresso dell'anno p (con il morph dalla forma precedente). */
+  const rForma = useRef((p: number) => void p)
+  rForma.current = (p: number) => {
+    const forma = FORME[iFase]
+    if (!forma) return
+    // si ridisegna solo quando la forma cambia in modo visibile (1/240 della fase) o durante il morph
+    const tVero = Math.round(tFase(p, iFase) * 240) / 240
+    const fir = `${iFase}|${tVero}|${morph.current.k.toFixed(3)}|${ridotto}|${n}`
+    if (fir === firma.current) return
+    firma.current = fir
+    const t = ridotto ? 1 : tVero
+    let pts = forma.forma(t)
+    let larg = (u: number) => forma.larghezza(u, t)
+    let tratto = forma.tratto, riempi = forma.riempi, opR = forma.opacitaRiempi(t)
+    const M = morph.current
+    if (!ridotto && M.da && M.k < 1) {
+      const kk = easeInOut(M.k)
+      const da = M.da
+      pts = misto(da.pts, pts, kk)
+      const l0 = larg
+      larg = (u) => lerp(campiona(da.larg, u), l0(u), kk)
+      tratto = mixHex(da.tratto, tratto, kk)
+      riempi = mixHex(da.riempi, riempi, kk)
+      opR = lerp(da.opR, opR, kk)
+    }
+    ultima.current = { pts, larg: pts.map((_, j) => larg(j / (pts.length - 1))), tratto, riempi, opR }
+    rTratto.current?.setAttribute('d', nastro(pts, larg))
+    rTratto.current?.style.setProperty('fill', tratto)
+    rRiempi.current?.setAttribute('d', poligono(pts))
+    rRiempi.current?.style.setProperty('fill', riempi)
+    rRiempi.current?.style.setProperty('fill-opacity', opR.toFixed(3))
+    if (rDecoro.current) rDecoro.current.style.opacity = (ridotto || M.k >= 1 ? 1 : tra(M.k, 0.25, 1)).toFixed(3)
+    const pose = forma.pose(t, n)
+    ultimePose.current = pose
+    pose.forEach((q, j) => {
+      const pu = rPunti.current[j]
+      if (!pu) return
+      pu.setAttribute('cx', q.p[0].toFixed(1))
+      pu.setAttribute('cy', q.p[1].toFixed(1))
+    })
+    applica()
+  }
+  useAnnoFotogramma((p) => rForma.current(p), [iFase, ridotto, n])
+  // cambio di fase: la forma parte da quella disegnata ora (anche a metà di un altro morph)
+  useLayoutEffect(() => {
+    if (ridotto || !ultima.current) {
+      morph.current = { k: 1, da: null }
+      rForma.current(anno.get())
+      return
+    }
+    morph.current = { k: 0, da: ultima.current }
+    const tw = gsap.to(morph.current, { k: 1, duration: MORPH_S, ease: 'none', onUpdate: () => rForma.current(anno.get()) })
+    return () => {
+      tw.kill()
+    }
+  }, [iFase, ridotto])
 
   useEffect(() => {
     if (!attiva) return
@@ -475,7 +589,7 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
           <path ref={rOrbitaDietro} className="nodo-orbita dietro" />
         </g>
         {/* il cuore della fase: alone della stagione, onde, l'organo */}
-        <g ref={rCuore} className="nodo-cuore" transform={`translate(${CENTRO[0]} ${CENTRO[1]})`} aria-hidden="true" key={`c${fase.id}`}>
+        <g ref={rCuore} className="nodo-cuore" transform={`translate(${CENTRO[0]} ${CENTRO[1]})`} aria-hidden="true">
           <circle r="118" fill={`url(#${id}-alone)`} className="cuore-alone" />
           {!ridotto && (
             <>
@@ -483,10 +597,26 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
               <circle r="36" className="cuore-onda tarda" />
             </>
           )}
-          <circle r="37" className="cuore-disco" />
-          <g className="cuore-organo">
-            <Marcatore />
+          <g className="nodo-forma" transform={`scale(${SCALA_FORMA}) translate(-200 -200)`}>
+            <path ref={rRiempi} className="forma-riempi" />
+            <g ref={rDecoro} key={`d${fase.id}`} className="forma-decoro">
+              {Decoro && <Decoro iFase={iFase} />}
+            </g>
+            <path ref={rTratto} className="forma-tratto" />
+            {pratiche.map((pr, k) => (
+              <circle
+                key={`p${pr.id}`}
+                ref={(e) => { rPunti.current[k] = e }}
+                r="6"
+                className={`forma-punto${attiva === pr.id ? ' attiva' : vicine.has(pr.id) ? ' vicina' : ''}`}
+              />
+            ))}
           </g>
+        </g>
+        <g aria-hidden="true">
+          {pratiche.map((pr, k) => (
+            <path key={`f${pr.id}`} ref={(e) => { rFili.current[k] = e }} className={`nodo-filo${attiva === pr.id ? ' attiva' : ''}`} />
+          ))}
         </g>
         <g aria-hidden="true">
           <path ref={rOrbitaDavanti} className="nodo-orbita davanti" />

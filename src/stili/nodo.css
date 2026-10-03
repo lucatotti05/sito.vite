@@ -74,6 +74,31 @@
 }
 [data-movimento="ridotto"] :is(.cuore-alone, .cuore-organo) { animation: none; }
 
+/* la forma botanica nel cuore dell'orbita (forme.ts, decori.tsx) e i fili che la legano alle pratiche */
+.forma-tratto,
+.forma-riempi {
+  stroke: none;
+  transition: opacity var(--d-ui) var(--ease-out);
+}
+.nodo.fermo :is(.forma-tratto, .forma-riempi) { opacity: 0.55; }
+.nodo.fermo .forma-decoro > * { opacity: 0.45; transition: opacity var(--d-ui) var(--ease-out); }
+.forma-punto {
+  fill: var(--nero);
+  stroke: var(--avorio-85);
+  stroke-width: 1.6;
+  transition: fill var(--d-micro) var(--ease-out), r var(--d-ui) var(--ease-out);
+}
+.forma-punto.vicina { stroke: var(--stagione, var(--avorio)); }
+.forma-punto.attiva { fill: var(--avorio); r: 9; }
+.nodo-filo {
+  fill: none;
+  stroke: var(--avorio);
+  stroke-width: calc(1px * var(--nodo-k, 1.5));
+  stroke-dasharray: calc(1px * var(--nodo-k, 1.5)) calc(3px * var(--nodo-k, 1.5));
+  pointer-events: none;
+}
+.nodo-filo.attiva { stroke: var(--stagione, var(--avorio)); stroke-dasharray: none; }
+
 /* le pratiche: un disco scuro con l'organo della fase, un'ombra morbida sotto */
 .nodo-disco {
   fill: var(--nero);
