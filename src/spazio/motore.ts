@@ -150,7 +150,6 @@ class Motore {
     uMondoRett: { value: new THREE.Vector4(0, 0, 1, 1) },
     uMondoOn: { value: 0 },
   }
-  dipinto = { tex: null as THREE.Texture | null, rett: [0, 0, 1, 1] as [number, number, number, number], texel: [1, 1] as [number, number], alfa: 0, bersaglio: 0 }
   pannelli: Pannello[] = []
   L = disposizione(window.innerWidth)
   vw = window.innerWidth
@@ -438,12 +437,6 @@ class Motore {
           uBordo: { value: new THREE.Vector3(0.91, 0.77, 0.54) },
           uTraccia: this.uTraccia,
           uTracciaOn: this.uTracciaOn,
-          uDipinto: { value: VUOTA },
-          uDipRett: { value: new THREE.Vector4(0, 0, 1, 1) },
-          uDipTexel: { value: new THREE.Vector2(1, 1) },
-          uDipAlfa: { value: 0 },
-          uStagione: { value: this.luceStagione },
-          ...this.uMondo,
           ...this.uniformLanterna(),
         },
         depthTest: false,
@@ -476,10 +469,23 @@ class Motore {
   private pennella(dt: number): boolean {
     const sc = this.scia
     const m = this.mouse
-    const on = m.ok && m.tx > -1e3
+    // solo nell'Anno, con il carosello: dentro le fasi resta la lanterna
+    const on = m.ok && m.tx > -1e3 && spazio.get().modo === 'scena' && spazio.get().livello === 'anno'
     this.uTracciaOn.value = on && sc.energia > 0.002 ? 1 : on ? this.uTracciaOn.value : 0
     if (!on) {
+      // la scia si cancella: tornando al carosello non resta niente di vecchio
+      if (sc.energia > 0) {
+        const r = this.renderer
+        for (const t of [sc.a, sc.b]) {
+          r.setRenderTarget(t)
+          r.setClearColor(new THREE.Color(0, 0, 0), 0)
+          r.clear()
+        }
+        r.setRenderTarget(null)
+      }
       sc.energia = 0
+      sc.x = sc.y = -1e4
+      this.uTracciaOn.value = 0
       return false
     }
     const R = 4 // la scia è a un quarto della risoluzione
@@ -510,7 +516,7 @@ class Motore {
       sc.x = tx
       sc.y = ty
     }
-    const scolora = Math.exp(-dt / 2.1)
+    const scolora = Math.exp(-dt / 1.5)
     sc.energia = Math.min(3, sc.energia * scolora + n * 0.08)
     if (sc.energia < 0.002 && !n) {
       this.uTracciaOn.value = 0
@@ -548,14 +554,10 @@ class Motore {
     })()
   }
   /** Quale stagione del mondo si vede e dove sta la tavola (copre lo schermo, orizzonte allineato, parallasse). */
-  private posaMondo(fase: boolean, dt: number) {
+  private posaMondo(dt: number) {
     this.caricaMondo()
     const u = this.uMondo
-    let x: number
-    if (fase) {
-      const p = anno.get(), i = indiceFase(p)
-      x = i + tFase(p, i)
-    } else x = clamp(spazio.arco, 0, 9)
+    const x = clamp(spazio.arco, 0, 9)
     const i0 = Math.min(8, Math.floor(x))
     const sf = lerp(STAGIONE_MONDO[i0], STAGIONE_MONDO[i0 + 1], smooth(x - i0))
     const a = Math.floor(sf), b = Math.min(3, a + 1)
@@ -570,7 +572,7 @@ class Motore {
     const IW = 2048, IH = 1158, HY = 0.365
     const k = Math.max(this.vw / IW, this.H / IH) * 1.1
     const dw = IW * k, dh = IH * k
-    const oriz = fase || !this.orizzonte ? this.H * 0.42 : this.orizzonte
+    const oriz = this.orizzonte || this.H * 0.42
     const m = this.mouse
     const px = m.x > -1e3 ? (m.x / this.vw - 0.5) * -0.035 * this.vw : 0
     const py = m.y > -1e3 ? (m.y / this.H - 0.5) * -0.025 * this.H : 0
@@ -579,25 +581,6 @@ class Motore {
     u.uMondoRett.value.set(ox, oy, dw, dh)
   }
 
-  /** L'istantanea della tavola (con l'inquadratura del momento) che il pennello trasforma in pittura. */
-  impostaDipinto(tela: HTMLCanvasElement) {
-    const t = new THREE.Texture(tela as unknown as HTMLImageElement)
-    Object.assign(t, { flipY: false, colorSpace: THREE.NoColorSpace, generateMipmaps: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter })
-    t.needsUpdate = true
-    this.carica(t, () => {
-      libera(this.dipinto.tex)
-      this.dipinto.tex = t
-      this.dipinto.texel = [1 / tela.width, 1 / tela.height]
-    })
-  }
-  /** Dove sta l'istantanea sullo schermo ora (px CSS) e se è ancora fedele alla tavola (1) o no (0). */
-  posaDipinto(rett: [number, number, number, number], fedele: number) {
-    this.dipinto.rett = rett
-    this.dipinto.bersaglio = fedele
-    this.sporca()
-  }
-  /** Il pennello è acceso (mouse, niente movimento ridotto): ViteNelPalco fotografa la tavola solo allora. */
-  pennelloAcceso = () => this.mouse.ok
 
   private uniformLanterna() {
     return { uMouse: { value: new THREE.Vector2(-1e5, -1e5) }, uLanterna: { value: 0 }, uRaggio: { value: 260 } }
@@ -791,13 +774,7 @@ class Motore {
     this.uTempo.value = this.tempo
     if (!ridotto && this.pennella(dt)) {
       anima = this.sporco = true
-      this.posaMondo(st.modo === 'fase', dt)
-    }
-    const dp = this.dipinto
-    const bersDip = dp.tex ? dp.bersaglio : 0
-    if (Math.abs(dp.alfa - bersDip) > 0.002) {
-      dp.alfa += (bersDip - dp.alfa) * (1 - Math.pow(0.001, dt * 2.5))
-      anima = this.sporco = true
+      this.posaMondo(dt)
     }
 
     // il portale che respira mentre si apre o si chiude
@@ -1060,13 +1037,6 @@ class Motore {
     vu.uSfAlfa.value = s.tex ? s.alfa : 0
     vu.uSfRuota.value.set(...s.ruota)
     vu.uBuio.value = s.buio
-    const d = this.dipinto
-    vu.uDipinto.value = d.tex ?? VUOTA
-    vu.uDipRett.value.set(...d.rett)
-    vu.uDipTexel.value.set(...d.texel)
-    vu.uDipAlfa.value = d.tex ? d.alfa : 0
-    const p = anno.get(), i = indiceFase(p)
-    stagione(i + (tFase(p, i) > 0.85 ? (tFase(p, i) - 0.85) / 0.15 : 0), this.luceStagione)
     this.aggiornaLanterna(vu)
     const r = this.renderer
     r.setClearColor(new THREE.Color(0, 0, 0), 0)

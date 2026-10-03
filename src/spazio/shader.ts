@@ -383,17 +383,7 @@ uniform float uMascheraOn;
 uniform float uApertura; // 0 = il portale nasce (forma organica), 1 = aperto (cerchio)
 uniform float uTempo;
 uniform vec3 uBordo;     // colore della luce sul bordo del portale (la luce della clip)
-// il pennello del cursore sulla tavola: scia e istantanea della tavola (rettangolo a schermo, px CSS)
-uniform sampler2D uTraccia;
-uniform float uTracciaOn;
-uniform sampler2D uDipinto;
-uniform vec4 uDipRett;
-uniform vec2 uDipTexel;
-uniform float uDipAlfa;
-uniform vec3 uStagione;
 ${LANTERNA}
-${VITA}
-${MONDO}
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
 vec4 sopra(vec4 s, vec4 d) { return s + d * (1.0 - s.a); }
@@ -414,28 +404,6 @@ void main() {
       if (uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0) acc = sopra(texture2D(uSfocata, uv) * uSfAlfa, acc);
     }
     if (uBuio > 0.001) acc = sopra(vec4(uNero * uBuio, uBuio), acc);
-    if (uTracciaOn > 0.5) {
-      vec4 tr = texture2D(uTraccia, fc / (uRis * uDpr));
-      if (tr.r > 0.004) {
-        // sotto la scia il mondo vivo; davanti, la vite della tavola che prende colore
-        float o = apri(tr.r, P, uTempo);
-        vec3 col = mix(uNero, mondo(P, uTempo), uMondoOn);
-        vec2 uv = (P - uDipRett.xy) / uDipRett.zw;
-        bool dentro = uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0;
-        float fedele = dentro ? uDipAlfa : 0.0;
-        if (fedele > 0.01) {
-          vec4 cc = texture2D(uDipinto, uv);
-          vec2 d = uDipTexel * 2.5;
-          float nb = (texture2D(uDipinto, uv + vec2(d.x, 0.0)).a + texture2D(uDipinto, uv - vec2(d.x, 0.0)).a + texture2D(uDipinto, uv + vec2(0.0, d.y)).a + texture2D(uDipinto, uv - vec2(0.0, d.y)).a) * 0.25;
-          col = acquerello(cc, clamp((cc.a - nb) * 3.0, 0.0, 1.0), uv / uDipTexel, uStagione, col, 1.0);
-        }
-        // senza un'istantanea fedele (la vite sta crescendo) il mondo è un velo: sotto resta la tavola
-        float a = o * mix(0.55, 1.0, fedele);
-        acc = sopra(vec4(col * a, a), acc);
-        float f = filoVita(tr.r, P, uTempo) * 0.35;
-        acc = sopra(vec4(vec3(1.0, 0.78, 0.45) * f, f), acc);
-      }
-    }
     if (uFilmAlfa > 0.001) {
       vec2 c = uMaschera.xy;
       vec2 dP = P - c;
