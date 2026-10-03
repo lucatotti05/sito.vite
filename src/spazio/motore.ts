@@ -79,6 +79,8 @@ const ORO = rgb(C.oro)
 const LUCE = rgb('#e8c58a') // la lanterna (--lanterna)
 /** la luce della stagione di ogni fase (core/stagioni.ts): scorrendo l'arco la luce dello spazio cambia con l'anno */
 const STAGIONI = LUCI_STAGIONE.map(rgb)
+/** la tavola del mondo per ogni fase (0 inverno, 1 primavera, 2 estate, 3 autunno): tra due si dissolve */
+const STAGIONE_MONDO = [0, 0.45, 1, 1, 1.5, 2, 2, 2.5, 3, 3]
 const stagione = (x: number, out: THREE.Vector3) => {
   const f = clamp(x, 0, STAGIONI.length - 1)
   const i = Math.min(STAGIONI.length - 2, Math.floor(f))
@@ -136,6 +138,18 @@ class Motore {
   uTraccia = { value: VUOTA as THREE.Texture }
   uTracciaOn = { value: 0 }
   uRisDev = { value: new THREE.Vector2(1, 1) }
+  uTempo = { value: 0 }
+  /** il mondo nascosto: una tavola dipinta per stagione (public/mondo/), scoperta dal cursore */
+  mondo: (THREE.Texture | null)[] = [null, null, null, null]
+  mondoAvviato = false
+  orizzonte = 0
+  uMondo = {
+    uMondoA: { value: VUOTA as THREE.Texture },
+    uMondoB: { value: VUOTA as THREE.Texture },
+    uMondoMix: { value: 0 },
+    uMondoRett: { value: new THREE.Vector4(0, 0, 1, 1) },
+    uMondoOn: { value: 0 },
+  }
   dipinto = { tex: null as THREE.Texture | null, rett: [0, 0, 1, 1] as [number, number, number, number], texel: [1, 1] as [number, number], alfa: 0, bersaglio: 0 }
   pannelli: Pannello[] = []
   L = disposizione(window.innerWidth)
@@ -307,7 +321,7 @@ class Motore {
       new THREE.ShaderMaterial({
         vertexShader: CIELO_V,
         fragmentShader: CIELO_F,
-        uniforms: { uStagione: { value: this.luceStagione }, uAlfa: { value: 0.1 }, uRis: { value: new THREE.Vector2(1, 1) }, uDpr: { value: 1 }, uOrizzonte: { value: 0 }, uTraccia: this.uTraccia, uTracciaOn: this.uTracciaOn },
+        uniforms: { uStagione: { value: this.luceStagione }, uAlfa: { value: 0.1 }, uRis: { value: new THREE.Vector2(1, 1) }, uDpr: { value: 1 }, uOrizzonte: { value: 0 }, uTraccia: this.uTraccia, uTracciaOn: this.uTracciaOn, uTempo: this.uTempo, ...this.uMondo },
         depthWrite: false,
         depthTest: false,
         transparent: true,
@@ -359,6 +373,7 @@ class Motore {
         uLucido: { value: 1 },
         uTraccia: this.uTraccia,
         uTracciaOn: this.uTracciaOn,
+        uTempo: this.uTempo,
         uRisDev: this.uRisDev,
         ...this.uniformLanterna(),
       }
@@ -428,6 +443,7 @@ class Motore {
           uDipTexel: { value: new THREE.Vector2(1, 1) },
           uDipAlfa: { value: 0 },
           uStagione: { value: this.luceStagione },
+          ...this.uMondo,
           ...this.uniformLanterna(),
         },
         depthTest: false,
@@ -484,7 +500,7 @@ class Motore {
       sc.vx = dx / dist
       sc.vy = dy / dist
       const passi = Math.min(16, Math.ceil(dist / 3))
-      const r = clamp(10.5 - v * 0.01, 5.5, 10.5)
+      const r = clamp(15 - v * 0.012, 8, 15)
       for (let i = 1; i <= passi; i++) {
         const k = i / passi
         colpi[n].set(sc.x + dx * k, sc.y + dy * k, sc.vx, sc.vy)
@@ -494,7 +510,7 @@ class Motore {
       sc.x = tx
       sc.y = ty
     }
-    const scolora = Math.exp(-dt / 1.25)
+    const scolora = Math.exp(-dt / 2.1)
     sc.energia = Math.min(3, sc.energia * scolora + n * 0.08)
     if (sc.energia < 0.002 && !n) {
       this.uTracciaOn.value = 0
@@ -513,6 +529,54 @@ class Motore {
     sc.b = t
     this.uTraccia.value = sc.a.texture
     return true
+  }
+
+  /** Carica le quattro tavole del mondo (solo con il mouse, la prima volta che il cursore si muove). */
+  private caricaMondo() {
+    if (this.mondoAvviato) return
+    this.mondoAvviato = true
+    const base = `${import.meta.env.BASE_URL}mondo/`
+    const nomi = ['inverno', 'primavera', 'estate', 'autunno']
+    // prima la stagione di adesso, poi le altre
+    const ora = Math.round(STAGIONE_MONDO[Math.round(clamp(spazio.arco, 0, 9))])
+    const ordine = [ora, ...[0, 1, 2, 3].filter((i) => i !== ora)]
+    ;(async () => {
+      for (const i of ordine) {
+        const t = await caricaTexture(`${base}${nomi[i]}.webp`, false)
+        if (t) this.carica(t, () => (this.mondo[i] = t))
+      }
+    })()
+  }
+  /** Quale stagione del mondo si vede e dove sta la tavola (copre lo schermo, orizzonte allineato, parallasse). */
+  private posaMondo(fase: boolean, dt: number) {
+    this.caricaMondo()
+    const u = this.uMondo
+    let x: number
+    if (fase) {
+      const p = anno.get(), i = indiceFase(p)
+      x = i + tFase(p, i)
+    } else x = clamp(spazio.arco, 0, 9)
+    const i0 = Math.min(8, Math.floor(x))
+    const sf = lerp(STAGIONE_MONDO[i0], STAGIONE_MONDO[i0 + 1], smooth(x - i0))
+    const a = Math.floor(sf), b = Math.min(3, a + 1)
+    const ta = this.mondo[a] ?? this.mondo.find(Boolean) ?? null
+    const tb = this.mondo[b] ?? ta
+    u.uMondoA.value = ta ?? VUOTA
+    u.uMondoB.value = tb ?? VUOTA
+    u.uMondoMix.value = sf - a
+    const on = ta ? 1 : 0
+    u.uMondoOn.value += (on - u.uMondoOn.value) * Math.min(1, dt * 3)
+    // copre lo schermo con un margine per la parallasse; l'orizzonte della tavola sull'orizzonte dello spazio
+    const IW = 2048, IH = 1158, HY = 0.365
+    const k = Math.max(this.vw / IW, this.H / IH) * 1.1
+    const dw = IW * k, dh = IH * k
+    const oriz = fase || !this.orizzonte ? this.H * 0.42 : this.orizzonte
+    const m = this.mouse
+    const px = m.x > -1e3 ? (m.x / this.vw - 0.5) * -0.035 * this.vw : 0
+    const py = m.y > -1e3 ? (m.y / this.H - 0.5) * -0.025 * this.H : 0
+    const ox = clamp(this.vw / 2 - dw / 2 + px, this.vw - dw, 0)
+    const oy = clamp(oriz - HY * dh + py, this.H - dh, 0)
+    u.uMondoRett.value.set(ox, oy, dw, dh)
   }
 
   /** L'istantanea della tavola (con l'inquadratura del momento) che il pennello trasforma in pittura. */
@@ -723,8 +787,12 @@ class Motore {
       this.sporco = true
     }
 
-    // il pennello del cursore: la scia vive finché non si è scolorita
-    if (!ridotto && this.pennella(dt)) anima = this.sporco = true
+    // il cursore scopre il mondo: la scia vive finché non si è scolorita
+    this.uTempo.value = this.tempo
+    if (!ridotto && this.pennella(dt)) {
+      anima = this.sporco = true
+      this.posaMondo(st.modo === 'fase', dt)
+    }
     const dp = this.dipinto
     const bersDip = dp.tex ? dp.bersaglio : 0
     if (Math.abs(dp.alfa - bersDip) > 0.002) {
@@ -848,6 +916,7 @@ class Motore {
     // l'orizzonte vero: la direzione orizzontale davanti alla camera, all'infinito
     const oz = new THREE.Vector3(cam.position.x, cam.position.y, cam.position.z - 1000).project(cam)
     cu.uOrizzonte.value = (1 - oz.y) * 0.5 * this.H
+    this.orizzonte = cu.uOrizzonte.value
 
     const aspettoSchermo = this.vw / this.H
     const pxUnita = this.H / (2 * (Rc + L.D) * Math.tan(fov / 2))

@@ -37,7 +37,7 @@ function regole() {
   return css
 }
 
-type Opzioni = { scala?: number; sfoca?: boolean; fissi?: boolean }
+type Opzioni = { scala?: number; sfoca?: boolean; fissi?: boolean; css?: string }
 /**
  * Fotografa la tavola con l'inquadratura `q` (senza rotazione). Di norma su un canvas ridotto e
  * sfocato (messa a fuoco del raccordo); con `scala` e `sfoca: false` è l'istantanea nitida che il
@@ -48,7 +48,7 @@ export async function fotografa(
   q: Pick<Inquadratura, 'x' | 'y' | 'w' | 'h'>,
   W: number,
   H: number,
-  { scala = 1 / RIDUZIONE, sfoca = true, fissi = false }: Opzioni = {},
+  { scala = 1 / RIDUZIONE, sfoca = true, fissi = false, css = '' }: Opzioni = {},
 ): Promise<Istantanea | null> {
   const defs = posto.querySelector('svg.vite-defs')?.innerHTML ?? ''
   // pali e fili restano fuori: durante la rotazione del raccordo attraverserebbero lo schermo in diagonale
@@ -62,7 +62,7 @@ export async function fotografa(
   const w = Math.max(1, Math.round(W * scala)), h = Math.max(1, Math.round(H * scala))
   const testo =
     `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}" ` +
-    `viewBox="${q.x} ${q.y} ${q.w} ${q.h}"><style>${regole()}</style>${defs}${strati}</svg>`
+    `viewBox="${q.x} ${q.y} ${q.w} ${q.h}"><style>${regole()}${css}</style>${defs}${strati}</svg>`
   const url = URL.createObjectURL(new Blob([testo], { type: 'image/svg+xml' }))
   try {
     const img = new Image()

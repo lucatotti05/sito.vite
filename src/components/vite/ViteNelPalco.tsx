@@ -8,6 +8,8 @@ import { spazio } from '@/spazio/stato'
 import { Vite } from './Vite'
 import { motore } from '@/spazio/motore'
 
+/** per l'istantanea del mondo nascosto: legno e foglie con campiture appena diverse, che lo shader sa distinguere */
+const CSS_DIPINTO = '.v-legno{fill:rgb(44,22,9)!important}.v-lamina{fill:rgb(14,38,12)!important}'
 const giornoDa01 = (p: number) => Math.round(p * 36500) / 100
 /** ms tra due aggiornamenti della tavola: le transizioni di vite.css (90ms) riempiono gli intervalli */
 const INTERVALLO_CRESCITA = 80
@@ -72,7 +74,7 @@ export function ViteNelPalco() {
       if (q.ruota || statoFilm(p, vw, H)?.coperta) return
       if (ist && Math.abs(p * 365 - giornoIst) < 0.05 && ist.vb.x === q.x && ist.vb.y === q.y && ist.vb.h === q.h) return
       inCorso = true
-      fotografa(el, q, vw, H, { scala: 0.75, sfoca: false, fissi: true }).then((r) => {
+      fotografa(el, q, vw, H, { scala: 0.75, sfoca: false, fissi: true, css: CSS_DIPINTO }).then((r) => {
         inCorso = false
         if (!r) return
         ist = r
