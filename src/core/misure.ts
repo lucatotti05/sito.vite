@@ -15,8 +15,9 @@ const rett = (el: HTMLElement | null): Rett => (el ? { x: el.offsetLeft, y: el.o
 let osservatore: ResizeObserver | null = null
 export function osservaPalco(palco: HTMLElement, dopo: () => void) {
   const leggi = () => {
-    misure.vw = palco.clientWidth
-    misure.H = palco.clientHeight
+    // una pagina nascosta misura il palco 0 × 0: la camera dividerebbe zero per zero (viewBox NaN)
+    misure.vw = palco.clientWidth || window.innerWidth
+    misure.H = palco.clientHeight || window.innerHeight
     misure.slot = rett(palco.querySelector('.slot-carta'))
     misure.dock = rett(palco.querySelector('.slot-carta-dock'))
     dopo()

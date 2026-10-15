@@ -606,7 +606,11 @@ class Motore {
     const L0 = this.L
     this.L = disposizione(this.vw)
     const stretto = this.L.stretto
-    this.dpr = Math.min(window.devicePixelRatio || 1, stretto ? 2 : 1.75)
+    // sugli schermi a densità 1 (Windows al 100%) il canvas si disegna a 1,5× e il browser lo riduce:
+    // linee e bordi più netti. Un tetto ai pixel totali (5 milioni) tiene leggeri i monitor grandi
+    const nativo = window.devicePixelRatio || 1
+    const tetto = Math.sqrt(5e6 / (this.vw * this.H))
+    this.dpr = stretto ? Math.min(nativo, 2) : Math.min(1.75, Math.max(nativo, Math.min(1.5, tetto)))
     this.renderer.setPixelRatio(this.dpr)
     this.renderer.setSize(this.vw, this.H, false)
     this.camera.aspect = this.vw / this.H
