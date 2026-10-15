@@ -1,5 +1,3 @@
-import { useAnno } from '@/core/anno'
-import { FASI, indiceFase, mesiDi } from '@/core/tempo'
 import { ViteNelPalco } from '@/components/vite/ViteNelPalco'
 import { Calendario } from '@/components/calendario/Calendario'
 import { Contafotogrammi } from '@/components/Contafotogrammi'
@@ -14,17 +12,8 @@ import { StrisciaFasi } from '@/components/StrisciaFasi'
 import { Titoli } from '@/components/Titoli'
 import { Angoli } from '@/components/Angoli'
 import { Apertura } from '@/components/Apertura'
+import { Guida } from '@/components/Guida'
 import { Spazio } from '@/spazio/Spazio'
-
-function Annuncio() {
-  const i = useAnno(indiceFase)
-  const f = FASI[i]
-  return (
-    <p className="sr-only" aria-live="polite">
-      Fase {f.numero}: {f.titolo}, {mesiDi(f)}.
-    </p>
-  )
-}
 
 export default function App() {
   return (
@@ -33,6 +22,7 @@ export default function App() {
         Vai all’elenco delle fasi
       </a>
       <main>
+        <h1 className="sr-only">L’anno della vite</h1>
         <Scorrimento>
           <ViteNelPalco />
           <Spazio />
@@ -46,11 +36,11 @@ export default function App() {
           <Finale />
           <StrisciaFasi />
           <Angoli />
+          <Guida />
           <Apertura />
         </Scorrimento>
       </main>
       <Banco />
-      <Annuncio />
       <Contafotogrammi />
     </>
   )

@@ -7,11 +7,25 @@
 :root {
   --cal-w: 264px;
   --cal-h: 300px;
+  /* la pagina si rimpicciolisce con l'altezza della finestra: resta un riferimento, non un
+     protagonista accanto al titolo. --cal-hv è l'altezza che occupa davvero, per chi le sta sotto */
+  --cal-k: 1;
+  --cal-hv: calc(var(--cal-h) * var(--cal-k));
+}
+@media (max-height: 1000px) {
+  :root { --cal-k: 0.86; }
+}
+@media (max-height: 820px) {
+  :root { --cal-k: 0.74; }
+}
+@media (max-height: 700px) {
+  :root { --cal-k: 0.64; }
 }
 @media (max-width: 759px) {
   :root {
     --cal-w: 140px;
     --cal-h: 164px;
+    --cal-k: 1;
   }
 }
 
@@ -23,6 +37,10 @@
   right: var(--angolo);
   width: var(--cal-w);
   margin: 0;
+  /* scale e translate, non transform: si compongono con l'animazione d'entrata (appesa, che
+     oscilla dal chiodo in alto al centro); lo spostamento riporta il bordo destro all'angolo */
+  scale: var(--cal-k);
+  translate: calc(var(--cal-w) * (1 - var(--cal-k)) / 2) 0;
   pointer-events: none;
   /* la carta: terra con una grana fine e fissa (nessun costo durante lo sfoglio) */
   --cal-carta:

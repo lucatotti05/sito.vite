@@ -6,7 +6,8 @@
   position: sticky;
   top: 0;
   height: 100svh;
-  overflow: hidden;
+  /* clip, non hidden: il palco non si lascia scorrere nemmeno da un fuoco o da scrollIntoView */
+  overflow: clip;
   isolation: isolate;
   transform-origin: 50% 55%;
   background: var(--nero);
@@ -20,14 +21,14 @@
   pointer-events: none;
   /* non decorativo: tiene il contrasto AA dei testi sopra la scena (colonna dei testi, striscia) */
   background:
-    linear-gradient(90deg, var(--nero-90) 0%, var(--nero-60) 24%, var(--nero-0) 46%),
+    linear-gradient(90deg, var(--nero-90) 0%, var(--nero-60) 32%, var(--nero-0) 54%),
     linear-gradient(0deg, var(--nero-90) 0%, var(--nero-90) calc(var(--striscia-h) - 24px), var(--nero-0) calc(var(--striscia-h) + 72px));
   transition: background-color var(--d-ui) var(--ease-out);
 }
 /* con la collana in primo piano anche il lato destro (carte e registro) ha il suo velo */
 html[data-primo-piano="collana"] .velo-ui {
   background:
-    linear-gradient(90deg, var(--nero-90) 0%, var(--nero-60) 24%, var(--nero-0) 46%),
+    linear-gradient(90deg, var(--nero-90) 0%, var(--nero-60) 32%, var(--nero-0) 54%),
     linear-gradient(270deg, var(--nero-90) 0%, var(--nero-60) 26%, var(--nero-0) 44%),
     linear-gradient(0deg, var(--nero-90) 0%, var(--nero-90) calc(var(--striscia-h) - 24px), var(--nero-0) calc(var(--striscia-h) + 72px));
 }
@@ -199,12 +200,12 @@ html.finale-su :is(.nodo-posto, .indicatore, .carta, .registro) {
   pointer-events: none;
 }
 :root {
-  --slot-w: min(var(--col-2), calc((100svh - var(--cal-h) - 300px) * 0.82));
+  --slot-w: min(var(--col-2), calc((100svh - var(--cal-hv) - 300px) * 0.82));
 }
 .slot-carta,
 .slot-carta-dock {
   right: var(--margine-x);
-  top: calc(var(--cal-h) + var(--s-8));
+  top: calc(var(--cal-hv) + var(--s-8));
   width: var(--slot-w);
   aspect-ratio: 0.82;
 }
@@ -404,8 +405,9 @@ html.finale-su :is(.nodo-posto, .indicatore, .carta, .registro) {
   }
   .nodo-posto {
     left: var(--margine-x);
-    width: min(calc(100vw - 2 * var(--margine-x)), calc((100svh - var(--fine-testi) - var(--striscia-h) - var(--s-1) - 52px) / 0.712));
-    bottom: calc(var(--striscia-h) + var(--s-1));
+    /* sopra l'ago d'oro della striscia, che sporge di 16px: l'invito non ci finisce sopra */
+    width: min(calc(100vw - 2 * var(--margine-x)), calc((100svh - var(--fine-testi) - var(--striscia-h) - var(--s-5) - 52px) / 0.712));
+    bottom: calc(var(--striscia-h) + var(--s-5));
     transform-origin: 50% 80%;
   }
   /* con la collana aperta il nodo è richiuso: la carta prende il suo posto, in basso a destra */

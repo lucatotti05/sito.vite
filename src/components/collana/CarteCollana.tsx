@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { D, E, PASSO } from '@/core/movimento'
 import { anno, useAnno, useAnnoFotogramma } from '@/core/anno'
@@ -7,6 +7,7 @@ import { easeInOut, lerp, tra } from '@/core/math'
 import { preferenze } from '@/core/preferenze'
 import { primoPiano, usePrimoPiano } from '@/core/primoPiano'
 import { FASI, indiceFase, tFase } from '@/core/tempo'
+import { spazio, useSpazio } from '@/spazio/stato'
 import { banco, carteDellaFase, disponibile, tipoDi, useBanco, type Voce } from './collana'
 import { Oggetto } from './Oggetto'
 
@@ -97,8 +98,8 @@ function Carta({ voce, numeroFase, profondita }: { voce: Voce; numeroFase: numbe
   useAnnoFotogramma((p) => {
     const t = tFase(p, iFase)
     const i = indiceFase(p)
-    // la carta emerge solo con la collana in primo piano (un solo elemento interattivo aperto)
-    const collana = primoPiano.get() === 'collana'
+    // la carta emerge solo con la collana in primo piano (un solo elemento interattivo aperto), dentro la fase
+    const collana = primoPiano.get() === 'collana' && spazio.get().dentro
     const dentro = collana && i === iFase && t >= soglia(d) ? 1 : i > iFase ? 1 : 0
     const oltre = i > iFase || (i === iFase && t > 0.9) ? 1 : 0
     const s = st.current
@@ -118,19 +119,19 @@ function Carta({ voce, numeroFase, profondita }: { voce: Voce; numeroFase: numbe
     disegna(p)
   }, [d, iFase])
   useEffect(() => () => gsap.killTweensOf(st.current), [])
-  // aprire o richiudere la collana muove le carte anche a scroll fermo
-  useEffect(
-    () =>
-      primoPiano.subscribe(() => {
-        const s = st.current
-        const v = primoPiano.get() === 'collana' && indiceFase(anno.get()) === iFase && tFase(anno.get(), iFase) >= soglia(d) ? 1 : 0
-        if (v === s.vuoleK) return
-        s.vuoleK = v
-        gsap.to(s, { k: v, duration: v ? D.entrata : D.ui, delay: v ? d * PASSO : 0, ease: v ? E.out : E.in, overwrite: 'auto', onUpdate: () => disegna(anno.get()) })
-      }),
+  // aprire o richiudere la collana (o uscire dalla fase) muove le carte anche a scroll fermo
+  useEffect(() => {
+    const aggiorna = () => {
+      const s = st.current
+      const v = primoPiano.get() === 'collana' && spazio.get().dentro && indiceFase(anno.get()) === iFase && tFase(anno.get(), iFase) >= soglia(d) ? 1 : 0
+      if (v === s.vuoleK) return
+      s.vuoleK = v
+      gsap.to(s, { k: v, duration: v ? D.entrata : D.ui, delay: v ? d * PASSO : 0, ease: v ? E.out : E.in, overwrite: 'auto', onUpdate: () => disegna(anno.get()) })
+    }
+    const via = [primoPiano.subscribe(aggiorna), spazio.subscribe(aggiorna)]
+    return () => via.forEach((f) => f())
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [d, iFase],
-  )
+  }, [d, iFase])
 
   return (
     <button
@@ -156,12 +157,25 @@ function Carta({ voce, numeroFase, profondita }: { voce: Voce; numeroFase: numbe
 function Registro({ fase }: { fase: number }) {
   const voci = carteDellaFase(fase + 1).filter((v) => !disponibile(v))
   const conCarta = carteDellaFase(fase + 1).some(disponibile)
-  // solo con la collana in primo piano, finché la fase è in corso: a tempo, in CSS (.registro.su)
+  // solo con la collana in primo piano, dentro la fase e finché è in corso: a tempo, in CSS (.registro.su)
   const collana = usePrimoPiano() === 'collana'
-  const su = useAnno((p) => indiceFase(p) === fase && tFase(p, fase) <= 0.92) && collana
+  const dentro = useSpazio((d) => d.dentro)
+  const su = useAnno((p) => indiceFase(p) === fase && tFase(p, fase) <= 0.92) && collana && dentro
+  // se tra la carta e l'angolo non c'è posto per tutte le voci, il registro non si mostra a metà
+  const el = useRef<HTMLDivElement | null>(null)
+  const [stretto, setStretto] = useState(false)
+  useLayoutEffect(() => {
+    const n = el.current
+    if (!n) return
+    const misura = () => setStretto(n.scrollHeight > n.clientHeight + 1)
+    const ro = new ResizeObserver(misura)
+    ro.observe(n)
+    misura()
+    return () => ro.disconnect()
+  }, [])
   if (!voci.length) return null
   return (
-    <div className={`registro${conCarta ? '' : ' solo'}${su ? ' su' : ''}`}>
+    <div ref={el} className={`registro${conCarta ? '' : ' solo'}${su && !stretto ? ' su' : ''}`} aria-hidden={!su || stretto}>
       <p className="registro-testa t-etichetta">Nella collana, in arrivo</p>
       <ul>
         {voci.map((v) => (

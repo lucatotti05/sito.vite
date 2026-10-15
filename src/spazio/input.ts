@@ -34,6 +34,10 @@ let trascina: { id: number; x0: number; y0: number; s0: number; asse: 'x' | 'y' 
 const spinta = { x: 0, v: 0, ultimo: 0 }
 /** fino a quando le rotelle non contano per la spinta (code d'inerzia dopo un passaggio) */
 let bloccoFino = 0
+/** l'ultima rotella e se spingeva già contro il bordo della fase: arrivare al bordo con lo stesso
+ *  gesto (o con la sua coda d'inerzia) non spinge, serve un gesto nuovo */
+let rotellaPrec = 0
+let eraAlBordo = false
 
 const pxPannello = () => {
   // quanti px a schermo vale un pannello sull'arco: il trascinamento segue il dito
@@ -111,7 +115,16 @@ function rotella(e: WheelEvent) {
     spingi(dy, dy > 0 ? SOGLIA_ANNO : SOGLIA_ANNO * 2.5)
   } else if (st.modo === 'fase' && st.dentro) {
     const lim = limiteScroll()
-    if ((lim === 'su' && dy < 0) || (lim === 'giu' && dy > 0)) spingi(dy, SOGLIA_FASE)
+    const alBordo = (lim === 'su' && dy < 0) || (lim === 'giu' && dy > 0)
+    const stessoGesto = ora - rotellaPrec < 160
+    rotellaPrec = ora
+    if (alBordo && !eraAlBordo && stessoGesto) {
+      // si è arrivati al bordo scorrendo: il resto di questo gesto si ferma qui
+      bloccoFino = ora + 160
+      return
+    }
+    eraAlBordo = alBordo
+    if (alBordo) spingi(dy, SOGLIA_FASE)
     else if (Math.abs(spinta.x) > 0) spinta.ultimo = 0 // si è ripreso a scorrere: la spinta torna
   }
 }
@@ -264,6 +277,9 @@ function lavoro(ora: number) {
     if (palco) {
       const s = spazio.get().modo === 'fase' ? spinta.x : 0
       palco.style.transform = Math.abs(s) > 1e-3 ? `translate3d(0, ${(-s * 2.2).toFixed(2)}vh, 0) scale(${(1 - Math.abs(s) * 0.045).toFixed(4)})` : ''
+      // la nota sopra la striscia dice dove porta la spinta (Guida.tsx)
+      palco.style.setProperty('--spinta-giu', Math.max(0, s).toFixed(3))
+      palco.style.setProperty('--spinta-su', Math.max(0, -s).toFixed(3))
     }
   }
   return ancora || !!trascina

@@ -106,6 +106,7 @@
   font-size: clamp(20px, 1.6vw, 26px);
   line-height: 1.35;
   max-width: 42ch;
+  text-wrap: pretty;
   color: var(--avorio-85);
 }
 .t-testo {
@@ -113,6 +114,7 @@
   font-size: 17px;
   line-height: 1.6;
   max-width: 62ch;
+  text-wrap: pretty;
   color: var(--avorio-85);
 }
 .t-etichetta {

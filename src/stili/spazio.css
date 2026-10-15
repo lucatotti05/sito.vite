@@ -554,3 +554,88 @@ html.anteprima body {
 .nodo-bottone:not(.attiva):active .m-corpo {
   transform: scale(0.9);
 }
+
+/* ── la guida (Guida.tsx): una nota d'annotazione tra le voci in basso, solo la prima volta ──
+   Prima si traccia il filo d'oro (come le annotazioni della tavola), poi arriva il testo. */
+.guida {
+  position: absolute;
+  z-index: 9;
+  left: 50%;
+  bottom: calc(var(--angolo) + env(safe-area-inset-bottom, 0px) - 3px);
+  width: max-content;
+  max-width: min(44ch, calc(100vw - 2 * var(--angolo) - 360px));
+  margin: 0;
+  transform: translateX(-50%);
+  text-align: center;
+  text-wrap: balance;
+  color: var(--avorio-85);
+  pointer-events: none;
+  visibility: hidden;
+  transition: visibility 0s linear var(--d-ui);
+}
+.guida::before {
+  content: "";
+  display: block;
+  width: var(--s-6);
+  height: 1px;
+  margin: 0 auto var(--s-3);
+  background: var(--oro-60);
+  transform: scaleX(0);
+  transition: transform var(--d-ui) var(--ease-in);
+}
+.guida > span {
+  display: block;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity var(--d-ui) var(--ease-in), transform var(--d-ui) var(--ease-in);
+}
+.guida.su {
+  visibility: visible;
+  transition: visibility 0s;
+}
+.guida.su::before {
+  transform: none;
+  transition: transform var(--d-entrata) var(--ease-out) 900ms;
+}
+.guida.su > span {
+  opacity: 1;
+  transform: none;
+  transition: opacity var(--d-entrata) var(--ease-out) 1250ms, transform var(--d-entrata) var(--ease-out) 1250ms;
+}
+.guida .guida-dito { display: none; }
+@media (pointer: coarse) {
+  .guida .guida-mouse { display: none; }
+  .guida .guida-dito { display: block; }
+}
+@media (max-width: 759px) {
+  /* tra le voci non c'è posto: la nota sale sopra di loro, nel vuoto sotto il pannello */
+  .guida {
+    bottom: calc(var(--angolo) + env(safe-area-inset-bottom, 0px) + var(--s-7));
+    max-width: calc(100vw - 2 * var(--angolo));
+  }
+}
+[data-movimento="ridotto"] .guida > span {
+  transform: none;
+}
+
+/* la nota della spinta: sopra la striscia, compare con la spinta e si fa piena vicino alla soglia */
+.spinta-nota {
+  position: absolute;
+  z-index: 9;
+  left: 50%;
+  bottom: calc(var(--striscia-h) + var(--s-5));
+  width: max-content;
+  max-width: calc(100vw - 2 * var(--margine-x));
+  margin: 0;
+  transform: translateX(-50%);
+  text-align: center;
+  color: var(--avorio-85);
+  pointer-events: none;
+  opacity: 0;
+}
+.spinta-nota-giu {
+  opacity: clamp(0, calc((var(--spinta-giu, 0) - 0.1) * 2.2), 1);
+}
+.spinta-nota-su {
+  opacity: clamp(0, calc((var(--spinta-su, 0) - 0.1) * 2.2), 1);
+}

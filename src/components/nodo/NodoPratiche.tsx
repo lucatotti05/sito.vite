@@ -238,11 +238,39 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fase.id, ridotto, stretto])
 
+  // col dito sul nodo l'orbita si ferma: la pratica da toccare non scappa sotto il dito
+  const dito = useRef(false)
+  useEffect(() => {
+    const sez = rSezione.current
+    if (!sez) return
+    const giu = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') dito.current = true
+    }
+    const su = () => {
+      if (!dito.current) return
+      dito.current = false
+      // ripresa: l'orbita raggiunge con la molla il punto dello scroll
+      const o = orbita.current
+      if (o.scelta >= 0) return
+      o.angT = angoloScroll(anno.get())
+      ciclo.sveglia()
+    }
+    sez.addEventListener('pointerdown', giu, { passive: true })
+    window.addEventListener('pointerup', su, { passive: true })
+    window.addEventListener('pointercancel', su, { passive: true })
+    return () => {
+      sez.removeEventListener('pointerdown', giu)
+      window.removeEventListener('pointerup', su)
+      window.removeEventListener('pointercancel', su)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // lo scroll della fase fa girare l'orbita (finché non c'è una pratica scelta)
   useAnnoFotogramma(
     (p) => {
       const o = orbita.current
-      if (o.scelta >= 0) return
+      if (o.scelta >= 0 || dito.current) return
       o.angT = angoloScroll(p)
       if (ridotto) o.ang = o.angT
       ciclo.sveglia()
@@ -669,7 +697,7 @@ export function NodoPratiche({ fase }: { fase: Fase }) {
           </text>
         ))}
       </svg>
-      <p className="nodo-invito t-etichetta" aria-live="polite" style={{ visibility: scelta ? 'hidden' : undefined }}>
+      <p className="nodo-invito t-etichetta" style={{ visibility: scelta ? 'hidden' : undefined }}>
         {INVITO}
       </p>
       {scelta && (

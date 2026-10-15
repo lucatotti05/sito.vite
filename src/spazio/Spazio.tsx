@@ -25,6 +25,8 @@ export function Spazio() {
   const volo = useSpazio((d) => d.volo)
   const dentro = useSpazio((d) => d.dentro)
   const aperta = useSpazio((d) => d.aperta)
+  const centrale = useSpazio((d) => d.centrale)
+  const nav = useRef<HTMLElement>(null)
 
   useEffect(() => {
     const c = tela.current
@@ -65,20 +67,28 @@ export function Spazio() {
     }
   }, [])
 
+  // un solo pulsante nel giro del Tab, quello del pannello al centro (all'apertura la fase di oggi):
+  // le frecce spostano l'arco e il fuoco lo segue
+  useEffect(() => {
+    const n = nav.current
+    if (!n || !n.contains(document.activeElement)) return
+    n.querySelectorAll('button')[centrale]?.focus()
+  }, [centrale])
+
   const inAnno = livello === 'anno' && !volo
   return (
     <>
       <canvas ref={tela} className="spazio-tela" aria-hidden="true" />
       <p className="sr-only" aria-live="polite">
-        {dentro ? `Dentro la fase ${FASI[aperta].titolo}. Esc per tornare all’anno.` : livello === 'anno' && !volo ? 'Vista dell’anno: frecce per scorrere le fasi, Invio per entrare.' : ''}
+        {dentro ? `Dentro la fase ${FASI[aperta].titolo}. Esc per tornare all’anno.` : livello === 'anno' && !volo ? 'Vista dell’anno: frecce sinistra e destra per scorrere le fasi, Invio per entrare.' : ''}
       </p>
-      <nav className="spazio-fasi" aria-label="Le dieci fasi dell'anno" aria-hidden={!inAnno}>
+      <nav ref={nav} className="spazio-fasi" aria-label="Le dieci fasi dell'anno" aria-hidden={!inAnno}>
         <ol>
           {FASI.map((f, i) => (
             <li key={f.id}>
               <button
                 type="button"
-                tabIndex={inAnno ? 0 : -1}
+                tabIndex={inAnno && i === centrale ? 0 : -1}
                 onFocus={() => {
                   arco.centra(i)
                   motore.impostaFocus(i)
