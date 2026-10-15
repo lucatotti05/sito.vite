@@ -20,8 +20,7 @@ float lanterna(vec2 fc) {
  * IL MONDO NASCOSTO: sotto il buio del sito c'è il vigneto vivo, dipinto (public/mondo/, una tavola
  * per stagione). Dove passa il cursore resta una scia (uTraccia: r = quantità, gb = direzione) che
  * fiorisce piano come acqua sulla carta e lo scopre: il bordo è organico e respira, con un filo di
- * luce calda. Il disegno della vite, dentro la scia, prende colore come un acquerello: le campiture
- * si velano di verdi e ocre, gli accenti si accendono, le linee restano linee.
+ * luce calda. Le schede restano fuori: sopra di loro il pennello si alza.
  */
 const VITA = /* glsl */ `
 float hashP(vec2 p) { return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }
@@ -45,36 +44,6 @@ float apri(float m, vec2 P, float t) {
 float filoVita(float m, vec2 P, float t) {
   float d = (m - sogliaVita(P, t)) / 0.03;
   return exp(-d * d) * smoothstep(0.02, 0.12, m);
-}
-/**
- * Il disegno che prende colore, come un acquerello steso sopra \`sotto\`: cc è il disegno nel punto,
- * bordo quanto il punto è vicino al contorno di una campitura (lì l'acqua deposita più colore).
- */
-vec3 acquerello(vec4 cc, float bordo, vec2 P, vec3 stagione, vec3 sotto, float conLegno) {
-  vec3 rgb = cc.rgb / max(cc.a, 1e-3);
-  float a = cc.a;
-  float lum = dot(rgb, vec3(0.3, 0.59, 0.11));
-  float ch = max(rgb.r, max(rgb.g, rgb.b)) - min(rgb.r, min(rgb.g, rgb.b));
-  float macchia = fbmP(P * 0.018);
-  float velo = fbmP(P * 0.045 + 4.7);
-  float grana = rumP(P * 0.7) * 0.6 + rumP(P * 1.9 + 3.0) * 0.4; // la grana della carta sotto l'acqua
-  // ogni foglia un'altra mescolanza: verde profondo, verde giallo, un'ocra; poi la luce della stagione
-  vec3 tinta = mix(vec3(0.24, 0.38, 0.12), vec3(0.58, 0.64, 0.22), smoothstep(0.25, 0.8, macchia));
-  tinta = mix(tinta, vec3(0.7, 0.5, 0.18), 0.35 * smoothstep(0.55, 0.9, velo));
-  tinta = mix(tinta, stagione, 0.22);
-  // il legno (nell'istantanea della tavola la sua campitura è segnata bruna) prende i bruni della corteccia
-  float scura = 1.0 - smoothstep(0.16, 0.24, lum);
-  float legno = conLegno * scura * smoothstep(0.01, 0.05, rgb.r - rgb.g);
-  tinta = mix(tinta, vec3(0.38, 0.23, 0.11) * (0.8 + 0.4 * velo), legno);
-  tinta *= 0.78 + 0.34 * grana;
-  float linea = a * smoothstep(0.26, 0.55, lum) * (1.0 - smoothstep(0.14, 0.32, ch));
-  float colore = a * smoothstep(0.14, 0.28, ch) * (1.0 - scura);
-  float campitura = a * (1.0 - linea) * (1.0 - colore);
-  vec3 col = mix(sotto, tinta * (0.85 + 0.3 * velo), campitura * (0.62 + 0.22 * velo));
-  col *= 1.0 - 0.28 * bordo * campitura;                       // il colore si deposita sul contorno
-  col = mix(col, clamp(mix(vec3(lum), rgb, 1.8) * 1.35, 0.0, 1.0), colore);
-  col = mix(col, vec3(0.97, 0.9, 0.75), linea * 0.92);
-  return col;
 }
 `
 
@@ -246,10 +215,6 @@ uniform float uBagliore;
 uniform float uAngolo;  // raggio degli angoli, in px a schermo (0 a pannello aperto)
 uniform float uRiflesso; // 1 = la copia specchiata sul suolo
 uniform float uLucido;  // forza della luce radente sul foglio (0 a pannello aperto)
-uniform sampler2D uTraccia;
-uniform float uTracciaOn;
-uniform float uTempo;
-uniform vec2 uRisDev;   // misura del canvas in px del dispositivo
 varying vec2 vUv;
 varying vec3 vN;
 varying vec3 vV;
@@ -262,7 +227,6 @@ float rumore(vec2 p) {
   return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
 }
 vec4 campiona(sampler2D t, vec4 crop, vec2 uv) { return texture2D(t, crop.xy + uv * crop.zw); }
-${VITA}
 
 void main() {
   vec2 px = vec2(1.0) / uBordo;           // misura del foglio in px a schermo
@@ -292,19 +256,6 @@ void main() {
   float g = exp(-dot(qb, qb) * 4.2);
   vec3 fondo = uFondo * mix(1.0, mix(1.14, 0.8, vUv.y), uLucido) + uStagione * g * uBagliore;
   vec3 col = mix(fondo, c.rgb, c.a);
-  // il cursore dà vita al disegno: sotto la scia la tavola del pannello prende colore (acquerello)
-  if (uTracciaOn > 0.5 && uRiflesso < 0.5 && uLucido > 0.01) {
-    vec4 tr = texture2D(uTraccia, gl_FragCoord.xy / uRisDev);
-    if (tr.r > 0.004) {
-      vec4 cc = campiona(uA, uCropA, uvA) * uPronto;
-      vec2 o = uBordo * 3.0;
-      float nb = (campiona(uA, uCropA, uvA + vec2(o.x, 0.0)).a + campiona(uA, uCropA, uvA - vec2(o.x, 0.0)).a + campiona(uA, uCropA, uvA + vec2(0.0, o.y)).a + campiona(uA, uCropA, uvA - vec2(0.0, o.y)).a) * 0.25 * uPronto;
-      float bordo = clamp((cc.a - nb) * 3.0, 0.0, 1.0);
-      float m = apri(tr.r, pp, uTempo) * uLucido;
-      col = mix(col, acquerello(cc, bordo, pp + px * 0.5, uStagione, col, 0.0), m);
-      col += vec3(1.0, 0.78, 0.45) * filoVita(tr.r, pp, uTempo) * 0.12 * uLucido;
-    }
-  }
   // il pannello centrale è più luminoso: gli altri affondano nel fondo
   col = mix(uFondo, col, uLuce);
   if (uRiflesso < 0.5) {

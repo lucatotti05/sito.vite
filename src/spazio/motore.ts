@@ -130,13 +130,12 @@ class Motore {
   luceStagione = new THREE.Vector3()
   /**
    * IL PENNELLO DEL CURSORE: la scia (due texture a un quarto della risoluzione che si passano il
-   * testimone a ogni fotogramma) e l'istantanea della tavola che, sotto la scia, diventa pittura.
+   * testimone a ogni fotogramma); sopra le schede non dipinge.
    * Solo con il mouse e senza movimento ridotto, come la lanterna.
    */
   scia!: { a: THREE.WebGLRenderTarget; b: THREE.WebGLRenderTarget; scena: THREE.Scene; mat: THREE.ShaderMaterial; x: number; y: number; vx: number; vy: number; energia: number; nuovo: boolean }
   uTraccia = { value: VUOTA as THREE.Texture }
   uTracciaOn = { value: 0 }
-  uRisDev = { value: new THREE.Vector2(1, 1) }
   uTempo = { value: 0 }
   /** il mondo nascosto: una tavola dipinta per stagione (public/mondo/), scoperta dal cursore */
   mondo: (THREE.Texture | null)[] = [null, null, null, null]
@@ -369,10 +368,6 @@ class Motore {
         uAngolo: { value: 0 },
         uRiflesso: { value: 0 },
         uLucido: { value: 1 },
-        uTraccia: this.uTraccia,
-        uTracciaOn: this.uTracciaOn,
-        uTempo: this.uTempo,
-        uRisDev: this.uRisDev,
         ...this.uniformLanterna(),
       }
       const m = new THREE.ShaderMaterial({ vertexShader: PANNELLO_V, fragmentShader: PANNELLO_F, uniforms: u, ...premolt, depthWrite: true })
@@ -499,7 +494,11 @@ class Motore {
     }
     const dx = tx - sc.x, dy = ty - sc.y
     const dist = Math.hypot(dx, dy)
-    if (dist > 0.6) {
+    if (this.pannelloSotto(m.tx, m.ty) >= 0) {
+      // sopra una scheda il pennello si alza: niente colpi, e uscendo non si traccia un tratto attraverso
+      sc.x = tx
+      sc.y = ty
+    } else if (dist > 0.6) {
       // la velocità del gesto (px della scia al secondo), per la direzione e la larghezza del colpo
       const v = dist / Math.max(dt, 1 / 240)
       sc.vx = dx / dist
@@ -620,7 +619,6 @@ class Motore {
     vu.uDpr.value = this.dpr
     this.cielo.material.uniforms.uRis.value.set(this.vw, this.H)
     this.cielo.material.uniforms.uDpr.value = this.dpr
-    this.uRisDev.value.set(this.vw * this.dpr, this.H * this.dpr)
     const ws = Math.max(4, Math.round(this.vw / 4)), hs = Math.max(4, Math.round(this.H / 4))
     this.scia.a.setSize(ws, hs)
     this.scia.b.setSize(ws, hs)
